@@ -1,0 +1,17 @@
+---
+Checks:
+  - '-*'
+  - 'clang-analyzer-*'
+  - 'bugprone-*'
+  - 'performance-*'
+  - 'readability-identifier-naming'
+
+ExtraArgs:
+  - '-Wno-ignored-attributes'
+WarningsAsErrors:
+  - 'bugprone-*'
+
+HeaderFilterRegex: ''
+
+FormatStyle: file
+---
