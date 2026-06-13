@@ -5,7 +5,7 @@ BasedOnStyle: Google
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
-ColumnLimit: 80
+ColumnLimit: 81
 
 BreakBeforeBraces: Attach
 
@@ -14,8 +14,10 @@ AlignConsecutiveDeclarations: true
 AlignConsecutiveAssignments: true
 
 BinPackParameters: false
-ContinuationIndentWidth: 4
+ContinuationIndentWidth: 5
 
 SortIncludes: false
 IncludeBlocks: Preserve
+
+PointerAlignment: Right
 ---

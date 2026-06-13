@@ -5,6 +5,7 @@ Checks:
   - 'bugprone-*'
   - 'performance-*'
   - 'readability-identifier-naming'
+  - '-bugprone-easily-swappable-parameters'
 
 ExtraArgs:
   - '-Wno-ignored-attributes'

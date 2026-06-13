@@ -1,2 +1,9 @@
 CompileFlags:
   Add: [-std=c23, -Wall, -Wextra]
+
+---
+If:
+  PathMatch: .*\.h
+CompileFlags:
+  Add: [-x, c, -std=c23]
+---
