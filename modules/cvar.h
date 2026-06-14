@@ -11,23 +11,8 @@ typedef enum {
     CVAR_STRING = 3
 } cvar_type;
 
-typedef struct {
-    const char *name;
-    cvar_type   type;
-    size_t      capacity;
-    union {
-        int   i;
-        float f;
-        bool  b;
-        char *s;
-    } value;
-} cvar_t;
-
-typedef struct {
-    cvar_t *data;
-    size_t  size;
-    size_t  capacity;
-} cvar_table;
+typedef struct cvar_table cvar_table;
+typedef struct cvar_t     cvar_t;
 
 void cvar_destroy(cvar_table *table);
 
@@ -47,6 +32,28 @@ bool cvar_set(cvar_table *table, const char *name, cvar_type type, void *value);
 #ifndef CVAR_DEFAULT_CAPACITY
 #define CVAR_DEFAULT_CAPACITY 8
 #endif
+
+#ifndef CVAR_NAME_MAX
+#define CVAR_NAME_MAX 64
+#endif
+
+struct cvar_t {
+    char      name[CVAR_NAME_MAX];
+    cvar_type type;
+    size_t    capacity;
+    union {
+        int   i;
+        float f;
+        bool  b;
+        char *s;
+    } value;
+};
+
+struct cvar_table {
+    cvar_t *data;
+    size_t  size;
+    size_t  capacity;
+};
 
 void cvar_destroy(cvar_table *table) {
     if (!table) return;
@@ -70,6 +77,8 @@ cvar_t *cvar_get(cvar_table *table, const char *name) {
 bool cvar_set(cvar_table *table, const char *name, cvar_type type, void *value) {
     if (!table) return false;
     if (!name) return false;
+
+    if (strlen(name) >= CVAR_NAME_MAX) return false;
 
     cvar_t *cv     = cvar_get(table, name);
     bool    is_new = (cv == NULL);
@@ -95,7 +104,7 @@ bool cvar_set(cvar_table *table, const char *name, cvar_type type, void *value) 
         cv = &table->data[table->size];
     }
 
-    cv->name     = name;
+    memcpy(cv->name, name, strlen(name) + 1);
     cv->type     = type;
     cv->capacity = 0;
 

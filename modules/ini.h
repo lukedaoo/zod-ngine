@@ -2,14 +2,15 @@
 #define INI_H_
 
 #include <assert.h>
+#include <stdbool.h>
 
-typedef int (*ini_handler)(const char *section,
-                           const char *key,
-                           const char *value,
-                           void       *user);
+typedef bool (*ini_handler)(const char *section,
+                            const char *key,
+                            const char *value,
+                            void       *user);
 
-int ini_parse(const char *filename, ini_handler handler, void *user);
-int ini_parse_string(const char *string, ini_handler handler, void *user);
+bool ini_parse(const char *filename, ini_handler handler, void *user);
+bool ini_parse_string(const char *string, ini_handler handler, void *user);
 
 #ifdef INI_IMPLEMENTATION
 
@@ -79,11 +80,11 @@ static int ini_parse_line(char       *line,
     return handler(section, key, val, user) ? 0 : -1;
 }
 
-int ini_parse(const char *filename, ini_handler handler, void *user) {
+bool ini_parse(const char *filename, ini_handler handler, void *user) {
     assert(handler != NULL);
 
     FILE *file = fopen(filename, "r");
-    if (!file) return -1;
+    if (!file) return false;
 
     char line[INI_LINE_STR_MAX_SIZE];
     char section[INI_SECTION_STR_MAX_SIZE] = "";
@@ -91,15 +92,15 @@ int ini_parse(const char *filename, ini_handler handler, void *user) {
     while (fgets(line, sizeof(line), file) != NULL) {
         if (ini_parse_line(line, section, handler, user) != 0) {
             fclose(file);
-            return -1;
+            return false;
         }
     }
 
     fclose(file);
-    return 0;
+    return true;
 }
 
-int ini_parse_string(const char *string, ini_handler handler, void *user) {
+bool ini_parse_string(const char *string, ini_handler handler, void *user) {
     assert(handler != NULL);
     assert(string != NULL);
 
@@ -114,13 +115,13 @@ int ini_parse_string(const char *string, ini_handler handler, void *user) {
         memcpy(line, p, copy_len);
         line[copy_len] = '\0';
 
-        if (ini_parse_line(line, section, handler, user) != 0) return -1;
+        if (ini_parse_line(line, section, handler, user) != 0) return false;
 
         p += len;
         if (*p == '\n') p++;
     }
 
-    return 0;
+    return true;
 }
 
 #endif  // INI_IMPLEMENTATION

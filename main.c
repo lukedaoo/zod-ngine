@@ -1,8 +1,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_render.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #define INI_IMPLEMENTATION
 #include "modules/ini.h"
 
@@ -13,33 +11,18 @@
 #define LOG_USE_COLOR
 #include "modules/log.h"
 
+#define CVAR_LOAD_IMPLEMENTATION
+#include "modules/cvar_load.h"
+
+#define FILE_WATCHER_IMPLEMENTATION
+#include "modules/file_watcher.h"
+
 struct Window {
     uint32_t      width;
     uint32_t      height;
     SDL_Window   *window;
     SDL_Renderer *renderer;
 };
-
-static int cvar_ini_handler(const char *section,
-                            const char *name,
-                            const char *value,
-                            void       *user) {
-    cvar_table *cvars = user;
-
-#define MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
-    if (MATCH("protocol", "version")) {
-        int version = atoi(value);
-        cvar_set(cvars, "protocol.version", CVAR_INT, &version);
-    } else if (MATCH("user", "name")) {
-        cvar_set(cvars, "user.name", CVAR_STRING, (void *)value);
-    } else if (MATCH("user", "email")) {
-        cvar_set(cvars, "user.email", CVAR_STRING, (void *)value);
-    } else {
-        return 0;
-    }
-    return 1;
-#undef MATCH
-}
 
 typedef struct {
     cvar_t *version;
@@ -52,7 +35,7 @@ int main(void) {
 
     log_debug("Hello World");
 
-    if (ini_parse("test.ini", cvar_ini_handler, &cvars) < 0) {
+    if (!cvar_load_ini(&cvars, "test.ini", cvar_default_ini_handler)) {
         printf("Can't load 'test.ini'\n");
         return 1;
     }
@@ -62,10 +45,6 @@ int main(void) {
          .name    = cvar_get(&cvars, "user.name"),
          .email   = cvar_get(&cvars, "user.email"),
     };
-
-    printf("version: %d\n", config.version->value.i);
-    printf("name: %s\n", config.name->value.s);
-    printf("email: %s\n", config.email->value.s);
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
@@ -95,7 +74,26 @@ int main(void) {
     char     fps_buffer[32] = "FPS: 0";
 
     bool running = true;
+
+    file_watcher *w = file_watcher_watch("test.ini");
     while (running) {
+        file_status status = file_watcher_check(w);
+        if (status == FILE_CHANGED) {
+            printf("Configuration changed\n");
+            if (cvar_load_ini(&cvars, "test.ini", cvar_default_ini_handler)) {
+                config.version = cvar_get(&cvars, "protocol.version");
+                config.name    = cvar_get(&cvars, "user.name");
+                config.email   = cvar_get(&cvars, "user.email");
+
+                if (config.version) printf("version: %d\n", config.version->value.i);
+                if (config.name) printf("name: %s\n", config.name->value.s);
+                if (config.email) printf("email: %s\n", config.email->value.s);
+                if (cvar_get(&cvars, "user.password"))  {
+                printf("password: %s\n",
+                       cvar_get(&cvars, "user.password")->value.s);
+                }
+            }
+        }
         uint64_t current_time = SDL_GetTicksNS();
         frame_count++;
 

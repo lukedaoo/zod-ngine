@@ -19,12 +19,12 @@ typedef struct {
     int           limit;
 } Captured;
 
-static int capture_handler(const char *section,
-                           const char *key,
-                           const char *value,
-                           void       *user) {
+static bool capture_handler(const char *section,
+                            const char *key,
+                            const char *value,
+                            void       *user) {
     Captured *cap = user;
-    if (cap->count >= MAX_CAPTURED) return 0;
+    if (cap->count >= MAX_CAPTURED) return false;
 
     CapturedEntry *e = &cap->entries[cap->count];
     strncpy(e->section, section, sizeof(e->section) - 1);
@@ -35,8 +35,7 @@ static int capture_handler(const char *section,
     e->value[sizeof(e->value) - 1] = '\0';
     cap->count++;
 
-    if (cap->limit > 0 && cap->count >= cap->limit) return 0;
-    return 1;
+    return !(cap->limit > 0 && cap->count >= cap->limit);
 }
 
 MU_TEST(test_parse_string_sections_and_duplicate_keys) {
@@ -49,9 +48,9 @@ MU_TEST(test_parse_string_sections_and_duplicate_keys) {
          "value   =   3\n";
 
     Captured cap = {0};
-    int      rc  = ini_parse_string(ini, capture_handler, &cap);
+    bool     rc  = ini_parse_string(ini, capture_handler, &cap);
 
-    mu_assert_int_eq(0, rc);
+    mu_check(rc);
     mu_assert_int_eq(3, cap.count);
 
     mu_assert_string_eq("group1", cap.entries[0].section);
@@ -74,9 +73,9 @@ MU_TEST(test_parse_string_comments_and_leading_whitespace) {
          "  key = val\n";
 
     Captured cap = {0};
-    int      rc  = ini_parse_string(ini, capture_handler, &cap);
+    bool     rc  = ini_parse_string(ini, capture_handler, &cap);
 
-    mu_assert_int_eq(0, rc);
+    mu_check(rc);
     mu_assert_int_eq(1, cap.count);
     mu_assert_string_eq("s", cap.entries[0].section);
     mu_assert_string_eq("key", cap.entries[0].key);
@@ -87,9 +86,9 @@ MU_TEST(test_parse_string_no_trailing_newline) {
     const char *ini = "[s]\nkey=val";
 
     Captured cap = {0};
-    int      rc  = ini_parse_string(ini, capture_handler, &cap);
+    bool     rc  = ini_parse_string(ini, capture_handler, &cap);
 
-    mu_assert_int_eq(0, rc);
+    mu_check(rc);
     mu_assert_int_eq(1, cap.count);
     mu_assert_string_eq("val", cap.entries[0].value);
 }
@@ -102,9 +101,9 @@ MU_TEST(test_parse_string_handler_failure_stops_parsing) {
 
     Captured cap = {0};
     cap.limit    = 1;
-    int rc       = ini_parse_string(ini, capture_handler, &cap);
+    bool rc      = ini_parse_string(ini, capture_handler, &cap);
 
-    mu_assert_int_eq(-1, rc);
+    mu_check(!rc);
     mu_assert_int_eq(1, cap.count);
 }
 
@@ -116,9 +115,9 @@ MU_TEST(test_parse_string_inline_comment_stripped) {
          "c = 789\n";
 
     Captured cap = {0};
-    int      rc  = ini_parse_string(ini, capture_handler, &cap);
+    bool     rc  = ini_parse_string(ini, capture_handler, &cap);
 
-    mu_assert_int_eq(0, rc);
+    mu_check(rc);
     mu_assert_int_eq(3, cap.count);
 
     mu_assert_string_eq("123", cap.entries[0].value);
@@ -134,9 +133,9 @@ MU_TEST(test_parse_string_value_starting_with_hash_not_comment) {
          "color=#ff0000\n";
 
     Captured cap = {0};
-    int      rc  = ini_parse_string(ini, capture_handler, &cap);
+    bool     rc  = ini_parse_string(ini, capture_handler, &cap);
 
-    mu_assert_int_eq(0, rc);
+    mu_check(rc);
     mu_assert_int_eq(1, cap.count);
 
     mu_assert_string_eq("#ff0000", cap.entries[0].value);
@@ -144,9 +143,9 @@ MU_TEST(test_parse_string_value_starting_with_hash_not_comment) {
 
 MU_TEST(test_parse_string_empty_input) {
     Captured cap = {0};
-    int      rc  = ini_parse_string("", capture_handler, &cap);
+    bool     rc  = ini_parse_string("", capture_handler, &cap);
 
-    mu_assert_int_eq(0, rc);
+    mu_check(rc);
     mu_assert_int_eq(0, cap.count);
 }
 
