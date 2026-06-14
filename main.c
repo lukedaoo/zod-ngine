@@ -2,8 +2,16 @@
 #include <SDL3/SDL_render.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #define INI_IMPLEMENTATION
 #include "modules/ini.h"
+
+#define CVAR_IMPLEMENTATION
+#include "modules/cvar.h"
+
+#define LOG_IMPLEMENTATION
+#define LOG_USE_COLOR
+#include "modules/log.h"
 
 struct Window {
     uint32_t      width;
@@ -12,42 +20,52 @@ struct Window {
     SDL_Renderer *renderer;
 };
 
-typedef struct {
-    int         version;
-    const char *name;
-    const char *email;
-} configuration;
+static int cvar_ini_handler(const char *section,
+                            const char *name,
+                            const char *value,
+                            void       *user) {
+    cvar_table *cvars = user;
 
-static int handler(const char *section,
-                   const char *name,
-                   const char *value,
-                   void       *user) {
-    configuration *pconfig = (configuration *)user;
-
-#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
+#define MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
     if (MATCH("protocol", "version")) {
-        pconfig->version = atoi(value);
+        int version = atoi(value);
+        cvar_set(cvars, "protocol.version", CVAR_INT, &version);
     } else if (MATCH("user", "name")) {
-        pconfig->name = strdup(value);
+        cvar_set(cvars, "user.name", CVAR_STRING, (void *)value);
     } else if (MATCH("user", "email")) {
-        pconfig->email = strdup(value);
+        cvar_set(cvars, "user.email", CVAR_STRING, (void *)value);
     } else {
         return 0;
     }
     return 1;
+#undef MATCH
 }
 
-int main(void) {
-    configuration config;
+typedef struct {
+    cvar_t *version;
+    cvar_t *name;
+    cvar_t *email;
+} configuration;
 
-    if (ini_parse("test.ini", handler, &config) < 0) {
+int main(void) {
+    cvar_table cvars = {0};
+
+    log_debug("Hello World");
+
+    if (ini_parse("test.ini", cvar_ini_handler, &cvars) < 0) {
         printf("Can't load 'test.ini'\n");
         return 1;
     }
 
-    printf("version: %d\n", config.version);
-    printf("name: %s\n", config.name);
-    printf("email: %s\n", config.email);
+    configuration config = {
+         .version = cvar_get(&cvars, "protocol.version"),
+         .name    = cvar_get(&cvars, "user.name"),
+         .email   = cvar_get(&cvars, "user.email"),
+    };
+
+    printf("version: %d\n", config.version->value.i);
+    printf("name: %s\n", config.name->value.s);
+    printf("email: %s\n", config.email->value.s);
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
@@ -122,5 +140,6 @@ int main(void) {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+    cvar_destroy(&cvars);
     return 0;
 }

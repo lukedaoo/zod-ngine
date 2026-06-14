@@ -9,28 +9,28 @@
 typedef struct {
     const char *data;
     size_t      size;
-} StringView;
+} string_view;
 
-StringView string_view_init(const char *data, size_t size);
-void       string_view_print(StringView view);
-bool       string_view_equals(StringView a, StringView b);
+string_view string_view_init(const char *data, size_t size);
+void        string_view_print(string_view view);
+bool        string_view_equals(string_view a, string_view b);
 
 #define SV(data)    string_view_init(data, sizeof(data) - 1)
-#define SV_STR(str) ((StringView){.data = (str), .size = strlen(str)})
+#define SV_STR(str) ((string_view){.data = (str), .size = strlen(str)})
 
 #ifdef STRING_VIEW_IMPLEMENTATION
-StringView string_view_init(const char *data, size_t size) {
-    StringView view;
+string_view string_view_init(const char *data, size_t size) {
+    string_view view;
     view.data = data;
     view.size = size;
     return view;
 }
 
-void string_view_print(StringView view) {
+void string_view_print(string_view view) {
     printf("%.*s", (int)view.size, view.data);
 }
 
-bool string_view_equals(StringView a, StringView b) {
+bool string_view_equals(string_view a, string_view b) {
     return a.size == b.size && memcmp(a.data, b.data, a.size) == 0;
 }
 

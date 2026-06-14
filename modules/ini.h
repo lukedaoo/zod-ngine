@@ -3,30 +3,35 @@
 
 #include <assert.h>
 
-typedef int (*int_handler)(const char *section,
+typedef int (*ini_handler)(const char *section,
                            const char *key,
                            const char *value,
                            void       *user);
 
-int ini_parse(const char *filename, int_handler handler, void *user);
-int ini_parse_string(const char *string, int_handler handler, void *user);
-
-#ifndef INI_MAX_LINE
-#define INI_MAX_LINE 256
-#endif
-
-#ifndef INI_MAX_SECTION
-#define INI_MAX_SECTION 64
-#endif
+int ini_parse(const char *filename, ini_handler handler, void *user);
+int ini_parse_string(const char *string, ini_handler handler, void *user);
 
 #ifdef INI_IMPLEMENTATION
 
-static constexpr char INI_WHITESPACE[]       = " \t\r\n";
-static constexpr char INI_COMMENT_PREFIXES[] = "; #";
+#ifndef INI_LINE_STR_MAX_SIZE
+#define INI_LINE_STR_MAX_SIZE 1024
+#endif
+
+#ifndef INI_SECTION_STR_MAX_SIZE
+#define INI_SECTION_STR_MAX_SIZE 128
+#endif
+
+#ifndef INI_WHITESPACE
+#define INI_WHITESPACE " \t\r\n"
+#endif
+
+#ifndef INI_COMMENT_PREFIXES
+#define INI_COMMENT_PREFIXES "; #"
+#endif
 
 static int ini_parse_line(char       *line,
                           char       *section,
-                          int_handler handler,
+                          ini_handler handler,
                           void       *user) {
     char *start = line;
     start += strspn(start, INI_WHITESPACE);
@@ -39,7 +44,7 @@ static int ini_parse_line(char       *line,
         char *end = strchr(start, ']');
         if (end) {
             *end = '\0';
-            strncpy(section, start + 1, INI_MAX_SECTION - 1);
+            strncpy(section, start + 1, INI_SECTION_STR_MAX_SIZE - 1);
         }
         return 0;
     }
@@ -56,9 +61,6 @@ static int ini_parse_line(char       *line,
 
     val += strspn(val, " \t");
 
-    /* Strip a trailing "# comment" or "; comment". Must be preceded by
-     * whitespace AND have at least one value char before that, so
-     * "color=#ff0000" keeps its literal '#' but "123 #test" -> "123" */
     if (val[0] != '\0') {
         for (size_t i = 1; val[i]; i++) {
             if ((val[i] == '#' || val[i] == ';') &&
@@ -77,14 +79,14 @@ static int ini_parse_line(char       *line,
     return handler(section, key, val, user) ? 0 : -1;
 }
 
-int ini_parse(const char *filename, int_handler handler, void *user) {
+int ini_parse(const char *filename, ini_handler handler, void *user) {
     assert(handler != NULL);
 
     FILE *file = fopen(filename, "r");
     if (!file) return -1;
 
-    char line[INI_MAX_LINE];
-    char section[INI_MAX_SECTION] = "";
+    char line[INI_LINE_STR_MAX_SIZE];
+    char section[INI_SECTION_STR_MAX_SIZE] = "";
 
     while (fgets(line, sizeof(line), file) != NULL) {
         if (ini_parse_line(line, section, handler, user) != 0) {
@@ -97,12 +99,12 @@ int ini_parse(const char *filename, int_handler handler, void *user) {
     return 0;
 }
 
-int ini_parse_string(const char *string, int_handler handler, void *user) {
+int ini_parse_string(const char *string, ini_handler handler, void *user) {
     assert(handler != NULL);
     assert(string != NULL);
 
-    char line[INI_MAX_LINE];
-    char section[INI_MAX_SECTION] = "";
+    char line[INI_LINE_STR_MAX_SIZE];
+    char section[INI_SECTION_STR_MAX_SIZE] = "";
 
     const char *p = string;
     while (*p) {
