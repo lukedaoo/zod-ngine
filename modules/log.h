@@ -26,12 +26,10 @@ void log_log(int level, const char *source_file, int line, const char *fmt, ...)
 
 #ifdef LOG_IMPLEMENTATION
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
 
-static const char *level_strings[] = {"TRACE", "DEBUG", "INFO",
-                                      "WARN",  "ERROR", "FATAL"};
+static const char *level_strings[] = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
 
 struct log_event {
     va_list     args;
@@ -49,8 +47,7 @@ static struct {
 
 void log_set_level(int level) { log_config.level = level; }
 
-void log_log(
-     int level, const char *source_file, int line, const char *fmt, ...) {
+void log_log(int level, const char *source_file, int line, const char *fmt, ...) {
     log_event ev = {
          .fmt         = fmt,
          .source_file = source_file,
@@ -73,11 +70,10 @@ void log_log(
     buf[strftime(buf, sizeof(buf), "%H:%M:%S", ev.time)] = '\0';
 #ifdef LOG_USE_COLOR
     fprintf(ev.dest, "%s %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ", buf,
-            level_colors[ev.level], level_strings[ev.level], ev.source_file,
-            ev.line);
+            level_colors[ev.level], level_strings[ev.level], ev.source_file, ev.line);
 #else
-    fprintf(ev.dest, "%s %-5s %s:%d: ", buf, level_strings[ev.level],
-            ev.source_file, ev.line);
+    fprintf(ev.dest, "%s %-5s %s:%d: ", buf, level_strings[ev.level], ev.source_file,
+            ev.line);
 #endif
     vfprintf(ev.dest, ev.fmt, ev.args);
     fprintf(ev.dest, "\n");

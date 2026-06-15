@@ -1,9 +1,8 @@
 #ifndef CVAR_LOAD_H
 #define CVAR_LOAD_H
+
 #include "cvar.h"
 #include "ini.h"
-
-#include <stdbool.h>
 
 bool cvar_load_ini(cvar_table *table, const char *ini_path, ini_handler handler);
 
@@ -16,7 +15,6 @@ bool cvar_default_ini_handler(const char *section,
                               void       *user);
 
 #ifdef CVAR_LOAD_IMPLEMENTATION
-#include "log.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,13 +49,9 @@ bool cvar_default_ini_handler(const char *section,
     return cvar_set(cvars, name, CVAR_STRING, (void *)value);
 }
 
-bool cvar_load_ini(cvar_table *table,
-                   const char *ini_path,
-                   ini_handler handler) {
+bool cvar_load_ini(cvar_table *table, const char *ini_path, ini_handler handler) {
     cvar_table next = {0};
     if (!ini_parse(ini_path, handler, &next) || next.size == 0) {
-        log_error("cvar_load_ini: failed to parse %s, keeping previous config",
-                  ini_path);
         cvar_destroy(&next);
         return false;
     }

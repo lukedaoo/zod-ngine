@@ -1,7 +1,6 @@
 #ifndef STRING_VIEW_H_
 #define STRING_VIEW_H_
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -29,9 +28,7 @@ string_view string_view_init(const char *data, size_t size) {
     return view;
 }
 
-void string_view_print(string_view view) {
-    printf("%.*s", (int)view.size, view.data);
-}
+void string_view_print(string_view view) { printf("%.*s", (int)view.size, view.data); }
 
 bool string_view_equals(string_view a, string_view b) {
     return a.size == b.size && memcmp(a.data, b.data, a.size) == 0;

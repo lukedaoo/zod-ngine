@@ -15,7 +15,6 @@ file_status   file_watcher_check(file_watcher *w);
 void          file_watcher_close(file_watcher *w);
 
 #ifdef FILE_WATCHER_IMPLEMENTATION
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>

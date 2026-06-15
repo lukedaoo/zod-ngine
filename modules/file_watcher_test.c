@@ -7,7 +7,11 @@
 #define FILE_WATCHER_IMPLEMENTATION
 #include "file_watcher.h"
 
+#ifdef _WIN32
+#define TEST_FILE "tmp/file_watcher_test.txt"
+#else
 #define TEST_FILE "/tmp/file_watcher_test.txt"
+#endif
 
 static void touch(const char *path) {
     FILE *f = fopen(path, "w");
@@ -75,7 +79,11 @@ MU_TEST(test_watch_nonexistent_then_create) {
 }
 
 MU_TEST(test_watch_directory_rejected) {
+#ifdef _WIN32
+    file_watcher *w = file_watcher_watch("tmp");
+#else
     file_watcher *w = file_watcher_watch("/tmp");
+#endif
     mu_check(w == NULL);
 }
 

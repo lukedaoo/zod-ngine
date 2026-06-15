@@ -15,6 +15,10 @@
 #endif
 
 int run_tests(void) {
+#ifdef _WIN32
+    if (!nob_mkdir_if_not_exists("tmp")) return 1;
+#endif
+
     Nob_File_Paths modules = {0};
     if (!nob_read_entire_dir("modules", &modules)) return 1;
 
@@ -23,8 +27,7 @@ int run_tests(void) {
         if (!nob_sv_ends_with_cstr(nob_sv_from_cstr(name), "_test.c")) continue;
 
         const char *src = nob_temp_sprintf("modules/%s", name);
-        const char *bin =
-             nob_temp_sprintf("./%.*s.out", (int)(strlen(name) - 2), name);
+        const char *bin = nob_temp_sprintf("./%.*s.out", (int)(strlen(name) - 2), name);
 
         Nob_Cmd test_cmd = {0};
         nob_cmd_append(&test_cmd, C_COMPILER, C_FLAGS, "-o", bin, src);
@@ -45,8 +48,7 @@ int main(int argc, char **argv) {
     }
 
     Nob_Cmd cmd = {0};
-    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", C_TARGET, C_ENTRY,
-                   SDL_FLAGS);
+    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", C_TARGET, C_ENTRY, SDL_FLAGS);
     if (argc > 1 && strcmp(argv[1], "debug") == 0) {
         nob_cmd_append(&cmd, C_DEBUG_FLAGS);
     } else if (argc > 1 && strcmp(argv[1], "release") == 0) {

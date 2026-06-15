@@ -4,9 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define LOG_IMPLEMENTATION
-#include "log.h"
-
 #define CVAR_IMPLEMENTATION
 #include "cvar.h"
 
@@ -16,7 +13,11 @@
 #define CVAR_LOAD_IMPLEMENTATION
 #include "cvar_load.h"
 
+#ifdef _WIN32
+#define TEST_INI "tmp/cvar_load_test.ini"
+#else
 #define TEST_INI "/tmp/cvar_load_test.ini"
+#endif
 
 static void write_file(const char *path, const char *content) {
     FILE *f = fopen(path, "w");

@@ -1,9 +1,6 @@
 #ifndef INI_H_
 #define INI_H_
 
-#include <assert.h>
-#include <stdbool.h>
-
 typedef bool (*ini_handler)(const char *section,
                             const char *key,
                             const char *value,
@@ -33,10 +30,7 @@ bool ini_parse_string(const char *string, ini_handler handler, void *user);
 #define INI_COMMENT_PREFIXES "; #"
 #endif
 
-static int ini_parse_line(char       *line,
-                          char       *section,
-                          ini_handler handler,
-                          void       *user) {
+static int ini_parse_line(char *line, char *section, ini_handler handler, void *user) {
     char *start = line;
     start += strspn(start, INI_WHITESPACE);
 
@@ -84,8 +78,7 @@ static int ini_parse_line(char       *line,
 }
 
 bool ini_parse(const char *filename, ini_handler handler, void *user) {
-    assert(handler != NULL);
-
+    if (!handler) return false;
     FILE *file = fopen(filename, "r");
     if (!file) return false;
 
@@ -104,8 +97,8 @@ bool ini_parse(const char *filename, ini_handler handler, void *user) {
 }
 
 bool ini_parse_string(const char *string, ini_handler handler, void *user) {
-    assert(handler != NULL);
-    assert(string != NULL);
+    if (!handler) return false;
+    if (!string) return false;
 
     char line[INI_LINE_STR_MAX_SIZE];
     char section[INI_SECTION_STR_MAX_SIZE] = "";

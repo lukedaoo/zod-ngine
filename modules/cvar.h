@@ -1,15 +1,7 @@
 #ifndef CVAR_H
 #define CVAR_H
 
-#include <stdbool.h>
-#include <stddef.h>
-
-typedef enum {
-    CVAR_INT    = 0,
-    CVAR_FLOAT  = 1,
-    CVAR_BOOL   = 2,
-    CVAR_STRING = 3
-} cvar_type;
+typedef enum { CVAR_INT, CVAR_FLOAT, CVAR_BOOL, CVAR_STRING } cvar_type;
 
 typedef struct cvar_table cvar_table;
 typedef struct cvar_t     cvar_t;
@@ -22,6 +14,7 @@ cvar_t *cvar_get(cvar_table *table, const char *name);
 bool cvar_set(cvar_table *table, const char *name, cvar_type type, void *value);
 
 #ifdef CVAR_IMPLEMENTATION
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -89,9 +82,9 @@ bool cvar_set(cvar_table *table, const char *name, cvar_type type, void *value) 
         if (table->size >= CVAR_TABLE_MAX_SIZE) return false;
 
         if (table->data == NULL) {
-            table->capacity = (table->capacity == 0) ? CVAR_DEFAULT_CAPACITY
-                                                     : table->capacity;
-            table->data     = malloc(sizeof(cvar_t) * table->capacity);
+            table->capacity =
+                 (table->capacity == 0) ? CVAR_DEFAULT_CAPACITY : table->capacity;
+            table->data = malloc(sizeof(cvar_t) * table->capacity);
             if (!table->data) return false;
         } else if (table->size >= table->capacity) {
             size_t  new_cap  = table->capacity * 2;
