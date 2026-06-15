@@ -14,6 +14,9 @@ bool ini_parse_string(const char *string, ini_handler handler, void *user);
 
 #ifdef INI_IMPLEMENTATION
 
+#include <stdio.h>
+#include <string.h>
+
 #ifndef INI_LINE_STR_MAX_SIZE
 #define INI_LINE_STR_MAX_SIZE 1024
 #endif

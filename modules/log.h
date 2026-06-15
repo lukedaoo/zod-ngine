@@ -27,6 +27,7 @@ void log_log(int level, const char *source_file, int line, const char *fmt, ...)
 #ifdef LOG_IMPLEMENTATION
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <time.h>
 
 static const char *level_strings[] = {"TRACE", "DEBUG", "INFO",

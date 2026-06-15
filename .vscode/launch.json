@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug main",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "gdb",
+            "externalConsole": false,
+            "preLaunchTask": "nob: debug",
+            "windows": {
+                "program": "${workspaceFolder}/main.exe"
+            },
+            "linux": {
+                "program": "${workspaceFolder}/main"
+            }
+        }
+    ]
+}

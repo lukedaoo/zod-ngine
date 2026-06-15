@@ -88,9 +88,8 @@ int main(void) {
                 if (config.version) printf("version: %d\n", config.version->value.i);
                 if (config.name) printf("name: %s\n", config.name->value.s);
                 if (config.email) printf("email: %s\n", config.email->value.s);
-                if (cvar_get(&cvars, "user.password"))  {
-                printf("password: %s\n",
-                       cvar_get(&cvars, "user.password")->value.s);
+                if (cvar_get(&cvars, "user.password")) {
+                    printf("password: %s\n", cvar_get(&cvars, "user.password")->value.s);
                 }
             }
         }

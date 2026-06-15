@@ -4,25 +4,19 @@ CompileFlags:
 If:
   PathMatch: .*\.h
 CompileFlags:
-  Add: [-x, c, -std=c23]
----
-
----
-If:
-  PathMatch: .*/index\.h$
-CompileFlags:
   Add:
+    - -x
+    - c
+    - -std=c23
     - -DLOG_IMPLEMENTATION
     - -DSTRING_VIEW_IMPLEMENTATION
     - -DINI_IMPLEMENTATION
     - -DCVAR_IMPLEMENTATION
+    - -DCVAR_LOAD_IMPLEMENTATION
     - -DFILE_WATCHER_IMPLEMENTATION
     # Add new modules here
----
-
 ---
 If:
   PathMatch: .*/index\.h$
 Diagnostics:
   Suppress: unused-includes
----

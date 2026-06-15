@@ -1,11 +1,18 @@
 #define NOB_IMPLEMENTATION
 #include "lib/nob.h"
 
-#define C_COMPILER "clang"
-#define C_FLAGS    "-Wall", "-Wextra", "-std=c23"
-#define C_TARGET   "./main"
-#define C_ENTRY    "main.c"
-#define SDL_FLAGS  "-I/usr/include/SDL3", "-lSDL3"
+#define C_COMPILER      "cc"
+#define C_FLAGS         "-Wall", "-Wextra", "-std=c23"
+#define C_DEBUG_FLAGS   "-g", "-O0"
+#define C_RELEASE_FLAGS "-O3", "-DNDEBUG"
+#define C_TARGET        "./main"
+#define C_ENTRY         "main.c"
+
+#ifdef _WIN32
+#define SDL_FLAGS "-I/ucrt64/include/SDL3", "-L/ucrt64/lib", "-lSDL3.dll"
+#elif defined(__linux__)
+#define SDL_FLAGS "-I/usr/include/SDL3", "-lSDL3"
+#endif
 
 int run_tests(void) {
     Nob_File_Paths modules = {0};
@@ -38,8 +45,13 @@ int main(int argc, char **argv) {
     }
 
     Nob_Cmd cmd = {0};
-    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, SDL_FLAGS, "-o", C_TARGET,
-                   C_ENTRY);
+    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", C_TARGET, C_ENTRY,
+                   SDL_FLAGS);
+    if (argc > 1 && strcmp(argv[1], "debug") == 0) {
+        nob_cmd_append(&cmd, C_DEBUG_FLAGS);
+    } else if (argc > 1 && strcmp(argv[1], "release") == 0) {
+        nob_cmd_append(&cmd, C_RELEASE_FLAGS);
+    }
     if (!nob_cmd_run(&cmd)) return 1;
 
     if (argc > 1 && strcmp(argv[1], "run") == 0) {

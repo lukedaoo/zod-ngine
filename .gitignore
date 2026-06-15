@@ -1,4 +1,7 @@
 *.out
 main
+main.exe
 nob
 nob.old
+nob.exe
+nob.exe.old
