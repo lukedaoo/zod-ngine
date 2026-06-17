@@ -24,7 +24,8 @@ int run_tests(void) {
 
     for (size_t i = 0; i < modules.count; ++i) {
         const char *name = modules.items[i];
-        if (!nob_sv_ends_with_cstr(nob_sv_from_cstr(name), "_test.c")) continue;
+        if (!nob_sv_starts_with(nob_sv_from_cstr(name), nob_sv_from_cstr("test_")))
+            continue;
 
         const char *src = nob_temp_sprintf("modules/%s", name);
         const char *bin = nob_temp_sprintf("./%.*s.out", (int)(strlen(name) - 2), name);
