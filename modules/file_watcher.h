@@ -15,11 +15,11 @@ file_status   file_watcher_check(file_watcher *w);
 void          file_watcher_close(file_watcher *w);
 
 #ifdef FILE_WATCHER_IMPLEMENTATION
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-
-#include "log.h"
+#include <time.h>
 
 #ifndef FILE_WATCHER_PATH_MAX
 #define FILE_WATCHER_PATH_MAX 256
@@ -44,13 +44,13 @@ static bool file_watcher_stat(const char *path, time_t *mtime) {
 file_watcher *file_watcher_watch(const char *path) {
     size_t len = strlen(path);
     if (len >= FILE_WATCHER_PATH_MAX) {
-        log_error("file_watcher: path too long: %s", path);
+        fprintf(stderr, "file_watcher: path too long: %s\n", path);
         return NULL;
     }
 
     struct stat st;
     if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
-        log_error("file_watcher: path is a directory: %s", path);
+        fprintf(stderr, "file_watcher: path is a directory: %s\n", path);
         return NULL;
     }
 
@@ -59,7 +59,7 @@ file_watcher *file_watcher_watch(const char *path) {
 
     memcpy(w->path, path, len + 1);
     w->exists = file_watcher_stat(path, &w->mtime);
-    if (!w->exists) log_info("file_watcher: path does not exist yet: %s", path);
+    if (!w->exists) fprintf(stderr, "file_watcher: path does not exist yet: %s\n", path);
 
     return w;
 }

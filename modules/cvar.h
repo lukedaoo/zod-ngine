@@ -26,8 +26,8 @@ bool cvar_set_string(cvar_table *t, const char *name, const char *val);
 #include <stdlib.h>
 #include <string.h>
 
-// maximum size of cvar table
-// @TODO: make this configurable
+// @info: maximum size of cvar table
+// @todo: make this configurable
 #ifndef CVAR_TABLE_MAX_SIZE
 #define CVAR_TABLE_MAX_SIZE 1024
 #endif
@@ -216,6 +216,8 @@ static bool cvar_set(cvar_table *table,
     if (is_new) {
         memcpy(cv->name, name, name_len + 1);
         table->size++;
+
+        printf("cvar_set: registered new cvar %s of type %d\n", name, type);
     }
 
     return true;
