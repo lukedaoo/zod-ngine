@@ -1,0 +1,13 @@
+:/protocol 
+version     2 ; protocol version
+
+:/user
+name        admin
+email       admin@localhostxxxx
+password    admin4
+float_var   1235555F
+
+:/client
+name        user11
+email       user@localhostxxxx
+password    user45522

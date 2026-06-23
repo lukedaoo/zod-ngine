@@ -4,6 +4,9 @@
 #define INI_IMPLEMENTATION
 #include "modules/ini.h"
 
+#define SCF_IMPLEMENTATION
+#include "modules/scf.h"
+
 #define CVAR_IMPLEMENTATION
 #include "modules/cvar.h"
 
@@ -16,6 +19,8 @@
 
 #define FILE_WATCHER_IMPLEMENTATION
 #include "modules/file_watcher.h"
+
+#define RUN_TREE_DIR "run-tree"
 
 struct Window {
     uint32_t      width;
@@ -36,7 +41,8 @@ int main(void) {
 
     log_debug("Hello World");
 
-    if (!cvar_load_ini(&cvars, "test.ini", cvar_default_ini_handler)) {
+    if (!cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf",
+                       cvar_default_config_parser_handler, false)) {
         printf("Can't load 'test.ini'\n");
         return 1;
     }
@@ -75,14 +81,15 @@ int main(void) {
 
     bool running = true;
 
-    file_watcher *w = file_watcher_watch("test.ini");
+    file_watcher *w = file_watcher_watch(RUN_TREE_DIR "/data/test.scf");
     if (!w) return 1;
 
     while (running) {
         file_status status = file_watcher_check(w);
         if (status == FILE_CHANGED) {
             printf("Configuration changed\n");
-            if (cvar_load_ini(&cvars, "test.ini", cvar_default_ini_handler)) {
+            if (cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf",
+                              cvar_default_config_parser_handler, false)) {
                 config.version  = cvar_get(&cvars, "protocol.version");
                 config.name     = cvar_get(&cvars, "user.name");
                 config.email    = cvar_get(&cvars, "user.email");

@@ -80,14 +80,17 @@ cvar_t *cvar_get(cvar_table *table, const char *name) {
 int cvar_get_int(cvar_table *table, const char *name) {
     cvar_t *cv = cvar_get(table, name);
     if (!cv) {
-        printf("cvar_get: the cvar %s does not exist. Return %d as default\n", name, 0);
+        fprintf(stderr,
+                "cvar.cvar_get_int: the cvar %s does not exist. Return %d as default\n",
+                name, 0);
         return 0;
     }
     if (cv->type != CVAR_INT) {
-        printf(
-             "cvar_get: tried to get %s as int, but it has type %d. Return %d as "
-             "default\n",
-             name, cv->type, 0);
+        fprintf(stderr,
+                "cvar.cvar_get_int: tried to get %s as int, but it has type %d. Return "
+                "%d as "
+                "default\n",
+                name, cv->type, 0);
         return 0;
     }
     return cv->value.i;
@@ -96,15 +99,17 @@ int cvar_get_int(cvar_table *table, const char *name) {
 float cvar_get_float(cvar_table *table, const char *name) {
     cvar_t *cv = cvar_get(table, name);
     if (!cv) {
-        printf("cvar_get: the cvar %s does not exist. Return %f as default\n", name,
-               0.0F);
+        fprintf(stderr,
+                "cvar.cvar_get_float: the cvar %s does not exist. Return %f as default\n",
+                name, 0.0F);
         return 0.0F;
     }
     if (cv->type != CVAR_FLOAT) {
-        printf(
-             "cvar_get: tried to get %s as float, but it has type %d. Return %f as "
-             "default\n",
-             name, cv->type, 0.0F);
+        fprintf(stderr,
+                "cvar.cvar_get_float: tried to get %s as float, but it has type %d. "
+                "Return %f as "
+                "default\n",
+                name, cv->type, 0.0F);
         return 0.0F;
     }
     return cv->value.f;
@@ -113,13 +118,15 @@ float cvar_get_float(cvar_table *table, const char *name) {
 bool cvar_get_bool(cvar_table *table, const char *name) {
     cvar_t *cv = cvar_get(table, name);
     if (!cv) {
-        printf("cvar_get: the cvar %s does not exist. Return %d as default\n", name,
-               false);
+        fprintf(stderr,
+                "cvar.cvar_get_bool: the cvar %s does not exist. Return %d as default\n",
+                name, false);
         return false;
     }
     if (cv->type != CVAR_BOOL) {
-        printf("cvar_get: the cvar %s has type %d. Return %d as default\n", name,
-               cv->type, false);
+        fprintf(stderr,
+                "cvar.cvar_get_bool: the cvar %s has type %d. Return %d as default\n",
+                name, cv->type, false);
         return false;
     }
     return cv->value.b;
@@ -128,16 +135,34 @@ bool cvar_get_bool(cvar_table *table, const char *name) {
 const char *cvar_get_string(cvar_table *table, const char *name) {
     cvar_t *cv = cvar_get(table, name);
     if (!cv) {
-        printf("cvar_get: the cvar %s does not exist. Return %s as default\n", name,
-               "NULL");
+        fprintf(
+             stderr,
+             "cvar.cvar_get_string: the cvar %s does not exist. Return %s as default\n",
+             name, "NULL");
         return NULL;
     }
     if (cv->type != CVAR_STRING) {
-        printf("cvar_get: the cvar %s has type %d. Return %s as default\n", name,
-               cv->type, "NULL");
+        fprintf(stderr,
+                "cvar.cvar_get_string: the cvar %s has type %d. Return %s as default\n",
+                name, cv->type, "NULL");
         return NULL;
     }
     return cv->value.s;
+}
+
+static const char *cvar_type_to_string(cvar_type type) {
+    switch (type) {
+        case CVAR_INT:
+            return "int";
+        case CVAR_FLOAT:
+            return "float";
+        case CVAR_BOOL:
+            return "bool";
+        case CVAR_STRING:
+            return "string";
+        default:
+            return "unknown";
+    }
 }
 
 static bool cvar_set(cvar_table *table,
@@ -217,11 +242,13 @@ static bool cvar_set(cvar_table *table,
         memcpy(cv->name, name, name_len + 1);
         table->size++;
 
-        printf("cvar_set: registered new cvar %s of type %d\n", name, type);
+        printf("cvar.cvar_set: registered new cvar %s of type %s\n", name,
+               cvar_type_to_string(type));
     }
 
     return true;
 }
+
 bool cvar_set_int(cvar_table *t, const char *name, int val) {
     return cvar_set(t, name, CVAR_INT, &val);
 }

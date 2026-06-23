@@ -44,13 +44,13 @@ static bool file_watcher_stat(const char *path, time_t *mtime) {
 file_watcher *file_watcher_watch(const char *path) {
     size_t len = strlen(path);
     if (len >= FILE_WATCHER_PATH_MAX) {
-        fprintf(stderr, "file_watcher: path too long: %s\n", path);
+        fprintf(stderr, "file_watcher.watch: path too long: %s\n", path);
         return NULL;
     }
 
     struct stat st;
     if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
-        fprintf(stderr, "file_watcher: path is a directory: %s\n", path);
+        fprintf(stderr, "file_watcher.watch: path is a directory: %s\n", path);
         return NULL;
     }
 
@@ -59,7 +59,8 @@ file_watcher *file_watcher_watch(const char *path) {
 
     memcpy(w->path, path, len + 1);
     w->exists = file_watcher_stat(path, &w->mtime);
-    if (!w->exists) fprintf(stderr, "file_watcher: path does not exist yet: %s\n", path);
+    if (!w->exists)
+        fprintf(stderr, "file_watcher.watch: path does not exist yet: %s\n", path);
 
     return w;
 }

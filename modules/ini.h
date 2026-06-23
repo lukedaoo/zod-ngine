@@ -30,13 +30,11 @@ bool ini_parse_string(const char *string, ini_handler handler, void *user);
 #define INI_COMMENT_PREFIXES "; #"
 #endif
 
-static int ini_parse_line(char *line, char *section, ini_handler handler, void *user) {
+static bool ini_parse_line(char *line, char *section, ini_handler handler, void *user) {
     char *start = line;
     start += strspn(start, INI_WHITESPACE);
 
-    if (*start == '\0' || strchr(INI_COMMENT_PREFIXES, *start)) return 0;
-
-    line[strcspn(line, "\r\n")] = '\0';
+    if (*start == '\0' || strchr(INI_COMMENT_PREFIXES, *start)) return true;
 
     if (*start == '[') {
         char *end = strchr(start, ']');
@@ -45,11 +43,11 @@ static int ini_parse_line(char *line, char *section, ini_handler handler, void *
             strncpy(section, start + 1, INI_SECTION_STR_MAX_SIZE - 1);
             section[INI_SECTION_STR_MAX_SIZE - 1] = '\0';
         }
-        return 0;
+        return true;
     }
 
     char *sep = strpbrk(start, "=:");
-    if (!sep) return 0;
+    if (!sep) return true;
 
     *sep      = '\0';
     char *key = start;
@@ -61,33 +59,37 @@ static int ini_parse_line(char *line, char *section, ini_handler handler, void *
     val += strspn(val, " \t");
 
     if (val[0] != '\0') {
-        for (size_t i = 1; val[i]; i++) {
-            if ((val[i] == '#' || val[i] == ';') &&
-                (val[i - 1] == ' ' || val[i - 1] == '\t')) {
-                val[i] = '\0';
+        char *marker = val + 1;
+        while ((marker = strpbrk(marker, ";#")) != NULL) {
+            if (marker[-1] == ' ' || marker[-1] == '\t') {
+                *marker = '\0';
                 break;
             }
+            marker++;
         }
     }
 
     size_t val_len = strlen(val);
-    while (val_len > 0 && strchr(" \t", val[val_len - 1])) {
+    while (val_len > 0 && strchr(" \t\r\n", val[val_len - 1])) {
         val[--val_len] = '\0';
     }
 
-    return handler(section, key, val, user) ? 0 : -1;
+    return handler(section, key, val, user);
 }
 
 bool ini_parse(const char *filename, ini_handler handler, void *user) {
     if (!handler) return false;
     FILE *file = fopen(filename, "r");
-    if (!file) return false;
+    if (!file) {
+        fprintf(stderr, "ini.ini_parse: could not open file '%s'\n", filename);
+        return false;
+    }
 
     char line[INI_LINE_STR_MAX_SIZE];
     char section[INI_SECTION_STR_MAX_SIZE] = "";
 
     while (fgets(line, sizeof(line), file) != NULL) {
-        if (ini_parse_line(line, section, handler, user) != 0) {
+        if (!ini_parse_line(line, section, handler, user)) {
             fclose(file);
             return false;
         }
@@ -112,7 +114,7 @@ bool ini_parse_string(const char *string, ini_handler handler, void *user) {
         memcpy(line, p, copy_len);
         line[copy_len] = '\0';
 
-        if (ini_parse_line(line, section, handler, user) != 0) return false;
+        if (!ini_parse_line(line, section, handler, user)) return false;
 
         p += len;
         if (*p == '\n') p++;
