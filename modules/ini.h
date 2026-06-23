@@ -30,6 +30,7 @@ bool ini_parse_string(const char *string, ini_handler handler, void *user);
 #define INI_COMMENT_PREFIXES "; #"
 #endif
 
+// @perf: no strpbrk
 static bool ini_parse_line(char *line, char *section, ini_handler handler, void *user) {
     char *start = line;
     start += strspn(start, INI_WHITESPACE);

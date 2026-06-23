@@ -40,7 +40,7 @@ static bool file_watcher_stat(const char *path, time_t *mtime) {
     *mtime = st.st_mtime;
     return true;
 }
-
+// @todo: no log
 file_watcher *file_watcher_watch(const char *path) {
     size_t len = strlen(path);
     if (len >= FILE_WATCHER_PATH_MAX) {

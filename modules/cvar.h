@@ -1,3 +1,11 @@
+// @todo:
+// - @perf:
+//  + no logging (use #define CVAR_LOG/CVAR_DEBUG as guard to enable log)
+//  + use index instead of name
+// - @robust:
+//  + get_* return boolean, output as params
+// - @thread-safe
+
 #ifndef CVAR_H
 #define CVAR_H
 

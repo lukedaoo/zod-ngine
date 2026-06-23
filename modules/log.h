@@ -5,6 +5,7 @@
 // - log to file
 // - log to other streams
 // - add lock for thread safety
+// - add fast_log - printf wrapper - not thread-safe
 
 enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
 typedef struct log_event log_event;
