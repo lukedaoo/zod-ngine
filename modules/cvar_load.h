@@ -31,22 +31,22 @@ bool cvar_default_ini_handler(const char *section,
 
     if (strcmp(value, "true") == 0 || strcmp(value, "false") == 0) {
         bool b = strcmp(value, "true") == 0;
-        return cvar_set(cvars, name, CVAR_BOOL, &b);
+        return cvar_set_bool(cvars, name, b);
     }
 
     char *end;
     long  ival = strtol(value, &end, 10);
     if (*value != '\0' && *end == '\0') {
         int i = (int)ival;
-        return cvar_set(cvars, name, CVAR_INT, &i);
+        return cvar_set_int(cvars, name, i);
     }
 
     float fval = strtof(value, &end);
     if (*value != '\0' && *end == '\0') {
-        return cvar_set(cvars, name, CVAR_FLOAT, &fval);
+        return cvar_set_float(cvars, name, fval);
     }
 
-    return cvar_set(cvars, name, CVAR_STRING, (void *)value);
+    return cvar_set_string(cvars, name, value);
 }
 
 bool cvar_load_ini(cvar_table *table, const char *ini_path, ini_handler handler) {

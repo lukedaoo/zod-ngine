@@ -6,19 +6,19 @@
 MU_TEST(test_cvar_set_insert) {
     cvar_table table = {.data = NULL, .size = 0, .capacity = 8};
 
-    cvar_set(&table, "foo_s", CVAR_STRING, "bar");
+    cvar_set_string(&table, "foo_s", "bar");
     int i = 12;
-    cvar_set(&table, "foo_i", CVAR_INT, &i);
+    cvar_set_int(&table, "foo_i", i);
     float f = 1.1F;
-    cvar_set(&table, "foo_f", CVAR_FLOAT, &f);
+    cvar_set_float(&table, "foo_f", f);
     bool b = true;
-    cvar_set(&table, "foo_b_t1", CVAR_BOOL, (void *)&b);
+    cvar_set_bool(&table, "foo_b_t1", b);
     bool b2 = 1;
-    cvar_set(&table, "foo_b_t2", CVAR_BOOL, (void *)&b2);
+    cvar_set_bool(&table, "foo_b_t2", b2);
     bool b3 = false;
-    cvar_set(&table, "foo_b_f1", CVAR_BOOL, (void *)&b3);
+    cvar_set_bool(&table, "foo_b_f1", b3);
     bool b4 = 0;
-    cvar_set(&table, "foo_b_f2", CVAR_BOOL, (void *)&b4);
+    cvar_set_bool(&table, "foo_b_f2", b4);
 
     mu_check(table.size == 7);
 
@@ -43,22 +43,24 @@ MU_TEST(test_cvar_set_insert_with_neg) {
     cvar_table table = {.data = NULL, .size = 0, .capacity = 8};
 
     int i = -12;
-    cvar_set(&table, "foo_i", CVAR_INT, &i);
+    cvar_set_int(&table, "foo_i", i);
     float f = -1.1F;
-    cvar_set(&table, "foo_f", CVAR_FLOAT, &f);
+    cvar_set_float(&table, "foo_f", f);
 
     mu_check(table.size == 2);
 
     mu_check(table.data[0].value.i == -12);
 
     mu_check(table.data[1].value.f == -1.1F);
+
+    cvar_destroy(&table);
 }
 MU_TEST(test_cvar_set_replace) {
     cvar_table table = {.data = NULL, .size = 0, .capacity = 8};
 
-    cvar_set(&table, "foo_s", CVAR_STRING, "bar");
+    cvar_set_string(&table, "foo_s", "bar");
     int i = 12;
-    cvar_set(&table, "foo_i", CVAR_INT, &i);
+    cvar_set_int(&table, "foo_i", i);
 
     mu_check(table.size == 2);
 
@@ -70,12 +72,12 @@ MU_TEST(test_cvar_set_replace) {
     mu_check(table.data[1].value.i == 12);
 
     i = 13;
-    cvar_set(&table, "foo_i", CVAR_INT, &i);
+    cvar_set_int(&table, "foo_i", i);
 
     mu_check(table.size == 2);
     mu_check(table.data[1].value.i == 13);
 
-    cvar_set(&table, "foo_s", CVAR_STRING, "a much longer string value");
+    cvar_set_string(&table, "foo_s", "a much longer string value");
     mu_check(table.size == 2);
     mu_assert_string_eq("a much longer string value", table.data[0].value.s);
 
@@ -86,8 +88,8 @@ MU_TEST(test_cvar_get) {
     cvar_table table = {.data = NULL, .size = 0, .capacity = 8};
 
     int i = 12;
-    cvar_set(&table, "foo_i", CVAR_INT, &i);
-    cvar_set(&table, "foo_s", CVAR_STRING, "bar");
+    cvar_set_int(&table, "foo_i", i);
+    cvar_set_string(&table, "foo_s", "bar");
 
     cvar_t *cv = cvar_get(&table, "foo_i");
     mu_check(cv != NULL);

@@ -34,9 +34,9 @@ static bool test_ini_handler(const char *section,
 #define MATCH(s, k) (strcmp(section, s) == 0 && strcmp(key, k) == 0)
     if (MATCH("test", "value")) {
         int v = atoi(value);
-        cvar_set(cvars, "test.value", CVAR_INT, &v);
+        cvar_set_int(cvars, "test.value", v);
     } else if (MATCH("test", "name")) {
-        cvar_set(cvars, "test.name", CVAR_STRING, (void *)value);
+        cvar_set_string(cvars, "test.name", value);
     } else {
         return false;
     }

@@ -28,6 +28,7 @@ typedef struct {
     cvar_t *version;
     cvar_t *name;
     cvar_t *email;
+    cvar_t *password;
 } configuration;
 
 int main(void) {
@@ -40,11 +41,10 @@ int main(void) {
         return 1;
     }
 
-    configuration config = {
-         .version = cvar_get(&cvars, "protocol.version"),
-         .name    = cvar_get(&cvars, "user.name"),
-         .email   = cvar_get(&cvars, "user.email"),
-    };
+    configuration config = {.version  = cvar_get(&cvars, "protocol.version"),
+                            .name     = cvar_get(&cvars, "user.name"),
+                            .email    = cvar_get(&cvars, "user.email"),
+                            .password = cvar_get(&cvars, "user.password")};
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
@@ -76,20 +76,23 @@ int main(void) {
     bool running = true;
 
     file_watcher *w = file_watcher_watch("test.ini");
+    if (!w) return 1;
+
     while (running) {
         file_status status = file_watcher_check(w);
         if (status == FILE_CHANGED) {
             printf("Configuration changed\n");
             if (cvar_load_ini(&cvars, "test.ini", cvar_default_ini_handler)) {
-                config.version = cvar_get(&cvars, "protocol.version");
-                config.name    = cvar_get(&cvars, "user.name");
-                config.email   = cvar_get(&cvars, "user.email");
+                config.version  = cvar_get(&cvars, "protocol.version");
+                config.name     = cvar_get(&cvars, "user.name");
+                config.email    = cvar_get(&cvars, "user.email");
+                config.password = cvar_get(&cvars, "user.password");
 
                 if (config.version) printf("version: %d\n", config.version->value.i);
                 if (config.name) printf("name: %s\n", config.name->value.s);
                 if (config.email) printf("email: %s\n", config.email->value.s);
-                if (cvar_get(&cvars, "user.password")) {
-                    printf("password: %s\n", cvar_get(&cvars, "user.password")->value.s);
+                if (config.password) {
+                    printf("password: %s\n", config.password->value.s);
                 }
             }
         }
@@ -138,5 +141,6 @@ int main(void) {
     SDL_DestroyWindow(window);
     SDL_Quit();
     cvar_destroy(&cvars);
+    file_watcher_close(w);
     return 0;
 }

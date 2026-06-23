@@ -4,6 +4,7 @@
 #define C_COMPILER      "cc"
 #define C_FLAGS         "-Wall", "-Wextra", "-std=c23"
 #define C_DEBUG_FLAGS   "-g", "-O0"
+#define C_ASAN_FLAGS    "-g", "-O0", "-fsanitize=address"
 #define C_RELEASE_FLAGS "-O3", "-DNDEBUG"
 #define C_TARGET        "./main"
 #define C_ENTRY         "main.c"
@@ -14,7 +15,7 @@
 #define SDL_FLAGS "-I/usr/include/SDL3", "-lSDL3"
 #endif
 
-int run_tests(void) {
+int run_tests(bool asan) {
 #ifdef _WIN32
     if (!nob_mkdir_if_not_exists("tmp")) return 1;
 #endif
@@ -32,6 +33,7 @@ int run_tests(void) {
 
         Nob_Cmd test_cmd = {0};
         nob_cmd_append(&test_cmd, C_COMPILER, C_FLAGS, "-o", bin, src);
+        if (asan) nob_cmd_append(&test_cmd, C_ASAN_FLAGS);
         if (!nob_cmd_run(&test_cmd)) return 1;
 
         Nob_Cmd run_test = {0};
@@ -45,7 +47,11 @@ int main(int argc, char **argv) {
     NOB_GO_REBUILD_URSELF(argc, argv);
 
     if (argc > 1 && strcmp(argv[1], "test") == 0) {
-        return run_tests();
+        return run_tests(false);
+    }
+
+    if (argc > 1 && strcmp(argv[1], "asan") == 0) {
+        return run_tests(true);
     }
 
     Nob_Cmd cmd = {0};

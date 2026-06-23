@@ -16,11 +16,6 @@ typedef struct log_event log_event;
 #define log_error(...) log_log(LOG_ERROR, __FILE__, __LINE__, __VA_ARGS__)
 #define log_fatal(...) log_log(LOG_FATAL, __FILE__, __LINE__, __VA_ARGS__)
 
-#ifdef LOG_USE_COLOR
-static const char *level_colors[] = {"\x1b[94m", "\x1b[36m", "\x1b[32m",
-                                     "\x1b[33m", "\x1b[31m", "\x1b[35m"};
-#endif
-
 void log_set_level(int level);
 void log_log(int level, const char *source_file, int line, const char *fmt, ...);
 
@@ -30,6 +25,11 @@ void log_log(int level, const char *source_file, int line, const char *fmt, ...)
 #include <time.h>
 
 static const char *level_strings[] = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
+
+#ifdef LOG_USE_COLOR
+static const char *level_colors[] = {"\x1b[94m", "\x1b[36m", "\x1b[32m",
+                                     "\x1b[33m", "\x1b[31m", "\x1b[35m"};
+#endif
 
 struct log_event {
     va_list     args;

@@ -43,6 +43,7 @@ static int ini_parse_line(char *line, char *section, ini_handler handler, void *
         if (end) {
             *end = '\0';
             strncpy(section, start + 1, INI_SECTION_STR_MAX_SIZE - 1);
+            section[INI_SECTION_STR_MAX_SIZE - 1] = '\0';
         }
         return 0;
     }
