@@ -34,6 +34,7 @@ typedef struct {
     cvar_t *name;
     cvar_t *email;
     cvar_t *password;
+    cvar_t *float_var;
 } configuration;
 
 int main(void) {
@@ -47,10 +48,11 @@ int main(void) {
         return 1;
     }
 
-    configuration config = {.version  = cvar_get(&cvars, "protocol.version"),
-                            .name     = cvar_get(&cvars, "user.name"),
-                            .email    = cvar_get(&cvars, "user.email"),
-                            .password = cvar_get(&cvars, "user.password")};
+    configuration config = {.version   = cvar_get(&cvars, "protocol.version"),
+                            .name      = cvar_get(&cvars, "user.name"),
+                            .email     = cvar_get(&cvars, "user.email"),
+                            .password  = cvar_get(&cvars, "user.password"),
+                            .float_var = cvar_get(&cvars, "user.float_var")};
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
@@ -90,14 +92,17 @@ int main(void) {
             printf("Configuration changed\n");
             if (cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf",
                               cvar_default_config_parser_handler, false)) {
-                config.version  = cvar_get(&cvars, "protocol.version");
-                config.name     = cvar_get(&cvars, "user.name");
-                config.email    = cvar_get(&cvars, "user.email");
-                config.password = cvar_get(&cvars, "user.password");
+                config.version   = cvar_get(&cvars, "protocol.version");
+                config.name      = cvar_get(&cvars, "user.name");
+                config.email     = cvar_get(&cvars, "user.email");
+                config.password  = cvar_get(&cvars, "user.password");
+                config.float_var = cvar_get(&cvars, "user.float_var");
 
                 if (config.version) printf("version: %d\n", config.version->value.i);
                 if (config.name) printf("name: %s\n", config.name->value.s);
                 if (config.email) printf("email: %s\n", config.email->value.s);
+                if (config.float_var)
+                    printf("float_var: %f\n", config.float_var->value.f);
                 if (config.password) {
                     printf("password: %s\n", config.password->value.s);
                 }

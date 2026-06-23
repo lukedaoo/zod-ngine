@@ -56,33 +56,49 @@ bool scf_parse_string(const char *string, scf_handler handler, void *user);
 #endif
 
 static bool scf_process_line(char *line, char *section, scf_handler handler, void *user) {
-    char *start = line + strspn(line, " \t");
+    char *start = line;
+
+    while (*start == ' ' || *start == '\t') start++;
+
     if (*start == '\0' || strchr(SCF_COMMENT_PREFIXES, *start)) return true;
 
-    if (strncmp(start, ":/", 2) == 0) {
-        char  *sec_name = start + 2;
-        char  *end      = strpbrk(sec_name, " \t\r\n;");
-        size_t len      = end ? (size_t)(end - sec_name) : strlen(sec_name);
+    if (start[0] == ':' && start[1] == '/') {
+        char *sec_name = start + 2;
+        char *end      = sec_name;
+
+        while (*end && !isspace((unsigned char)*end) && !strchr(";\r\n", *end)) end++;
+
+        size_t len = (size_t)(end - sec_name);
         if (len >= SCF_SECTION_STR_MAX_SIZE) len = SCF_SECTION_STR_MAX_SIZE - 1;
-        strncpy(section, sec_name, len);
+
+        memcpy(section, sec_name, len);
         section[len] = '\0';
         return true;
     }
 
-    char *key = strtok(start, SCF_WHITESPACE);
-    char *val = strtok(NULL, "");
+    char *key = start;
 
-    if (key && val) {
-        val += strspn(val, " \t");
+    while (*start && !isspace((unsigned char)*start)) start++;
 
-        char *comment = strpbrk(val, SCF_COMMENT_PREFIXES);
-        if (comment) *comment = '\0';
+    if (*start == '\0') return true;
 
-        size_t vlen = strlen(val);
-        while (vlen > 0 && isspace((unsigned char)val[vlen - 1])) val[--vlen] = '\0';
+    *start++ = '\0';
 
-        if (vlen > 0) return handler(section, key, val, user);
-    }
+    while (*start == ' ' || *start == '\t') start++;
+
+    char *val = start;
+
+    char *end = val;
+    while (*end && !strchr(SCF_COMMENT_PREFIXES, *end)) end++;
+
+    char *val_end = end;
+
+    while (val_end > val && isspace((unsigned char)val_end[-1])) val_end--;
+
+    *val_end = '\0';
+
+    if (*val != '\0') return handler(section, key, val, user);
+
     return true;
 }
 
