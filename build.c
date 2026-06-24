@@ -59,7 +59,7 @@ int run_clean(void) {
         const char *name = modules.items[i];
         if (nob_sv_starts_with(nob_sv_from_cstr(name), nob_sv_from_cstr("test_"))) {
             const char *bin =
-                 nob_temp_sprintf("./%.*s.out", (int)(strlen(name) - 2), name);
+                 nob_temp_sprintf("./%.*s.out%s", (int)(strlen(name) - 2), name, EXE_EXT);
             nob_delete_file(bin);
         }
     }
