@@ -1,6 +1,9 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_render.h>
 #include <stdio.h>
+
+#define MODULE_LOG_ENABLED
+
 #define INI_IMPLEMENTATION
 #include "modules/ini.h"
 
