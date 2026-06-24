@@ -26,5 +26,4 @@ add_executable(zod_ngine
         modules/test_scf.c
         modules/test_string_view.c
 
-        build.c
         main.c)
