@@ -8,3 +8,5 @@ nob.exe.old
 tmp/
 *.exe
 *.out
+
+.idea

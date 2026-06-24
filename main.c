@@ -66,7 +66,7 @@ int main(void) {
         return -1;
     }
 
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, nullptr);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, NULL);
     if (!renderer) {
         SDL_Log("CreateRenderer failed: %s", SDL_GetError());
         SDL_DestroyWindow(window);
