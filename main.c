@@ -43,7 +43,14 @@ typedef struct {
 
 int main(void) {
     cvar_table cvars = {0};
-
+    FILE      *fp    = fopen("log.txt", "w");
+    if (fp) {
+        log_set_fp(fp, LOG_DEBUG);
+    }
+    log_debug("Hello World");
+    log_debug("Hello World");
+    log_debug("Hello World");
+    log_debug("Hello World");
     log_debug("Hello World");
 
     if (!cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf",
@@ -158,5 +165,6 @@ int main(void) {
     SDL_Quit();
     cvar_destroy(&cvars);
     file_watcher_close(w);
+    fclose(fp);
     return 0;
 }
