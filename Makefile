@@ -1,16 +1,14 @@
-all: run
+nob: build.c
+	cc $< -o $@
 
-run: | nob
+run: nob
 	./nob run
 
-test: | nob
+test: nob
 	./nob test
 
 clean:
 	@if [ -f nob ]; then ./nob clean; fi
 	rm -f nob
 
-nob: build.c
-	cc build.c -o nob
-
-.PHONY: all run test clean nob
+.PHONY: run test clean

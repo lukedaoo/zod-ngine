@@ -6,8 +6,15 @@
 #define C_DEBUG_FLAGS   "-g", "-O0"
 #define C_ASAN_FLAGS    "-g", "-O0", "-fsanitize=address"
 #define C_RELEASE_FLAGS "-O3", "-DNDEBUG"
-#define C_TARGET        "./main"
-#define C_ENTRY         "main.c"
+
+#ifdef _WIN32
+#define EXE_EXT ".exe"
+#else
+#define EXE_EXT ""
+#endif
+#define C_TARGET "./main" EXE_EXT
+
+#define C_ENTRY "main.c"
 
 #ifdef _WIN32
 #define SDL_FLAGS "-I/ucrt64/include/SDL3", "-L/ucrt64/lib", "-lSDL3.dll"
@@ -29,7 +36,8 @@ int run_tests(bool asan) {
             continue;
 
         const char *src = nob_temp_sprintf("modules/%s", name);
-        const char *bin = nob_temp_sprintf("./%.*s.out", (int)(strlen(name) - 2), name);
+        const char *bin =
+             nob_temp_sprintf("./%.*s.out%s", (int)(strlen(name) - 2), name, EXE_EXT);
 
         Nob_Cmd test_cmd = {0};
         nob_cmd_append(&test_cmd, C_COMPILER, C_FLAGS, "-o", bin, src);
@@ -43,6 +51,22 @@ int run_tests(bool asan) {
     return 0;
 }
 
+int run_clean(void) {
+    Nob_File_Paths modules = {0};
+    if (!nob_read_entire_dir("modules", &modules)) return 1;
+
+    for (size_t i = 0; i < modules.count; ++i) {
+        const char *name = modules.items[i];
+        if (nob_sv_starts_with(nob_sv_from_cstr(name), nob_sv_from_cstr("test_"))) {
+            const char *bin =
+                 nob_temp_sprintf("./%.*s.out", (int)(strlen(name) - 2), name);
+            nob_delete_file(bin);
+        }
+    }
+    nob_delete_file(C_TARGET);
+    return 0;
+}
+
 int main(int argc, char **argv) {
     NOB_GO_REBUILD_URSELF(argc, argv);
 
@@ -52,6 +76,10 @@ int main(int argc, char **argv) {
 
     if (argc > 1 && strcmp(argv[1], "asan") == 0) {
         return run_tests(true);
+    }
+
+    if (argc > 1 && strcmp(argv[1], "clean") == 0) {
+        return run_clean();
     }
 
     Nob_Cmd cmd = {0};
