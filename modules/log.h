@@ -1,11 +1,10 @@
 #ifndef LOG_H
 #define LOG_H
 
-// TODO:
-// - log to file
+// @todo:
 // - log to other streams
-// - add lock for thread safety
-// - add fast_log - printf wrapper - not thread-safe
+// - log to file
+// - @thread-safe: add lock for thread safety
 
 enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
 typedef struct log_event log_event;
@@ -23,9 +22,32 @@ void log_log(int level, const char *source_file, int line, const char *fmt, ...)
 #ifdef LOG_IMPLEMENTATION
 #include <stdarg.h>
 #include <stdio.h>
-#include <time.h>
+
+static struct {
+    int level;
+} log_config;
+
+void log_set_level(int level) { log_config.level = level; }
 
 static const char *level_strings[] = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
+
+#ifdef LOG_USE_SIMPLE
+void log_log(int level, const char *source_file, int line, const char *fmt, ...) {
+    if (level < log_config.level) {
+        return;
+    }
+
+    fprintf(stderr, "%-5s %s:%d: ", level_strings[level], source_file, line);
+
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+    fprintf(stderr, "\n");
+    fflush(stderr);
+}
+#else
+#include <time.h>
 
 #ifdef LOG_USE_COLOR
 static const char *level_colors[] = {"\x1b[94m", "\x1b[36m", "\x1b[32m",
@@ -41,12 +63,6 @@ struct log_event {
     int         line;
     int         level;
 };
-
-static struct {
-    int level;
-} log_config;
-
-void log_set_level(int level) { log_config.level = level; }
 
 void log_log(int level, const char *source_file, int line, const char *fmt, ...) {
     log_event ev = {
@@ -81,5 +97,6 @@ void log_log(int level, const char *source_file, int line, const char *fmt, ...)
     fflush(ev.dest);
     va_end(ev.args);
 }
-#endif
-#endif
+#endif  // USE_SIMPLE_LOG
+#endif  // LOG_IMPLEMENTATION
+#endif  // LOG_H

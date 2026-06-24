@@ -14,6 +14,7 @@
 #include "modules/cvar.h"
 
 #define LOG_IMPLEMENTATION
+#define LOG_USE_SIMPLE
 #define LOG_USE_COLOR
 #include "modules/log.h"
 
