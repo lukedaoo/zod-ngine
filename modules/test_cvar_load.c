@@ -60,7 +60,7 @@ MU_TEST(test_cvar_force_reload_ini_success) {
     mu_check(v->value.i == 2);
 
     cvar_t *n = cvar_get(&table, "test.name");
-    mu_assert_string_eq("bob", n->value.s);
+    mu_assert_string_eq("bob", n->value.str.data);
 
     cvar_destroy(&table);
     remove(TEST_INI);
@@ -79,7 +79,7 @@ MU_TEST(test_cvar_reload_ini_success) {
     mu_check(v->value.i == 2);
 
     cvar_t *n = cvar_get(&table, "test.name");
-    mu_assert_string_eq("bob", n->value.s);
+    mu_assert_string_eq("bob", n->value.str.data);
 
     cvar_destroy(&table);
     remove(TEST_INI);
@@ -97,7 +97,7 @@ MU_TEST(test_cvar_reload_ini_failure_keeps_old) {
     mu_check(v->value.i == 1);
 
     cvar_t *n = cvar_get(&table, "test.name");
-    mu_assert_string_eq("alice", n->value.s);
+    mu_assert_string_eq("alice", n->value.str.data);
 
     cvar_destroy(&table);
     remove(TEST_INI);

@@ -99,12 +99,12 @@ int main(void) {
                 config.float_var = cvar_get(&cvars, "user.float_var");
 
                 if (config.version) printf("version: %d\n", config.version->value.i);
-                if (config.name) printf("name: %s\n", config.name->value.s);
-                if (config.email) printf("email: %s\n", config.email->value.s);
+                if (config.name) printf("name: %s\n", config.name->value.str.data);
+                if (config.email) printf("email: %s\n", config.email->value.str.data);
                 if (config.float_var)
                     printf("float_var: %f\n", config.float_var->value.f);
                 if (config.password) {
-                    printf("password: %s\n", config.password->value.s);
+                    printf("password: %s\n", config.password->value.str.data);
                 }
             }
         }
