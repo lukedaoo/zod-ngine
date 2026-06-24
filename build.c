@@ -60,10 +60,10 @@ int run_clean(void) {
         if (nob_sv_starts_with(nob_sv_from_cstr(name), nob_sv_from_cstr("test_"))) {
             const char *bin =
                  nob_temp_sprintf("./%.*s.out%s", (int)(strlen(name) - 2), name, EXE_EXT);
-            nob_delete_file(bin);
+            if (nob_file_exists(bin) > 0) nob_delete_file(bin);
         }
     }
-    nob_delete_file(C_TARGET);
+    if (nob_file_exists(C_TARGET) > 0) nob_delete_file(C_TARGET);
     return 0;
 }
 
