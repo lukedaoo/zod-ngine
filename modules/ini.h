@@ -30,50 +30,50 @@ bool ini_parse_string(const char *string, ini_handler handler, void *user);
 #define INI_COMMENT_PREFIXES "; #"
 #endif
 
-// @perf: no strpbrk
 static bool ini_parse_line(char *line, char *section, ini_handler handler, void *user) {
-    char *start = line;
-    start += strspn(start, INI_WHITESPACE);
+    char *p = line;
 
-    if (*start == '\0' || strchr(INI_COMMENT_PREFIXES, *start)) return true;
+    while (*p == ' ' || *p == '\t') p++;
 
-    if (*start == '[') {
-        char *end = strchr(start, ']');
-        if (end) {
+    if (*p == '\0' || strchr(INI_COMMENT_PREFIXES, *p)) return true;
+
+    if (*p == '[') {
+        char *end = p + 1;
+        while (*end && *end != ']') end++;
+
+        if (*end == ']') {
             *end = '\0';
-            strncpy(section, start + 1, INI_SECTION_STR_MAX_SIZE - 1);
+            strncpy(section, p + 1, INI_SECTION_STR_MAX_SIZE - 1);
             section[INI_SECTION_STR_MAX_SIZE - 1] = '\0';
         }
         return true;
     }
 
-    char *sep = strpbrk(start, "=:");
-    if (!sep) return true;
+    char *sep = p;
+    while (*sep && *sep != '=' && *sep != ':') sep++;
+    if (*sep == '\0') return true;
 
     *sep      = '\0';
-    char *key = start;
+    char *key = p;
     char *val = sep + 1;
 
-    char *key_end = key + strlen(key) - 1;
-    while (key_end > key && strchr(" \t", *key_end)) *key_end-- = '\0';
+    char *ke = key + strlen(key);
+    while (ke > key && (ke[-1] == ' ' || ke[-1] == '\t')) *--ke = '\0';
 
-    val += strspn(val, " \t");
+    while (*val == ' ' || *val == '\t') val++;
 
-    if (val[0] != '\0') {
-        char *marker = val + 1;
-        while ((marker = strpbrk(marker, ";#")) != NULL) {
-            if (marker[-1] == ' ' || marker[-1] == '\t') {
-                *marker = '\0';
-                break;
-            }
-            marker++;
+    for (char *m = val; *m; m++) {
+        // @Robustness: when changing the comment prefix, make sure to update this
+        if ((*m == ';' || *m == '#') && (m > val && (m[-1] == ' ' || m[-1] == '\t'))) {
+            *m = '\0';
+            break;
         }
     }
 
-    size_t val_len = strlen(val);
-    while (val_len > 0 && strchr(" \t\r\n", val[val_len - 1])) {
-        val[--val_len] = '\0';
-    }
+    char *ve = val + strlen(val);
+    while (ve > val &&
+           (ve[-1] == ' ' || ve[-1] == '\t' || ve[-1] == '\r' || ve[-1] == '\n'))
+        *--ve = '\0';
 
     return handler(section, key, val, user);
 }

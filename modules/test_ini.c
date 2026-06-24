@@ -67,7 +67,7 @@ MU_TEST(test_parse_string_sections_and_duplicate_keys) {
 MU_TEST(test_parse_string_comments_and_leading_whitespace) {
     const char *ini =
          "; leading comment\n"
-         "# another comment\n"
+         "# another comment\n\n\n\n"
          "\n"
          "[s]\n"
          "  key = val\n";
