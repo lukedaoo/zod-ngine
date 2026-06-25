@@ -179,7 +179,8 @@ static bool cvar_set(cvar_table *table,
         if (is_new) {
             if (table->size >= CVAR_TABLE_MAX_SIZE) {
 #ifdef MODULE_LOG_ENABLED
-                fprintf(stderr, "cvar.cvar_set: table is full\n");
+                fprintf(stderr, "cvar.cvar_set: table is full. Max size is %d\n",
+                        CVAR_TABLE_MAX_SIZE);
 #endif
                 return false;
             }

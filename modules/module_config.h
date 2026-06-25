@@ -1,0 +1,45 @@
+#ifndef MODULE_CONFIG_H
+#define MODULE_CONFIG_H
+
+// Include this header first in main.c, before any modules/*.h include,
+// to override the defaults below. Each module's own #ifndef guard picks
+// up the override. Not wired into main.c yet — every line here is
+// commented out, so this file has no effect until you uncomment one.
+
+// ------- Cvars
+// cvar.h — max number of cvars a table can hold.
+// @default 1024
+// #define CVAR_TABLE_MAX_SIZE 1024
+
+// cvar.h — initial cvar_table.data capacity before first grow. @
+// @default 8
+// #define CVAR_DEFAULT_CAPACITY 8
+
+// cvar.h — max length of a cvar name, including null terminator
+// @default 64
+// #define CVAR_NAME_MAX 64
+
+// ------- File Watcher
+// file_watcher.h — max watched file path length, including null terminator
+// @default 256
+// #define FILE_WATCHER_PATH_MAX 256
+
+// ------- INI
+// ini.h — max length of one line in an ini file
+// @default 1024
+// #define INI_LINE_STR_MAX_SIZE 1024
+
+// ini.h — max length of a section name in an ini file
+// @default 128
+// #define INI_SECTION_STR_MAX_SIZE 128
+
+// ------- SCF
+// scf.h — max length of one line in an scf file
+// @default 1024
+// #define SCF_LINE_STR_MAX_SIZE 1024
+
+// scf.h — max length of a section name in an scf file
+// @default 128
+// #define SCF_SECTION_STR_MAX_SIZE 128
+
+#endif

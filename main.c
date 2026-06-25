@@ -1,6 +1,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_render.h>
 #include <stdio.h>
+#include "modules/module_config.h"
 
 #if DEBUG
 #define MODULE_LOG_ENABLED
@@ -50,15 +51,11 @@ int main(int argc, char *argv[]) {
     carg_register_t defs[] = {
          {.flag = "--debug-log", .arg_count = 0, .type = CARG_BOOL, .required = false},
          {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false},
-         {.flag      = "--required-example",
-          .arg_count = 0,
-          .type      = CARG_BOOL,
-          .required  = true},
     };
 
     carg_table cargs = {0};
 
-    if (!carg_parse(defs, 3, argc, argv, &cargs)) {
+    if (!carg_parse(defs, 2, argc, argv, &cargs)) {
         return 1;
     }
 
@@ -86,7 +83,6 @@ int main(int argc, char *argv[]) {
 
     if (!cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf",
                        cvar_default_config_parser_handler, false)) {
-        printf("Can't load 'test.ini'\n");
         return 1;
     }
 
