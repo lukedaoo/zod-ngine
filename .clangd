@@ -14,6 +14,7 @@ CompileFlags:
     - -DCVAR_IMPLEMENTATION
     - -DCVAR_LOAD_IMPLEMENTATION
     - -DFILE_WATCHER_IMPLEMENTATION
+    - -DCARG_IMPLEMENTATION
     # Add new modules here
 ---
 If:

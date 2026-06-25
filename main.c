@@ -2,7 +2,12 @@
 #include <SDL3/SDL_render.h>
 #include <stdio.h>
 
+#if DEBUG
 #define MODULE_LOG_ENABLED
+#endif
+
+#define CARG_IMPLEMENTATION
+#include "modules/carg.h"
 
 #define INI_IMPLEMENTATION
 #include "modules/ini.h"
@@ -41,7 +46,33 @@ typedef struct {
     cvar_t *float_var;
 } configuration;
 
-int main(void) {
+int main(int argc, char *argv[]) {
+    carg_register_t defs[] = {
+         {.flag = "--debug-log", .arg_count = 0, .type = CARG_BOOL, .required = false},
+         {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false},
+         {.flag      = "--required-example",
+          .arg_count = 0,
+          .type      = CARG_BOOL,
+          .required  = true},
+    };
+
+    carg_table cargs = {0};
+
+    if (!carg_parse(defs, 3, argc, argv, &cargs)) {
+        return 1;
+    }
+
+    size_t     count_size_arg = 0;
+    const int *screen_size    = carg_get_int_array(&cargs, "--size", &count_size_arg);
+    if (count_size_arg == 2 && screen_size) {
+        log_debug("screen size: %dx%d", screen_size[0], screen_size[1]);
+    }
+
+    bool debug_log = carg_get_bool(&cargs, "--debug-log", false);
+    if (debug_log) {
+        log_set_level(LOG_DEBUG);
+    }
+
     cvar_table cvars = {0};
     FILE      *fp    = fopen("log.txt", "w");
     if (fp) {
