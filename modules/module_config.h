@@ -42,4 +42,17 @@
 // @default 128
 // #define SCF_SECTION_STR_MAX_SIZE 128
 
+// ------ Array List
+// collections/array_list.h - initial capacity before first grow
+// @default 16
+// #define ARRAY_LIST_INITIAL_CAPACITY 16
+
+// collections/array_list.h - growth factor
+// @default 1.5
+// #define ARRAY_LIST_GROWTH_FACTOR 1.5
+
+// collections/array_list.h - max capacity
+// @default 2048
+// #define ARRAY_LIST_MAX_CAPACITY 2048
+
 #endif

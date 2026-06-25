@@ -23,20 +23,16 @@
 #define SDL_FLAGS "-I/usr/include/SDL3", "-lSDL3"
 #endif
 
-int run_tests(bool asan) {
-#ifdef _WIN32
-    if (!nob_mkdir_if_not_exists("tmp")) return 1;
-#endif
+int run_test_dir(bool asan, const char *dir) {
+    Nob_File_Paths files = {0};
+    if (!nob_read_entire_dir(dir, &files)) return 1;
 
-    Nob_File_Paths modules = {0};
-    if (!nob_read_entire_dir("modules", &modules)) return 1;
-
-    for (size_t i = 0; i < modules.count; ++i) {
-        const char *name = modules.items[i];
+    for (size_t i = 0; i < files.count; ++i) {
+        const char *name = files.items[i];
         if (!nob_sv_starts_with(nob_sv_from_cstr(name), nob_sv_from_cstr("test_")))
             continue;
 
-        const char *src = nob_temp_sprintf("modules/%s", name);
+        const char *src = nob_temp_sprintf("%s/%s", dir, name);
         const char *bin =
              nob_temp_sprintf("./%.*s.out%s", (int)(strlen(name) - 2), name, EXE_EXT);
 
@@ -49,6 +45,15 @@ int run_tests(bool asan) {
         nob_cmd_append(&run_test, bin);
         if (!nob_cmd_run(&run_test)) return 1;
     }
+    return 0;
+}
+
+int run_tests(bool asan) {
+#ifdef _WIN32
+    if (!nob_mkdir_if_not_exists("tmp")) return 1;
+#endif
+    run_test_dir(asan, "modules");
+    run_test_dir(asan, "modules/collections");
     return 0;
 }
 
