@@ -30,6 +30,8 @@
 #define FILE_WATCHER_IMPLEMENTATION
 #include "modules/file_watcher.h"
 
+#include "modules/carg_to_cvar.h"
+
 #define RUN_TREE_DIR "run-tree"
 
 struct Window {
@@ -45,6 +47,12 @@ typedef struct {
     cvar_t *email;
     cvar_t *password;
     cvar_t *float_var;
+    cvar_t *debug_log;
+    cvar_t *screen_width;
+    cvar_t *screen_height;
+    cvar_t *client_name;
+    cvar_t *client_email;
+    cvar_t *client_password;
 } configuration;
 
 int main(int argc, char *argv[]) {
@@ -86,11 +94,27 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    configuration config = {.version   = cvar_get(&cvars, "protocol.version"),
-                            .name      = cvar_get(&cvars, "user.name"),
-                            .email     = cvar_get(&cvars, "user.email"),
-                            .password  = cvar_get(&cvars, "user.password"),
-                            .float_var = cvar_get(&cvars, "user.float_var")};
+    const char *debug_log_names[] = {"debug_log"};
+    const char *size_names[]      = {"screen.width", "screen.height"};
+
+    const char **names_per_carg[]       = {debug_log_names, size_names};
+    const size_t names_count_per_carg[] = {1, count_size_arg};
+
+    carg_table_to_cvars(&cargs, names_per_carg, names_count_per_carg, &cvars);
+
+    configuration config = {
+         .version         = cvar_get(&cvars, "protocol.version"),
+         .name            = cvar_get(&cvars, "user.name"),
+         .email           = cvar_get(&cvars, "user.email"),
+         .password        = cvar_get(&cvars, "user.password"),
+         .float_var       = cvar_get(&cvars, "user.float_var"),
+         .debug_log       = cvar_get(&cvars, "debug_log"),
+         .screen_width    = cvar_get(&cvars, "screen.width"),
+         .screen_height   = cvar_get(&cvars, "screen.height"),
+         .client_name     = cvar_get(&cvars, "client.name"),
+         .client_email    = cvar_get(&cvars, "client.email"),
+         .client_password = cvar_get(&cvars, "client.password"),
+    };
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
@@ -130,11 +154,18 @@ int main(int argc, char *argv[]) {
             printf("Configuration changed\n");
             if (cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf",
                               cvar_default_config_parser_handler, false)) {
-                config.version   = cvar_get(&cvars, "protocol.version");
-                config.name      = cvar_get(&cvars, "user.name");
-                config.email     = cvar_get(&cvars, "user.email");
-                config.password  = cvar_get(&cvars, "user.password");
-                config.float_var = cvar_get(&cvars, "user.float_var");
+                config.version       = cvar_get(&cvars, "protocol.version");
+                config.name          = cvar_get(&cvars, "user.name");
+                config.email         = cvar_get(&cvars, "user.email");
+                config.password      = cvar_get(&cvars, "user.password");
+                config.float_var     = cvar_get(&cvars, "user.float_var");
+                config.debug_log     = cvar_get(&cvars, "debug_log");
+                config.screen_width  = cvar_get(&cvars, "screen.width");
+                config.screen_height = cvar_get(&cvars, "screen.height");
+
+                config.client_name     = cvar_get(&cvars, "client.name");
+                config.client_email    = cvar_get(&cvars, "client.email");
+                config.client_password = cvar_get(&cvars, "client.password");
 
                 if (config.version) printf("version: %d\n", config.version->value.i);
                 if (config.name) printf("name: %s\n", config.name->value.str.data);
@@ -144,6 +175,20 @@ int main(int argc, char *argv[]) {
                 if (config.password) {
                     printf("password: %s\n", config.password->value.str.data);
                 }
+                if (config.debug_log)
+                    printf("debug_log: %b\n", config.debug_log->value.b);
+                if (config.screen_width)
+                    printf("screen_width: %d\n", config.screen_width->value.i);
+                if (config.screen_height)
+                    printf("screen_height: %d\n", config.screen_height->value.i);
+
+                if (config.client_name)
+                    printf("client_name: %s\n", config.client_name->value.str.data);
+                if (config.client_email)
+                    printf("client_email: %s\n", config.client_email->value.str.data);
+                if (config.client_password)
+                    printf("client_password: %s\n",
+                           config.client_password->value.str.data);
             }
         }
         uint64_t current_time = SDL_GetTicksNS();

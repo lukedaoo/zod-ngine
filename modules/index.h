@@ -9,6 +9,7 @@
 #include "cvar.h"
 #include "cvar_load.h"
 #include "carg.h"
+#include "carg_to_cvar.h"
 
 #include "file_watcher.h"
 
