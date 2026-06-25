@@ -8,11 +8,12 @@
 #define C_RELEASE_FLAGS "-O3", "-DNDEBUG"
 
 #ifdef _WIN32
-#define EXE_EXT ".exe"
+#define EXE_EXT  ".exe"
+#define C_TARGET "main"
 #else
-#define EXE_EXT ""
+#define EXE_EXT  ""
+#define C_TARGET "./main"
 #endif
-#define C_TARGET "./main" EXE_EXT
 
 #define C_ENTRY "main.c"
 

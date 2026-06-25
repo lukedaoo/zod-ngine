@@ -4,6 +4,10 @@ nob: build.c
 run: nob
 	./nob run
 
+debug: nob
+	./nob debug
+	./main
+
 test: nob
 	./nob test
 
