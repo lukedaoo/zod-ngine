@@ -2,7 +2,7 @@
 #include "lib/nob.h"
 
 #define C_COMPILER      "cc"
-#define C_FLAGS         "-Wall", "-Wextra", "-std=c23", "-I."
+#define C_FLAGS         "-Wall", "-Wextra", "-std=c23"
 #define C_DEBUG_FLAGS   "-g", "-O0", "-DDEBUG"
 #define C_ASAN_FLAGS    "-g", "-O0", "-fsanitize=address"
 #define C_RELEASE_FLAGS "-O3", "-DNDEBUG"

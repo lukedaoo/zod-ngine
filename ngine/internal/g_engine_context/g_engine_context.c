@@ -1,10 +1,5 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
-#include "ngine/g_engine_context.h"
-#include "ngine/g_config.h"
-
-struct engine_context {
-    g_config *config;
-};
+#include "g_engine_context_internal.h"
 
 engine_context g_ctx = {0};
 

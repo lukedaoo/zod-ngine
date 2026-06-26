@@ -1,31 +1,12 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
-#include <stdio.h>
-#include <string.h>
+#include "../../../modules/cvar.h"
+#include "../../../modules/log.h"
 
-#include "modules/carg.h"
-#include "modules/cvar.h"
-#include "modules/cvar_load.h"
-#include "modules/log.h"
+#include "../../zod_ngine.h"
+#include "../g_config/g_config_internal.h"
+#include "../g_engine_context/g_engine_context_internal.h"
 
-#include "ngine/g_engine_context.h"
-#include "ngine/zod_ngine.h"
-
-struct zod_engine_dispatch {
-    void (*before_init)(void);
-    bool (*load_config_from_file)(const char *filepath, cvar_table *cvars);
-    bool (*load_args)(int argc, const char **argv, cvar_table *cvars);
-    void (*after_init)(void);
-
-    void (*before_destroy)(void);
-    void (*after_destroy)(void);
-};
-
-struct zod_engine_init_params {
-    int                 argc;
-    const char        **argv;
-    const char         *config_path;
-    zod_engine_dispatch dispatch;
-};
+#include "zod_ngine_internal.h"
 
 bool zod_ngine_init(const zod_engine_init_params params) {
     const int                 argc     = params.argc;
@@ -60,7 +41,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     if (dispatch.load_args) {
         log_debug("parsing command line...");
         if (!dispatch.load_args(argc, argv, &g_config_storage.cvars)) {
-            log_debug("failed to parse command line");
+            log_debug("failed to parse command line, some args are invalid");
         }
     }
 

@@ -1,5 +1,5 @@
 CompileFlags:
-  Add: [-std=c23, -Wall, -Wextra, -I., -I/usr/include/SDL3]
+  Add: [-std=c23, -Wall, -Wextra, -I/usr/include/SDL3]
 ---
 If:
   PathMatch: .*\.h
@@ -8,7 +8,6 @@ CompileFlags:
     - -x
     - c
     - -std=c23
-    - -I.
     - -DLOG_IMPLEMENTATION
     - -DSTRING_VIEW_IMPLEMENTATION
     - -DINI_IMPLEMENTATION
@@ -19,6 +18,9 @@ CompileFlags:
     - -DCARG_IMPLEMENTATION
     - -DARRAY_LIST_IMPLEMENTATION
     # Add new modules here
+Diagnostics:
+  Suppress:
+    - unused-includes
 ---
 If:
   PathMatch: .*/index\.h$
@@ -26,7 +28,17 @@ Diagnostics:
   Suppress: unused-includes
 ---
 If:
-  PathMatch: ngine/.*\.c$
+  PathMatch: ngine/internal/.*\.(c|h)$
 CompileFlags:
   Add:
-    - -I..
+    - -DZOD_NGINE_IMPLEMENTATION
+    - -DCVAR_IMPLEMENTATION
+    - -DLOG_IMPLEMENTATION
+    - -DINI_IMPLEMENTATION
+    - -DSCF_IMPLEMENTATION
+    - -DCVAR_LOAD_IMPLEMENTATION
+    - -DCARG_IMPLEMENTATION
+    - -DFILE_WATCHER_IMPLEMENTATION
+Diagnostics:
+  Suppress:
+    - unused-includes
