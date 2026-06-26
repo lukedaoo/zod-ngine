@@ -4,72 +4,62 @@
         {
             "label": "nob: build",
             "type": "shell",
-            "command": "${workspaceFolder}/nob.exe",
-            "windows": {
-                "command": "${workspaceFolder}/nob.exe"
-            },
-            "linux": {
-                "command": "${workspaceFolder}/nob"
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "windows": { "command": "${workspaceFolder}/nob.exe" },
+            "linux":   { "command": "${workspaceFolder}/nob" },
+            "group": { "kind": "build", "isDefault": true },
             "problemMatcher": ["$gcc"]
         },
         {
             "label": "nob: run",
             "type": "shell",
-            "command": "${workspaceFolder}/nob.exe",
             "args": ["run"],
-            "windows": {
-                "command": "${workspaceFolder}/nob.exe"
-            },
-            "linux": {
-                "command": "${workspaceFolder}/nob"
-            },
+            "windows": { "command": "${workspaceFolder}/nob.exe" },
+            "linux":   { "command": "${workspaceFolder}/nob" },
             "group": "build",
             "problemMatcher": ["$gcc"]
         },
         {
             "label": "nob: debug",
             "type": "shell",
-            "command": "${workspaceFolder}/nob.exe",
-            "args": ["debug"],
-            "windows": {
-                "command": "${workspaceFolder}/nob.exe"
-            },
-            "linux": {
-                "command": "${workspaceFolder}/nob"
-            },
+            "args": ["run", "debug"],
+            "windows": { "command": "${workspaceFolder}/nob.exe" },
+            "linux":   { "command": "${workspaceFolder}/nob" },
             "group": "build",
             "problemMatcher": ["$gcc"]
         },
         {
             "label": "nob: release",
             "type": "shell",
-            "command": "${workspaceFolder}/nob.exe",
-            "args": ["release"],
-            "windows": {
-                "command": "${workspaceFolder}/nob.exe"
-            },
-            "linux": {
-                "command": "${workspaceFolder}/nob"
-            },
+            "args": ["run", "release"],
+            "windows": { "command": "${workspaceFolder}/nob.exe" },
+            "linux":   { "command": "${workspaceFolder}/nob" },
             "group": "build",
             "problemMatcher": ["$gcc"]
         },
         {
             "label": "nob: test",
             "type": "shell",
-            "command": "${workspaceFolder}/nob.exe",
             "args": ["test"],
-            "windows": {
-                "command": "${workspaceFolder}/nob.exe"
-            },
-            "linux": {
-                "command": "${workspaceFolder}/nob"
-            },
+            "windows": { "command": "${workspaceFolder}/nob.exe" },
+            "linux":   { "command": "${workspaceFolder}/nob" },
+            "group": "test",
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "nob: test-build",
+            "type": "shell",
+            "args": ["test-build"],
+            "windows": { "command": "${workspaceFolder}/nob.exe" },
+            "linux":   { "command": "${workspaceFolder}/nob" },
+            "group": "test",
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "nob: test-asan",
+            "type": "shell",
+            "args": ["test-asan"],
+            "windows": { "command": "${workspaceFolder}/nob.exe" },
+            "linux":   { "command": "${workspaceFolder}/nob" },
             "group": "test",
             "problemMatcher": ["$gcc"]
         }

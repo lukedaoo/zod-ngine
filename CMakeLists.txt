@@ -1,29 +1,25 @@
-cmake_minimum_required(VERSION 4.3)
+cmake_minimum_required(VERSION 3.23)
 project(zod_ngine C)
 
 set(CMAKE_C_STANDARD 23)
 
 include_directories(lib)
 include_directories(modules)
+include_directories(ngine)
+
+file(GLOB MODULE_HEADERS         CONFIGURE_DEPENDS "modules/*.h")
+file(GLOB MODULE_COLL_HEADERS    CONFIGURE_DEPENDS "modules/collections/*.h")
+file(GLOB NGINE_HEADERS          CONFIGURE_DEPENDS "ngine/*.h")
+file(GLOB NGINE_INTERNAL_SOURCES CONFIGURE_DEPENDS "ngine/internal/*.c")
 
 add_executable(zod_ngine
-        lib/minunit.h
-        lib/nob.h
+    ${MODULE_HEADERS}
+    ${MODULE_COLL_HEADERS}
+    ${NGINE_HEADERS}
+    ${NGINE_INTERNAL_SOURCES}
 
-        modules/cvar.h
-        modules/cvar_load.h
-        modules/file_watcher.h
-        modules/index.h
-        modules/ini.h
-        modules/log.h
-        modules/scf.h
-        modules/string_view.h
+    lib/minunit.h
+    lib/nob.h
 
-        modules/test_cvar.c
-        modules/test_cvar_load.c
-        modules/test_file_watcher.c
-        modules/test_ini.c
-        modules/test_scf.c
-        modules/test_string_view.c
-
-        main.c)
+    main.c
+)

@@ -5,7 +5,7 @@
             "name": "Debug main",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/main.exe",
+            "program": "${workspaceFolder}/main",
             "args": [],
             "cwd": "${workspaceFolder}",
             "MIMode": "gdb",
@@ -13,11 +13,41 @@
             "externalConsole": false,
             "preLaunchTask": "nob: debug",
             "windows": {
-                "program": "${workspaceFolder}/main.exe"
+                "program": "${workspaceFolder}/main.exe",
+                "MIMode": "gdb",
+                "miDebuggerPath": "gdb"
             },
             "linux": {
                 "program": "${workspaceFolder}/main"
             }
+        },
+        {
+            "name": "Debug unit test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/${input:testBinary}",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "gdb",
+            "externalConsole": false,
+            "preLaunchTask": "nob: test-build",
+            "windows": {
+                "program": "${workspaceFolder}/${input:testBinary}",
+                "MIMode": "gdb",
+                "miDebuggerPath": "gdb"
+            },
+            "linux": {
+                "program": "${workspaceFolder}/${input:testBinary}"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "testBinary",
+            "type": "promptString",
+            "description": "Test binary to debug (e.g. test_cvar.out)",
+            "default": "test_cvar.out"
         }
     ]
 }

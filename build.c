@@ -23,6 +23,26 @@
 #define SDL_FLAGS "-I/usr/include/SDL3", "-lSDL3"
 #endif
 
+int build_test_dir(const char *dir) {
+    Nob_File_Paths files = {0};
+    if (!nob_read_entire_dir(dir, &files)) return 1;
+
+    for (size_t i = 0; i < files.count; ++i) {
+        const char *name = files.items[i];
+        if (!nob_sv_starts_with(nob_sv_from_cstr(name), nob_sv_from_cstr("test_")))
+            continue;
+
+        const char *src = nob_temp_sprintf("%s/%s", dir, name);
+        const char *bin =
+             nob_temp_sprintf("./%.*s.out%s", (int)(strlen(name) - 2), name, EXE_EXT);
+
+        Nob_Cmd cmd = {0};
+        nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, C_DEBUG_FLAGS, "-o", bin, src);
+        if (!nob_cmd_run(&cmd)) return 1;
+    }
+    return 0;
+}
+
 int run_test_dir(bool asan, const char *dir) {
     Nob_File_Paths files = {0};
     if (!nob_read_entire_dir(dir, &files)) return 1;
@@ -48,22 +68,43 @@ int run_test_dir(bool asan, const char *dir) {
     return 0;
 }
 
-int run_tests(bool asan) {
+static const char  *TEST_DIRS[]     = {"modules", "modules/collections", "ngine"};
+static const size_t TEST_DIRS_COUNT = sizeof(TEST_DIRS) / sizeof(TEST_DIRS[0]);
+
+int run_tests(bool asan, const char *dir) {
 #ifdef _WIN32
     if (!nob_mkdir_if_not_exists("tmp")) return 1;
 #endif
-    run_test_dir(asan, "modules");
-    run_test_dir(asan, "modules/collections");
+    if (dir) {
+        bool found = false;
+        for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) {
+            if (strcmp(dir, TEST_DIRS[i]) == 0 ||
+                nob_sv_starts_with(nob_sv_from_cstr(TEST_DIRS[i]),
+                                   nob_sv_from_cstr(dir))) {
+                run_test_dir(asan, TEST_DIRS[i]);
+                found = true;
+            }
+        }
+        if (!found) {
+            nob_log(NOB_ERROR,
+                    "unknown test dir '%s'. use: ./nob test modules | ./nob test ngine",
+                    dir);
+            return 1;
+        }
+        return 0;
+    }
+    for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) run_test_dir(asan, TEST_DIRS[i]);
     return 0;
 }
 
 int run_clean(void) {
-    Nob_File_Paths modules = {0};
-    if (!nob_read_entire_dir("modules", &modules)) return 1;
-
-    for (size_t i = 0; i < modules.count; ++i) {
-        const char *name = modules.items[i];
-        if (nob_sv_starts_with(nob_sv_from_cstr(name), nob_sv_from_cstr("test_"))) {
+    for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) {
+        Nob_File_Paths files = {0};
+        if (!nob_read_entire_dir(TEST_DIRS[i], &files)) continue;
+        for (size_t j = 0; j < files.count; ++j) {
+            const char *name = files.items[j];
+            if (!nob_sv_starts_with(nob_sv_from_cstr(name), nob_sv_from_cstr("test_")))
+                continue;
             const char *bin =
                  nob_temp_sprintf("./%.*s.out%s", (int)(strlen(name) - 2), name, EXE_EXT);
             if (nob_file_exists(bin) > 0) nob_delete_file(bin);
@@ -73,35 +114,68 @@ int run_clean(void) {
     return 0;
 }
 
+int run_run(bool execute, const char *mode) {
+    if (strcmp(mode, "debug") != 0 && strcmp(mode, "release") != 0) {
+        nob_log(NOB_ERROR,
+                "unknown build mode '%s'. use: ./nob run debug | ./nob run release",
+                mode);
+        return 1;
+    }
+    Nob_Cmd cmd = {0};
+    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", C_TARGET, C_ENTRY, SDL_FLAGS);
+    if (strcmp(mode, "release") == 0) {
+        nob_cmd_append(&cmd, C_RELEASE_FLAGS);
+    } else {
+        nob_cmd_append(&cmd, C_DEBUG_FLAGS);
+    }
+    if (!nob_cmd_run(&cmd)) return 1;
+    if (execute) {
+        Nob_Cmd run = {0};
+        nob_cmd_append(&run, C_TARGET);
+        return !nob_cmd_run(&run);
+    }
+    return 0;
+}
+
 int main(int argc, char **argv) {
     NOB_GO_REBUILD_URSELF(argc, argv);
 
-    if (argc > 1 && strcmp(argv[1], "test") == 0) {
-        return run_tests(false);
+    if (argc > 1 && strcmp(argv[1], "help") == 0) {
+        nob_log(NOB_INFO, "usage: ./nob [command] [options]");
+        nob_log(NOB_INFO, "  (none)              build debug");
+        nob_log(NOB_INFO, "  run [debug|release] build and run");
+        nob_log(NOB_INFO, "  debug|release       build with mode");
+        nob_log(NOB_INFO, "  test [dir]          run tests (modules, ngine)");
+        nob_log(NOB_INFO, "  test-asan [dir]     run tests with asan");
+        nob_log(NOB_INFO, "  clean               remove build artifacts");
+        return 0;
     }
 
-    if (argc > 1 && strcmp(argv[1], "asan") == 0) {
-        return run_tests(true);
+    if (argc > 1 && strcmp(argv[1], "test-build") == 0) {
+        const char *dir = argc > 2 ? argv[2] : NULL;
+        if (dir) return build_test_dir(dir);
+        for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) build_test_dir(TEST_DIRS[i]);
+        return 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "test") == 0) {
+        return run_tests(false, argc > 2 ? argv[2] : NULL);
+    }
+
+    if (argc > 1 && strcmp(argv[1], "test-asan") == 0) {
+        return run_tests(true, argc > 2 ? argv[2] : NULL);
     }
 
     if (argc > 1 && strcmp(argv[1], "clean") == 0) {
         return run_clean();
     }
 
-    Nob_Cmd cmd = {0};
-    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", C_TARGET, C_ENTRY, SDL_FLAGS);
-    if (argc > 1 && strcmp(argv[1], "debug") == 0) {
-        nob_cmd_append(&cmd, C_DEBUG_FLAGS);
-    } else if (argc > 1 && strcmp(argv[1], "release") == 0) {
-        nob_cmd_append(&cmd, C_RELEASE_FLAGS);
-    }
-    if (!nob_cmd_run(&cmd)) return 1;
+    bool do_run = argc > 1 && strcmp(argv[1], "run") == 0;
 
-    if (argc > 1 && strcmp(argv[1], "run") == 0) {
-        Nob_Cmd run = {0};
-        nob_cmd_append(&run, C_TARGET);
-        return !nob_cmd_run(&run);
-    }
-
-    return 0;
+    // clang-format off
+    const char *mode = do_run
+         ? (argc > 2 ? argv[2] : "debug") 
+         : (argc > 1 ? argv[1] : "debug");
+    // clang-format on
+    return run_run(do_run, mode);
 }

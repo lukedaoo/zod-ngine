@@ -1,5 +1,5 @@
 CompileFlags:
-  Add: [-std=c23, -Wall, -Wextra]
+  Add: [-std=c23, -Wall, -Wextra, -I., -I/usr/include/SDL3]
 ---
 If:
   PathMatch: .*\.h
@@ -8,14 +8,15 @@ CompileFlags:
     - -x
     - c
     - -std=c23
+    - -I.
     - -DLOG_IMPLEMENTATION
     - -DSTRING_VIEW_IMPLEMENTATION
     - -DINI_IMPLEMENTATION
+    - -DSCF_IMPLEMENTATION
     - -DCVAR_IMPLEMENTATION
     - -DCVAR_LOAD_IMPLEMENTATION
     - -DFILE_WATCHER_IMPLEMENTATION
     - -DCARG_IMPLEMENTATION
-
     - -DARRAY_LIST_IMPLEMENTATION
     # Add new modules here
 ---
@@ -29,3 +30,4 @@ If:
 CompileFlags:
   Add:
     - -DZOD_NGINE_IMPLEMENTATION
+    - -I.
