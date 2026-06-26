@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+// @fix: --size 200 200 300 -> 'unknow flag 300'
+
 typedef enum { CARG_INT, CARG_FLOAT, CARG_BOOL, CARG_STRING } carg_type;
 
 typedef struct {

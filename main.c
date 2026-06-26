@@ -15,7 +15,7 @@
 #define LOG_USE_COLOR
 #define CVAR_LOAD_IMPLEMENTATION
 #define FILE_WATCHER_IMPLEMENTATION
-#include "modules/index.h" 
+#include "modules/index.h"
 
 #define RUN_TREE_DIR "run-tree"
 
@@ -40,7 +40,7 @@ typedef struct {
     cvar_t *client_password;
 } configuration;
 
-int main(int argc, char *argv[]) {
+int main(const int argc, const char *argv[]) {
     carg_register_t defs[] = {
          {.flag = "--debug-log", .arg_count = 0, .type = CARG_BOOL, .required = false},
          {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false},

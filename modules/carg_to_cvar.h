@@ -74,10 +74,6 @@ bool carg_table_to_cvars(const carg_table *cargs,
     for (size_t i = 0; i < cargs->size; i++) {
         if (!carg_entry_to_cvars(&cargs->data[i], names_per_carg[i],
                                  names_count_per_carg[i], table)) {
-#ifdef MODULE_LOG_ENABLED
-            fprintf(stderr, "carg.carg_table_to_cvars: failed to convert flag %s\n",
-                    cargs->data[i].flag);
-#endif
             return false;
         }
     }

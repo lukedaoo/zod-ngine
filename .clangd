@@ -31,3 +31,4 @@ CompileFlags:
   Add:
     - -DZOD_NGINE_IMPLEMENTATION
     - -I.
+    - -I./ngine/internal

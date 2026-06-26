@@ -3,6 +3,6 @@
 
 typedef struct engine_context engine_context;
 
-extern engine_context g_core;
+extern engine_context g_ctx;
 
 #endif

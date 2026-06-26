@@ -1,0 +1,14 @@
+:/window
+width       800
+height      600
+
+:/user
+name        admin
+email       admin@localhostxxxx
+password    admin666__aaa
+float_var   123.456F
+
+:/client
+name        user112222
+email       user@localhostxxxx
+password    user45522_222xxxxxx
