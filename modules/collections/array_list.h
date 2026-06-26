@@ -7,8 +7,7 @@
 typedef struct array_list        array_list;
 typedef struct array_list_header array_list_header;
 
-bool        array_list_init(array_list  *list,
-                            const size_t initial_capacity,
+bool        array_list_init(array_list *list, const size_t initial_capacity,
                             const size_t element_size);
 array_list *array_list_create(const size_t initial_capacity, const size_t element_size);
 // @info(array_list_clear): set the list size to zero, do not free memory
@@ -70,8 +69,7 @@ struct array_list {
     void             *data;
 };
 
-bool array_list_init(array_list  *list,
-                     const size_t initial_capacity,
+bool array_list_init(array_list *list, const size_t initial_capacity,
                      const size_t element_size) {
     if (!list || initial_capacity <= 0 || element_size <= 0) return false;
 

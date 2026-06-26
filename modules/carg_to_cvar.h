@@ -4,21 +4,15 @@
 #include "carg.h"
 #include "cvar.h"
 
-bool carg_entry_to_cvars(const carg_t *carg,
-                         const char  **names,
-                         const size_t  names_count,
-                         cvar_table   *table);
+bool carg_entry_to_cvars(const carg_t *carg, const char **names, const size_t names_count,
+                         cvar_table *table);
 
-bool carg_table_to_cvars(const carg_table *cargs,
-                         const char     ***names_per_carg,
-                         const size_t     *names_count_per_carg,
-                         cvar_table       *table);
+bool carg_table_to_cvars(const carg_table *cargs, const char ***names_per_carg,
+                         const size_t *names_count_per_carg, cvar_table *table);
 
 #if defined(CVAR_IMPLEMENTATION) && defined(CARG_IMPLEMENTATION)
-bool carg_entry_to_cvars(const carg_t *carg,
-                         const char  **names,
-                         const size_t  names_count,
-                         cvar_table   *table) {
+bool carg_entry_to_cvars(const carg_t *carg, const char **names, const size_t names_count,
+                         cvar_table *table) {
     if (!carg || !names || !table) {
         return false;
     }
@@ -63,10 +57,8 @@ bool carg_entry_to_cvars(const carg_t *carg,
     return true;
 }
 
-bool carg_table_to_cvars(const carg_table *cargs,
-                         const char     ***names_per_carg,
-                         const size_t     *names_count_per_carg,
-                         cvar_table       *table) {
+bool carg_table_to_cvars(const carg_table *cargs, const char ***names_per_carg,
+                         const size_t *names_count_per_carg, cvar_table *table) {
     if (!cargs || !names_per_carg || !names_count_per_carg || !table) {
         return false;
     }

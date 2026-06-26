@@ -28,10 +28,8 @@ static void write_file(const char *path, const char *content) {
     fclose(f);
 }
 
-static bool test_ini_handler(const char *section,
-                             const char *key,
-                             const char *value,
-                             void       *user) {
+static bool test_ini_handler(const char *section, const char *key, const char *value,
+                             void *user) {
     cvar_table *cvars = user;
 
 #define MATCH(s, k) (strcmp(section, s) == 0 && strcmp(key, k) == 0)
@@ -112,19 +110,15 @@ MU_TEST_SUITE(cvar_reload_suite) {
 static cvar_type infer_value_type(const char *value) {
     cvar_table table = {0};
     cvar_default_config_parser_handler("test", "value", value, &table);
-    cvar_t *v = cvar_get(&table, "test.value");
+    cvar_t   *v    = cvar_get(&table, "test.value");
     cvar_type type = v->type;
     cvar_destroy(&table);
     return type;
 }
 
-MU_TEST(test_float_suffix_upper_f) {
-    mu_check(infer_value_type("3.14F") == CVAR_FLOAT);
-}
+MU_TEST(test_float_suffix_upper_f) { mu_check(infer_value_type("3.14F") == CVAR_FLOAT); }
 
-MU_TEST(test_float_suffix_lower_f) {
-    mu_check(infer_value_type("3.14f") == CVAR_FLOAT);
-}
+MU_TEST(test_float_suffix_lower_f) { mu_check(infer_value_type("3.14f") == CVAR_FLOAT); }
 
 MU_TEST(test_float_suffix_one_point_zero) {
     mu_check(infer_value_type("1.0F") == CVAR_FLOAT);

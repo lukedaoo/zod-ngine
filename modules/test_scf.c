@@ -13,10 +13,8 @@ typedef struct {
     int  calls;
 } capture;
 
-static bool capture_handler(const char *section,
-                             const char *key,
-                             const char *value,
-                             void       *user) {
+static bool capture_handler(const char *section, const char *key, const char *value,
+                            void *user) {
     capture *c = user;
     strncpy(c->section, section, sizeof(c->section) - 1);
     strncpy(c->key, key, sizeof(c->key) - 1);
@@ -25,10 +23,8 @@ static bool capture_handler(const char *section,
     return true;
 }
 
-static bool counting_handler(const char *section,
-                              const char *key,
-                              const char *value,
-                              void       *user) {
+static bool counting_handler(const char *section, const char *key, const char *value,
+                             void *user) {
     (void)section;
     (void)key;
     (void)value;
@@ -37,10 +33,8 @@ static bool counting_handler(const char *section,
     return true;
 }
 
-static bool stop_after_first_handler(const char *section,
-                                      const char *key,
-                                      const char *value,
-                                      void       *user) {
+static bool stop_after_first_handler(const char *section, const char *key,
+                                     const char *value, void *user) {
     (void)section;
     (void)key;
     (void)value;
@@ -72,7 +66,8 @@ MU_TEST(test_full_line_comment_hash_is_not_a_comment) {
 
 MU_TEST(test_inline_comment_semicolon) {
     capture c = {0};
-    mu_check(scf_parse_string(":/display\nvsync true ; enable vsync\n", capture_handler, &c));
+    mu_check(
+         scf_parse_string(":/display\nvsync true ; enable vsync\n", capture_handler, &c));
     mu_assert_string_eq("true", c.value);
 }
 

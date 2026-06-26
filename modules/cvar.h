@@ -155,9 +155,7 @@ static const char *cvar_type_to_string(cvar_type type) {
 }
 #endif
 
-static bool cvar_set(cvar_table *table,
-                     const char *name,
-                     cvar_type   type,
+static bool cvar_set(cvar_table *table, const char *name, cvar_type type,
                      const void *value) {
     if (!table || !name || !value) return false;
 

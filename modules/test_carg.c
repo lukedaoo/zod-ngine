@@ -300,6 +300,26 @@ MU_TEST(test_get_returns_null_for_nonexistent_flag) {
     carg_destroy(&table);
 }
 
+MU_TEST(test_parse_excess_values_fails) {
+    carg_register_t defs[] = {
+         {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false}};
+    const char *av[]  = {"prog", "--size", "10", "20", "300"};
+    carg_table  table = {0};
+
+    mu_check(!carg_parse(defs, 1, 5, av, &table));
+}
+
+MU_TEST(test_parse_excess_values_before_flag_fails) {
+    carg_register_t defs[] = {
+         {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false},
+         {.flag = "--verbose", .arg_count = 0, .type = CARG_BOOL, .required = false},
+    };
+    const char *av[]  = {"prog", "--size", "10", "20", "300", "--verbose"};
+    carg_table  table = {0};
+
+    mu_check(!carg_parse(defs, 2, 6, av, &table));
+}
+
 MU_TEST(test_destroy_null_safe) { carg_destroy(NULL); }
 
 MU_TEST(test_destroy_populated_table_all_types) {
@@ -339,6 +359,8 @@ MU_TEST_SUITE(carg_suite) {
     MU_RUN_TEST(test_getter_float_array_present_and_absent);
     MU_RUN_TEST(test_getter_string_array_present_and_absent);
     MU_RUN_TEST(test_get_returns_null_for_nonexistent_flag);
+    MU_RUN_TEST(test_parse_excess_values_fails);
+    MU_RUN_TEST(test_parse_excess_values_before_flag_fails);
     MU_RUN_TEST(test_destroy_null_safe);
     MU_RUN_TEST(test_destroy_populated_table_all_types);
 }

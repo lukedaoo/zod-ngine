@@ -5,33 +5,25 @@
 #include "ini.h"
 #include "scf.h"
 
-bool cvar_load_ini(cvar_table *table,
-                   const char *ini_path,
-                   ini_handler handler,
-                   bool        force_reload);
+bool cvar_load_ini(cvar_table *table, const char *ini_path, ini_handler handler,
+                   bool force_reload);
 
-bool cvar_load_scf(cvar_table *table,
-                   const char *scf_path,
-                   scf_handler handler,
-                   bool        force_reload);
+bool cvar_load_scf(cvar_table *table, const char *scf_path, scf_handler handler,
+                   bool force_reload);
 
 // Generic cvar_handler: maps any "[section] key = value" to a cvar named
 // "section.key", inferring CVAR_BOOL/CVAR_INT/CVAR_FLOAT/CVAR_STRING from
 // the value text.
-bool cvar_default_config_parser_handler(const char *section,
-                                        const char *key,
-                                        const char *value,
-                                        void       *user);
+bool cvar_default_config_parser_handler(const char *section, const char *key,
+                                        const char *value, void *user);
 #ifdef CVAR_LOAD_IMPLEMENTATION
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-bool cvar_default_config_parser_handler(const char *section,
-                                        const char *key,
-                                        const char *value,
-                                        void       *user) {
+bool cvar_default_config_parser_handler(const char *section, const char *key,
+                                        const char *value, void *user) {
     cvar_table *cvars = user;
 
     char name[CVAR_NAME_MAX];
@@ -64,11 +56,8 @@ bool cvar_default_config_parser_handler(const char *section,
 
 typedef bool (*parse_func)(const char *filepath, void *handler, void *user);
 
-static bool cvar_load_internal(cvar_table *table,
-                               const char *filename,
-                               void       *handler,
-                               bool        force_reload,
-                               parse_func  parser) {
+static bool cvar_load_internal(cvar_table *table, const char *filename, void *handler,
+                               bool force_reload, parse_func parser) {
     if (!force_reload) {
         return parser(filename, handler, table);
     }
@@ -84,18 +73,14 @@ static bool cvar_load_internal(cvar_table *table,
     return true;
 }
 
-bool cvar_load_ini(cvar_table *table,
-                   const char *ini_path,
-                   ini_handler handler,
-                   bool        force_reload) {
+bool cvar_load_ini(cvar_table *table, const char *ini_path, ini_handler handler,
+                   bool force_reload) {
     return cvar_load_internal(table, ini_path, handler, force_reload,
                               (parse_func)ini_parse);
 }
 
-bool cvar_load_scf(cvar_table *table,
-                   const char *scf_path,
-                   scf_handler handler,
-                   bool        force_reload) {
+bool cvar_load_scf(cvar_table *table, const char *scf_path, scf_handler handler,
+                   bool force_reload) {
     return cvar_load_internal(table, scf_path, handler, force_reload,
                               (parse_func)scf_parse);
 }

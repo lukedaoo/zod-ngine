@@ -73,7 +73,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     }
 
     //
-    // Stage 3: CLI overlay → merged (game parses + maps args)
+    // Stage 3: CLI overlay
     //
     if (dispatch.load_args) {
         log_debug("parsing command line...");
@@ -83,7 +83,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     }
 
     //
-    // Pump merged → g_ctx.config
+    // Pump merged
     //
     g_config_storage      = g_config_preset;
     g_config_storage.user = params.user_config;

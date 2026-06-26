@@ -26,10 +26,8 @@
 #ifndef SCF_H
 #define SCF_H
 
-typedef bool (*scf_handler)(const char *section,
-                            const char *key,
-                            const char *value,
-                            void       *user);
+typedef bool (*scf_handler)(const char *section, const char *key, const char *value,
+                            void *user);
 
 bool scf_parse(const char *filename, scf_handler handler, void *user);
 bool scf_parse_string(const char *string, scf_handler handler, void *user);

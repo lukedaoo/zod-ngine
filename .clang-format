@@ -10,10 +10,10 @@ ColumnLimit: 90
 BreakBeforeBraces: Attach
 
 AlignConsecutiveMacros: true
-AlignConsecutiveDeclarations: true
 AlignConsecutiveAssignments: true
 
-BinPackParameters: false
+AlignConsecutiveDeclarations: true
+BinPackParameters: true
 ContinuationIndentWidth: 5
 
 SortIncludes: false

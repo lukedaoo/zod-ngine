@@ -19,10 +19,8 @@ typedef struct {
     int           limit;
 } Captured;
 
-static bool capture_handler(const char *section,
-                            const char *key,
-                            const char *value,
-                            void       *user) {
+static bool capture_handler(const char *section, const char *key, const char *value,
+                            void *user) {
     Captured *cap = user;
     if (cap->count >= MAX_CAPTURED) return false;
 

@@ -1,10 +1,8 @@
 #ifndef INI_H_
 #define INI_H_
 
-typedef bool (*ini_handler)(const char *section,
-                            const char *key,
-                            const char *value,
-                            void       *user);
+typedef bool (*ini_handler)(const char *section, const char *key, const char *value,
+                            void *user);
 
 bool ini_parse(const char *filename, ini_handler handler, void *user);
 bool ini_parse_string(const char *string, ini_handler handler, void *user);

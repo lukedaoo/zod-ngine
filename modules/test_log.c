@@ -37,7 +37,7 @@ MU_TEST(test_log_file_level_threshold) {
     mu_check(fp != NULL);
 
     log_set_level(LOG_FATAL + 1);  // mute console; file sink has its own level
-    log_set_fp(fp, LOG_WARN);  // file only takes WARN and above
+    log_set_fp(fp, LOG_WARN);      // file only takes WARN and above
 
     log_info("below threshold");
     char buf[256];
@@ -62,7 +62,7 @@ MU_TEST(test_log_disable_via_null) {
     log_set_fp(fp, LOG_TRACE);
     log_info("first");
 
-    char buf[256];
+    char   buf[256];
     size_t len_before = read_back(fp, buf, sizeof(buf));
     mu_check(len_before > 0);
 
