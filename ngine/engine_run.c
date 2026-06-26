@@ -53,6 +53,11 @@ void after_init(void) {
               cvar_get_string(cvars, "window.title", "zod-ngine"),
               cvar_get_bool(cvars, "window.vsync", true),
               cvar_get_int(cvars, "log.level", 0));
+
+    for (size_t i = 0; i < g_ctx.config->cvars.size; ++i) {
+        const char *name = g_ctx.config->cvars.data[i].name;
+        log_debug("config: %s", name);
+    }
 }
 
 int main(const int argc, const char **argv) {

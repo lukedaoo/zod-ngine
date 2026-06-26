@@ -2,15 +2,24 @@
 #define ZOD_NGINE_H
 
 #include <stdbool.h>
+#include "../modules/cvar.h"
 
-typedef struct zod_engine_dispatch    zod_engine_dispatch;
-typedef struct zod_engine_init_params zod_engine_init_params;
+typedef struct {
+    void (*before_init)(void);
+    bool (*load_config_from_file)(const char *filepath, cvar_table *cvars);
+    bool (*load_args)(int argc, const char **argv, cvar_table *cvars);
+    void (*after_init)(void);
 
-typedef enum {
-    DEFAULT,
-    EMPTY,
-} init_params_preset;
-zod_engine_init_params init_params(init_params_preset preset);
+    void (*before_destroy)(void);
+    void (*after_destroy)(void);
+} zod_engine_dispatch;
+
+typedef struct {
+    int                 argc;
+    const char        **argv;
+    const char         *config_path;
+    zod_engine_dispatch dispatch;
+} zod_engine_init_params;
 
 bool zod_ngine_init(const zod_engine_init_params params);
 void zod_ngine_destroy(void);
