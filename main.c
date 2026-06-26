@@ -1,36 +1,22 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_render.h>
 #include <stdio.h>
-#include "modules/module_config.h"
+#include "modules/modules_config.h"
 
 #if DEBUG
 #define MODULE_LOG_ENABLED
 #endif
 
 #define CARG_IMPLEMENTATION
-#include "modules/carg.h"
-
 #define INI_IMPLEMENTATION
-#include "modules/ini.h"
-
 #define SCF_IMPLEMENTATION
-#include "modules/scf.h"
-
 #define CVAR_IMPLEMENTATION
-#include "modules/cvar.h"
-
 #define LOG_IMPLEMENTATION
 #define LOG_USE_SIMPLE
 #define LOG_USE_COLOR
-#include "modules/log.h"
-
 #define CVAR_LOAD_IMPLEMENTATION
-#include "modules/cvar_load.h"
-
 #define FILE_WATCHER_IMPLEMENTATION
-#include "modules/file_watcher.h"
-
-#include "modules/carg_to_cvar.h"
+#include "modules/index.h"
 
 #define RUN_TREE_DIR "run-tree"
 

@@ -3,8 +3,8 @@
 
 // Include this header first in main.c, before any modules/*.h include,
 // to override the defaults below. Each module's own #ifndef guard picks
-// up the override. Not wired into main.c yet — every line here is
-// commented out, so this file has no effect until you uncomment one.
+// up the override. Every line here is commented out by default — uncomment
+// to override a limit.
 
 // ------- Cvars
 // cvar.h — max number of cvars a table can hold.
