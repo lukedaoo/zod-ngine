@@ -23,3 +23,9 @@ If:
   PathMatch: .*/index\.h$
 Diagnostics:
   Suppress: unused-includes
+---
+If:
+  PathMatch: .*/ngine/.*\.c$
+CompileFlags:
+  Add:
+    - -DZOD_NGINE_IMPLEMENTATION

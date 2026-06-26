@@ -11,12 +11,12 @@ bool        array_list_init(array_list  *list,
                             const size_t initial_capacity,
                             const size_t element_size);
 array_list *array_list_create(const size_t initial_capacity, const size_t element_size);
-// @info(clear): set the list size to zero, do not free memory
+// @info(array_list_clear): set the list size to zero, do not free memory
 bool array_list_clear(array_list *list);
 void array_list_destroy(array_list *list);
-// @info: reduces the capacity to exact size
+// @info(array_list_shrink): reduces the capacity to exact size
 bool array_list_shrink(array_list *list);
-// @info: ensure that the capacity is at least new_capacity
+// @info(array_list_reserve): ensure that the capacity is at least new_capacity
 bool array_list_reserve(array_list *list, const size_t new_capacity);
 
 bool array_list_append(array_list *list, const void *element);
