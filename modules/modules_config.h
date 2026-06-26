@@ -1,10 +1,8 @@
-#ifndef MODULE_CONFIG_H
-#define MODULE_CONFIG_H
+#ifndef MODULES_CONFIG_H
+#define MODULES_CONFIG_H
 
-// Include this header first in main.c, before any modules/*.h include,
-// to override the defaults below. Each module's own #ifndef guard picks
-// up the override. Every line here is commented out by default — uncomment
-// to override a limit.
+// Capacity overrides for all modules. Included automatically by index.h —
+// do not include manually. Uncomment a line to override its default.
 
 // ------- Cvars
 // cvar.h — max number of cvars a table can hold.

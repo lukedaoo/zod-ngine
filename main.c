@@ -1,7 +1,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_render.h>
 #include <stdio.h>
-#include "modules/modules_config.h"
 
 #if DEBUG
 #define MODULE_LOG_ENABLED

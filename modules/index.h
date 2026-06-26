@@ -1,6 +1,10 @@
 #ifndef INDEX_H
 #define INDEX_H
 
+// Convenience umbrella — include all modules in one shot.
+// Define all _IMPLEMENTATION macros BEFORE including this file.
+// modules_config.h is pulled in automatically and must not be included again.
+
 #include "modules_config.h"
 
 // utils
