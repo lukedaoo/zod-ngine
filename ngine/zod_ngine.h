@@ -6,6 +6,12 @@
 typedef struct zod_engine_dispatch    zod_engine_dispatch;
 typedef struct zod_engine_init_params zod_engine_init_params;
 
+typedef enum {
+    DEFAULT,
+    EMPTY,
+} init_params_preset;
+zod_engine_init_params init_params(init_params_preset preset);
+
 bool zod_ngine_init(const zod_engine_init_params params);
 void zod_ngine_destroy(void);
 

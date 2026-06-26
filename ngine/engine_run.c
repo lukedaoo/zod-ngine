@@ -1,7 +1,7 @@
 #include <stdbool.h>
 
 #define ZOD_NGINE_IMPLEMENTATION
-#include "index.h"
+#include "ngine/index.h"
 
 #define CONFIG_PATH "run-tree/data/engine.scf"
 

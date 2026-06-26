@@ -26,9 +26,7 @@ Diagnostics:
   Suppress: unused-includes
 ---
 If:
-  PathMatch: .*/ngine/.*\.c$
+  PathMatch: ngine/.*\.c$
 CompileFlags:
   Add:
-    - -DZOD_NGINE_IMPLEMENTATION
-    - -I.
-    - -I./ngine/internal
+    - -I..

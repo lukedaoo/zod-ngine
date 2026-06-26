@@ -23,11 +23,11 @@
 #define LOG_IMPLEMENTATION
 #define LOG_USE_SIMPLE
 
-#include "../modules/index.h"
+#include "modules/index.h"
 
-#include "internal/g_config_internal.c"
-#include "internal/g_engine_context_internal.c"
-#include "internal/zod_ngine_internal.c"
+#include "internal/g_config/g_config.c"
+#include "internal/g_engine_context/g_engine_context.c"
+#include "internal/zod_ngine/zod_ngine.c"
 #endif
 
 #endif

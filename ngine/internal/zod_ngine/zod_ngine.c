@@ -2,13 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../../modules/carg.h"
-#include "../../modules/cvar.h"
-#include "../../modules/cvar_load.h"
-#include "../../modules/log.h"
+#include "modules/carg.h"
+#include "modules/cvar.h"
+#include "modules/cvar_load.h"
+#include "modules/log.h"
 
-#include "../g_engine_context.h"
-#include "../zod_ngine.h"
+#include "ngine/g_engine_context.h"
+#include "ngine/zod_ngine.h"
 
 struct zod_engine_dispatch {
     void (*before_init)(void);

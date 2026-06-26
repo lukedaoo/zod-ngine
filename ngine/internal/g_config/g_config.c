@@ -1,6 +1,5 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
-#include "../../modules/types.h"
-#include "../g_config.h"
+#include "ngine/g_config.h"
 
 struct g_config {
     cvar_table cvars;
