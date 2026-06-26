@@ -8,14 +8,21 @@
 #define C_RELEASE_FLAGS "-O3", "-DNDEBUG"
 
 #ifdef _WIN32
-#define EXE_EXT  ".exe"
-#define C_TARGET "main"
+
+#define EXE_EXT       ".exe"
+#define C_TARGET      "main"
+#define ENGINE_TARGET "engine_run"
+
 #else
-#define EXE_EXT  ""
-#define C_TARGET "./main"
+
+#define EXE_EXT       ""
+#define C_TARGET      "./main"
+#define ENGINE_TARGET "./engine_run"
+
 #endif
 
-#define C_ENTRY "main.c"
+#define C_ENTRY      "main.c"
+#define ENGINE_ENTRY "ngine/engine_run.c"
 
 #ifdef _WIN32
 #define SDL_FLAGS "-I/ucrt64/include/SDL3", "-L/ucrt64/lib", "-lSDL3.dll"
@@ -111,18 +118,21 @@ int run_clean(void) {
         }
     }
     if (nob_file_exists(C_TARGET) > 0) nob_delete_file(C_TARGET);
+    if (nob_file_exists(ENGINE_TARGET) > 0) nob_delete_file(ENGINE_TARGET);
     return 0;
 }
 
-int run_run(bool execute, const char *mode) {
+int run_run(bool execute, const char *target, const char *mode) {
     if (strcmp(mode, "debug") != 0 && strcmp(mode, "release") != 0) {
-        nob_log(NOB_ERROR,
-                "unknown build mode '%s'. use: ./nob run debug | ./nob run release",
-                mode);
+        nob_log(NOB_ERROR, "unknown build mode '%s'. use: debug | release", mode);
         return 1;
     }
+    bool        is_engine = strcmp(target, "engine") == 0;
+    const char *out       = is_engine ? ENGINE_TARGET : C_TARGET;
+    const char *src       = is_engine ? ENGINE_ENTRY : C_ENTRY;
+
     Nob_Cmd cmd = {0};
-    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", C_TARGET, C_ENTRY, SDL_FLAGS);
+    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", out, src, SDL_FLAGS);
     if (strcmp(mode, "release") == 0) {
         nob_cmd_append(&cmd, C_RELEASE_FLAGS);
     } else {
@@ -131,7 +141,7 @@ int run_run(bool execute, const char *mode) {
     if (!nob_cmd_run(&cmd)) return 1;
     if (execute) {
         Nob_Cmd run = {0};
-        nob_cmd_append(&run, C_TARGET);
+        nob_cmd_append(&run, out);
         return !nob_cmd_run(&run);
     }
     return 0;
@@ -142,12 +152,13 @@ int main(int argc, char **argv) {
 
     if (argc > 1 && strcmp(argv[1], "help") == 0) {
         nob_log(NOB_INFO, "usage: ./nob [command] [options]");
-        nob_log(NOB_INFO, "  (none)              build debug");
-        nob_log(NOB_INFO, "  run [debug|release] build and run");
-        nob_log(NOB_INFO, "  debug|release       build with mode");
-        nob_log(NOB_INFO, "  test [dir]          run tests (modules, ngine)");
-        nob_log(NOB_INFO, "  test-asan [dir]     run tests with asan");
-        nob_log(NOB_INFO, "  clean               remove build artifacts");
+        nob_log(NOB_INFO, "  (none)                        build main debug");
+        nob_log(NOB_INFO, "  run [engine] [debug|release]  build and run");
+        nob_log(NOB_INFO, "  engine [debug|release]        build engine_run");
+        nob_log(NOB_INFO, "  debug|release                 build main with mode");
+        nob_log(NOB_INFO, "  test [dir]                    run tests (modules, ngine)");
+        nob_log(NOB_INFO, "  test-asan [dir]               run tests with asan");
+        nob_log(NOB_INFO, "  clean                         remove build artifacts");
         return 0;
     }
 
@@ -172,10 +183,23 @@ int main(int argc, char **argv) {
 
     bool do_run = argc > 1 && strcmp(argv[1], "run") == 0;
 
+    if (do_run) {
+        bool engine = argc > 2 && strcmp(argv[2], "engine") == 0;
+        // clang-format off
+        const char *mode = engine
+            ? (argc > 3 ? argv[3] : "debug")
+            : (argc > 2 ? argv[2] : "debug");
+        // clang-format on
+        return run_run(true, engine ? "engine" : "main", mode);
+    }
+
+    if (argc > 1 && strcmp(argv[1], "engine") == 0) {
+        const char *mode = argc > 2 ? argv[2] : "debug";
+        return run_run(false, "engine", mode);
+    }
+
     // clang-format off
-    const char *mode = do_run
-         ? (argc > 2 ? argv[2] : "debug") 
-         : (argc > 1 ? argv[1] : "debug");
+    const char *mode = argc > 1 ? argv[1] : "debug";
     // clang-format on
-    return run_run(do_run, mode);
+    return run_run(false, "main", mode);
 }
