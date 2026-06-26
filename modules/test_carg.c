@@ -3,12 +3,25 @@
 #define CARG_IMPLEMENTATION
 #include "carg.h"
 
+MU_TEST(test_parse_no_flags) {
+    carg_register_t defs[] = {
+         {.flag = "--verbose", .arg_count = 0, .type = CARG_BOOL, .required = false}};
+    const char *av[]  = {"prog"};
+    int         argc  = 1;
+    carg_table  table = {0};
+
+    mu_check(carg_parse(defs, 1, argc, av, &table));
+    mu_check(carg_get_bool(&table, "--verbose", false) == false);
+
+    carg_destroy(&table);
+}
+
 MU_TEST(test_parse_bool_flag) {
     carg_register_t defs[] = {
          {.flag = "--verbose", .arg_count = 0, .type = CARG_BOOL, .required = false}};
-    char      *av[]  = {"prog", "--verbose"};
-    int        argc  = 2;
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--verbose"};
+    int         argc  = 2;
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 1, argc, av, &table));
     mu_check(carg_get_bool(&table, "--verbose", false) == true);
@@ -20,8 +33,8 @@ MU_TEST(test_parse_single_int) {
     carg_register_t defs[] = {
          {.flag = "--count", .arg_count = 1, .type = CARG_INT, .required = false}};
 
-    char      *av[]  = {"prog", "--count", "5"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--count", "5"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 1, 3, av, &table));
 
@@ -38,7 +51,7 @@ MU_TEST(test_parse_single_float) {
                                .arg_count = 1,
                                .type      = CARG_FLOAT,
                                .required  = false}};
-    char           *av[]   = {"prog", "--master-volume", "0.5"};
+    const char     *av[]   = {"prog", "--master-volume", "0.5"};
     carg_table      table  = {0};
 
     mu_check(carg_parse(defs, 1, 3, av, &table));
@@ -54,8 +67,8 @@ MU_TEST(test_parse_single_float) {
 MU_TEST(test_parse_single_string) {
     carg_register_t defs[] = {
          {.flag = "--name", .arg_count = 1, .type = CARG_STRING, .required = false}};
-    char      *av[]  = {"prog", "--name", "test"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--name", "test"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 1, 3, av, &table));
 
@@ -70,8 +83,8 @@ MU_TEST(test_parse_single_string) {
 MU_TEST(test_parse_multiple_ints) {
     carg_register_t defs[] = {
          {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false}};
-    char      *av[]  = {"prog", "--size", "10", "20"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--size", "10", "20"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 1, 4, av, &table));
 
@@ -87,8 +100,8 @@ MU_TEST(test_parse_multiple_ints) {
 MU_TEST(test_parse_multiple_floats) {
     carg_register_t defs[] = {
          {.flag = "--range", .arg_count = 2, .type = CARG_FLOAT, .required = false}};
-    char      *av[]  = {"prog", "--range", "1.5", "2.5"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--range", "1.5", "2.5"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 1, 4, av, &table));
 
@@ -104,8 +117,8 @@ MU_TEST(test_parse_multiple_floats) {
 MU_TEST(test_parse_multiple_strings) {
     carg_register_t defs[] = {
          {.flag = "--tags", .arg_count = 2, .type = CARG_STRING, .required = false}};
-    char      *av[]  = {"prog", "--tags", "foo", "bar"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--tags", "foo", "bar"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 1, 4, av, &table));
 
@@ -123,8 +136,8 @@ MU_TEST(test_parse_required_and_optional_mix) {
          {.flag = "--size", .arg_count = 1, .type = CARG_INT, .required = true},
          {.flag = "--verbose", .arg_count = 0, .type = CARG_BOOL, .required = false},
     };
-    char      *av[]  = {"prog", "--size", "5"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--size", "5"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 2, 3, av, &table));
     mu_check(carg_get_bool(&table, "--verbose", false) == false);
@@ -142,8 +155,8 @@ MU_TEST(test_parse_bad_flag_format_fails) {
          {.flag = "-size", .arg_count = 1, .type = CARG_INT, .required = false}};
     carg_register_t no_dash[] = {
          {.flag = "size", .arg_count = 1, .type = CARG_INT, .required = false}};
-    char      *av[]  = {"prog"};
-    carg_table table = {0};
+    const char *av[]  = {"prog"};
+    carg_table  table = {0};
 
     mu_check(!carg_parse(single_dash, 1, 1, av, &table));
     mu_check(!carg_parse(no_dash, 1, 1, av, &table));
@@ -152,8 +165,8 @@ MU_TEST(test_parse_bad_flag_format_fails) {
 MU_TEST(test_parse_unknown_flag_fails) {
     carg_register_t defs[] = {
          {.flag = "--size", .arg_count = 1, .type = CARG_INT, .required = false}};
-    char      *av[]  = {"prog", "--bogus", "5"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--bogus", "5"};
+    carg_table  table = {0};
 
     mu_check(!carg_parse(defs, 1, 3, av, &table));
 }
@@ -161,8 +174,8 @@ MU_TEST(test_parse_unknown_flag_fails) {
 MU_TEST(test_parse_missing_required_fails) {
     carg_register_t defs[] = {
          {.flag = "--size", .arg_count = 1, .type = CARG_INT, .required = true}};
-    char      *av[]  = {"prog"};
-    carg_table table = {0};
+    const char *av[]  = {"prog"};
+    carg_table  table = {0};
 
     mu_check(!carg_parse(defs, 1, 1, av, &table));
 }
@@ -170,8 +183,8 @@ MU_TEST(test_parse_missing_required_fails) {
 MU_TEST(test_parse_too_few_values_fails) {
     carg_register_t defs[] = {
          {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false}};
-    char      *av[]  = {"prog", "--size", "10"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--size", "10"};
+    carg_table  table = {0};
 
     mu_check(!carg_parse(defs, 1, 3, av, &table));
 }
@@ -179,8 +192,8 @@ MU_TEST(test_parse_too_few_values_fails) {
 MU_TEST(test_parse_invalid_int_fails) {
     carg_register_t defs[] = {
          {.flag = "--count", .arg_count = 1, .type = CARG_INT, .required = false}};
-    char      *av[]  = {"prog", "--count", "abc"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--count", "abc"};
+    carg_table  table = {0};
 
     mu_check(!carg_parse(defs, 1, 3, av, &table));
 }
@@ -190,7 +203,7 @@ MU_TEST(test_parse_invalid_float_fails) {
                                .arg_count = 1,
                                .type      = CARG_FLOAT,
                                .required  = false}};
-    char           *av[]   = {"prog", "--master-volume", "abc"};
+    const char     *av[]   = {"prog", "--master-volume", "abc"};
     carg_table      table  = {0};
 
     mu_check(!carg_parse(defs, 1, 3, av, &table));
@@ -201,8 +214,8 @@ MU_TEST(test_getter_bool_present_and_absent) {
          {.flag = "--verbose", .arg_count = 0, .type = CARG_BOOL, .required = false},
          {.flag = "--quiet", .arg_count = 0, .type = CARG_BOOL, .required = false},
     };
-    char      *av[]  = {"prog", "--verbose"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--verbose"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 2, 2, av, &table));
     mu_check(carg_get_bool(&table, "--verbose", false) == true);
@@ -217,8 +230,8 @@ MU_TEST(test_getter_int_array_present_and_absent) {
          {.flag = "--size", .arg_count = 1, .type = CARG_INT, .required = false},
          {.flag = "--scale", .arg_count = 1, .type = CARG_INT, .required = false},
     };
-    char      *av[]  = {"prog", "--size", "7"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--size", "7"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 2, 3, av, &table));
 
@@ -238,8 +251,8 @@ MU_TEST(test_getter_float_array_present_and_absent) {
          {.flag = "--volume", .arg_count = 1, .type = CARG_FLOAT, .required = false},
          {.flag = "--gain", .arg_count = 1, .type = CARG_FLOAT, .required = false},
     };
-    char      *av[]  = {"prog", "--volume", "0.5"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--volume", "0.5"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 2, 3, av, &table));
 
@@ -259,8 +272,8 @@ MU_TEST(test_getter_string_array_present_and_absent) {
          {.flag = "--name", .arg_count = 1, .type = CARG_STRING, .required = false},
          {.flag = "--title", .arg_count = 1, .type = CARG_STRING, .required = false},
     };
-    char      *av[]  = {"prog", "--name", "test"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--name", "test"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 2, 3, av, &table));
 
@@ -278,8 +291,8 @@ MU_TEST(test_getter_string_array_present_and_absent) {
 MU_TEST(test_get_returns_null_for_nonexistent_flag) {
     carg_register_t defs[] = {
          {.flag = "--size", .arg_count = 1, .type = CARG_INT, .required = false}};
-    char      *av[]  = {"prog", "--size", "5"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--size", "5"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 1, 3, av, &table));
     mu_check(carg_get(&table, "--nonexistent") == NULL);
@@ -296,9 +309,9 @@ MU_TEST(test_destroy_populated_table_all_types) {
          {.flag = "--name", .arg_count = 1, .type = CARG_STRING, .required = false},
          {.flag = "--verbose", .arg_count = 0, .type = CARG_BOOL, .required = false},
     };
-    char      *av[]  = {"prog", "--size", "5",    "--volume",
-                        "0.5",  "--name", "test", "--verbose"};
-    carg_table table = {0};
+    const char *av[]  = {"prog", "--size", "5",    "--volume",
+                         "0.5",  "--name", "test", "--verbose"};
+    carg_table  table = {0};
 
     mu_check(carg_parse(defs, 4, 8, av, &table));
 
@@ -306,6 +319,7 @@ MU_TEST(test_destroy_populated_table_all_types) {
 }
 
 MU_TEST_SUITE(carg_suite) {
+    MU_RUN_TEST(test_parse_no_flags);
     MU_RUN_TEST(test_parse_bool_flag);
     MU_RUN_TEST(test_parse_single_int);
     MU_RUN_TEST(test_parse_single_float);

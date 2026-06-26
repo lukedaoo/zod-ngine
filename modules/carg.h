@@ -16,8 +16,11 @@ typedef struct {
 typedef struct carg_table carg_table;
 typedef struct carg_t     carg_t;
 
-bool carg_parse(
-     const carg_register_t *defs, size_t ndefs, int argc, char **argv, carg_table *table);
+bool carg_parse(const carg_register_t *defs,
+                const size_t           ndefs,
+                const int              argc,
+                const char           **argv,
+                carg_table            *table);
 void carg_destroy(carg_table *table);
 
 carg_t *carg_get(carg_table *table, const char *flag);
@@ -94,9 +97,9 @@ static const carg_register_t *carg_find_def(const carg_register_t *defs,
 }
 
 bool carg_parse(const carg_register_t *defs,
-                size_t                 ndefs,
-                int                    argc,
-                char                 **argv,
+                const size_t           ndefs,
+                const int              argc,
+                const char           **argv,
                 carg_table            *table) {
     if (!defs || !table || !argv) return false;
 

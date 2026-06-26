@@ -7,10 +7,14 @@
 #include "cvar.h"
 
 MU_TEST(test_int_conversion) {
-    int    values[] = {200, 300};
-    carg_t carg     = {.flag = "--size", .type = CARG_INT, .count = 2, .value.i = values};
-    const char *names[] = {"width", "height"};
-    cvar_table  table   = {0};
+    int         values[] = {200, 300};
+    carg_t      carg     = {.flag    = "--size",
+                            .type    = CARG_INT,
+                            .count   = 2,
+                            .value.i = values,
+                            .present = true};
+    const char *names[]  = {"width", "height"};
+    cvar_table  table    = {0};
 
     mu_check(carg_entry_to_cvars(&carg, names, 2, &table));
     mu_assert_int_eq(200, cvar_get_int(&table, "width", -1));
@@ -19,11 +23,31 @@ MU_TEST(test_int_conversion) {
     cvar_destroy(&table);
 }
 
-MU_TEST(test_float_conversion) {
-    float  values[] = {1.5f, 2.5f};
-    carg_t carg = {.flag = "--scale", .type = CARG_FLOAT, .count = 2, .value.f = values};
-    const char *names[] = {"sx", "sy"};
+MU_TEST(test_int_conversion_when_value_is_not_present) {
+    carg_t      carg    = {.flag    = "--size",
+                           .type    = CARG_INT,
+                           .count   = 2,
+                           .value.i = NULL,
+                           .present = false};
+    const char *names[] = {"width", "height"};
     cvar_table  table   = {0};
+
+    mu_check(!carg_entry_to_cvars(&carg, names, 2, &table));
+    mu_assert_int_eq(-1, cvar_get_int(&table, "width", -1));
+    mu_assert_int_eq(-1, cvar_get_int(&table, "height", -1));
+
+    cvar_destroy(&table);
+}
+
+MU_TEST(test_float_conversion) {
+    float       values[] = {1.5f, 2.5f};
+    carg_t      carg     = {.flag    = "--scale",
+                            .type    = CARG_FLOAT,
+                            .count   = 2,
+                            .value.f = values,
+                            .present = true};
+    const char *names[]  = {"sx", "sy"};
+    cvar_table  table    = {0};
 
     mu_check(carg_entry_to_cvars(&carg, names, 2, &table));
     mu_check(cvar_get_float(&table, "sx", -1.0f) == 1.5f);
@@ -34,9 +58,13 @@ MU_TEST(test_float_conversion) {
 
 MU_TEST(test_string_conversion) {
     const char *values[] = {"a.ini", "b.ini"};
-    carg_t carg = {.flag = "--paths", .type = CARG_STRING, .count = 2, .value.s = values};
-    const char *names[] = {"path1", "path2"};
-    cvar_table  table   = {0};
+    carg_t      carg     = {.flag    = "--paths",
+                            .type    = CARG_STRING,
+                            .count   = 2,
+                            .value.s = values,
+                            .present = true};
+    const char *names[]  = {"path1", "path2"};
+    cvar_table  table    = {0};
 
     mu_check(carg_entry_to_cvars(&carg, names, 2, &table));
     mu_assert_string_eq("a.ini", cvar_get_string(&table, "path1", NULL));
@@ -65,8 +93,8 @@ MU_TEST(test_bool_absent_maps_false) {
     const char *names[] = {"verbose"};
     cvar_table  table   = {0};
 
-    mu_check(carg_entry_to_cvars(&carg, names, 1, &table));
-    mu_check(cvar_get_bool(&table, "verbose", true) == false);
+    mu_check(!carg_entry_to_cvars(&carg, names, 1, &table));
+    mu_check(cvar_get_bool(&table, "verbose", true) == true);  // fallback
 
     cvar_destroy(&table);
 }
@@ -108,7 +136,11 @@ MU_TEST(test_null_args_rejected) {
 MU_TEST(test_table_conversion) {
     int    size_values[] = {200, 300};
     carg_t entries[2]    = {
-         {.flag = "--size", .type = CARG_INT, .count = 2, .value.i = size_values},
+         {.flag    = "--size",
+          .type    = CARG_INT,
+          .count   = 2,
+          .value.i = size_values,
+          .present = true},
          {.flag    = "--verbose",
           .type    = CARG_BOOL,
           .present = true,
@@ -156,6 +188,7 @@ MU_TEST(test_table_conversion_stops_on_first_failure) {
 
 MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_int_conversion);
+    MU_RUN_TEST(test_int_conversion_when_value_is_not_present);
     MU_RUN_TEST(test_float_conversion);
     MU_RUN_TEST(test_string_conversion);
     MU_RUN_TEST(test_bool_present_maps_true);
