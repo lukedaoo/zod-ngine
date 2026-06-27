@@ -51,7 +51,14 @@ bool carg_entry_to_cvars(const carg_t *carg, const char **names, const size_t na
         } else if (carg->type == CARG_STRING) {
             ok = cvar_set_string(table, names[i], carg->value.s[i]);
         }
+
         if (!ok) return false;
+#ifdef MODULE_LOG_ENABLED
+        if (ok) {
+            fprintf(stderr, "carg.carg_entry_to_cvars: registered %s from %s for %d\n",
+                    names[i], carg->flag, i);
+        }
+#endif
     }
 
     return true;

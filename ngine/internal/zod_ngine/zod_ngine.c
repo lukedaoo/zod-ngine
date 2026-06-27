@@ -4,7 +4,7 @@
 
 #include "../../zod_ngine.h"
 #include "../g_config/g_config_internal.h"
-#include "../../g_engine_context.h"
+#include "../g_engine_context/g_engine_context_internal.h"
 
 bool zod_ngine_init(const zod_engine_init_params params) {
     const int                 argc     = params.argc;

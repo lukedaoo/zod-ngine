@@ -165,32 +165,43 @@ bool carg_parse(const carg_register_t *defs, const size_t ndefs, const int argc,
                 const char **argv, carg_table *table) {
     if (!defs || !table || !argv) return false;
 
-    for (size_t i = 0; i < ndefs; i++) {
-        const char *flag = defs[i].flag;
-        if (!flag || flag[0] != '-' || flag[1] != '-') {
+    //
+    // Check that all flags start with `--`.
+    //
+    {
+        for (size_t i = 0; i < ndefs; i++) {
+            const char *flag = defs[i].flag;
+            if (!flag || flag[0] != '-' || flag[1] != '-') {
 #ifdef MODULE_LOG_ENABLED
-            fprintf(stderr,
-                    "carg.carg_parse: Flag '%s' must start with `--`; got '%s'.\n",
-                    flag ? flag : "(null)", flag ? flag : "(null)");
+                fprintf(stderr,
+                        "carg.carg_parse: Flag '%s' must start with `--`; got '%s'.\n",
+                        flag ? flag : "(null)", flag ? flag : "(null)");
 #endif
-            return false;
+                return false;
+            }
         }
     }
 
-    table->data = malloc(ndefs * sizeof(carg_t));
-    if (!table->data) return false;
-    table->size = ndefs;
+    //
+    // Allocate table.
+    //
+    {
+        table->data = malloc(ndefs * sizeof(carg_t));
+        if (!table->data) return false;
+        table->size = ndefs;
 
-    for (size_t i = 0; i < ndefs; i++) {
-        table->data[i] = (carg_t){
-             .flag    = defs[i].flag,
-             .type    = defs[i].type,
-             .present = false,
-             .count   = 0,
-             .value   = {0},
-        };
+        for (size_t i = 0; i < ndefs; i++) {
+            table->data[i] = (carg_t){
+                 .flag    = defs[i].flag,
+                 .type    = defs[i].type,
+                 .present = false,
+                 .count   = 0,
+                 .value   = {0},
+            };
+        }
     }
 
+    // parsing
     for (int a = 1; a < argc; a++) {
         const carg_register_t *def = carg_find_def(defs, ndefs, argv[a]);
         if (!def) {
@@ -263,7 +274,7 @@ bool carg_parse(const carg_register_t *defs, const size_t ndefs, const int argc,
         a += (int)def->arg_count;
 
         //
-        // a now points at last consumed value; scan for bare tokens before next flag
+        // enfore that arg have exactly `arg_count`
         //
         {
             size_t excess = 0;
@@ -290,8 +301,11 @@ bool carg_parse(const carg_register_t *defs, const size_t ndefs, const int argc,
             carg_destroy(table);
             return false;
         }
-    }
 
+#ifdef MODULE_LOG_ENABLED
+        fprintf(stderr, "carg.carg_parse: parsed arg %s\n", defs[i].flag);
+#endif
+    }
     return true;
 }
 
