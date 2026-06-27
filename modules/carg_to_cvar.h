@@ -55,7 +55,7 @@ bool carg_entry_to_cvars(const carg_t *carg, const char **names, const size_t na
         if (!ok) return false;
 #ifdef MODULE_LOG_ENABLED
         if (ok) {
-            fprintf(stderr, "carg.carg_entry_to_cvars: registered %s from %s for %d\n",
+            fprintf(stderr, "carg.carg_entry_to_cvars: registered %s from %s for %zu\n",
                     names[i], carg->flag, i);
         }
 #endif

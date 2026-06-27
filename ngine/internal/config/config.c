@@ -1,6 +1,6 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
-#include "g_config_internal.h"
+#include "config_internal.h"
 
 void g_config_seed_preset(g_config *cfg) {
     cvar_set_int(&cfg->cvars, "window.width", 800);

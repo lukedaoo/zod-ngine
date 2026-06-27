@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "../zod_error.h"
+#include "../../zod_error.h"
 
 static __thread char zod_error_buffer[1024];
 

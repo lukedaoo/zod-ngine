@@ -22,7 +22,7 @@
 #endif
 
 #define C_ENTRY      "main.c"
-#define ENGINE_ENTRY "ngine/engine_run.c"
+#define ENGINE_ENTRY "ngine/zod_ngine_run.c"
 
 #ifdef _WIN32
 #define SDL_FLAGS "-I/ucrt64/include/SDL3", "-L/ucrt64/lib", "-lSDL3.dll"

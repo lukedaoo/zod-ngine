@@ -18,16 +18,16 @@
 
 #endif
 
-#include "g_config.h"
-#include "g_engine_context.h"
+#include "config.h"
+#include "engine_context.h"
 #include "zod_ngine.h"
 
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
-#include "internal/g_config/g_config.c"
-#include "internal/g_engine_context/g_engine_context.c"
+#include "internal/config/config.c"
+#include "internal/engine_context/engine_context.c"
 #include "internal/zod_ngine/zod_ngine.c"
-#include "internal/zod_error.c"
+#include "internal/error/zod_error.c"
 
 #endif
 

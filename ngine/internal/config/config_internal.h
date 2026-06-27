@@ -1,8 +1,8 @@
-#ifndef G_CONFIG_TYPES_H
-#define G_CONFIG_TYPES_H
+#ifndef CONFIG_INTERNAL_H
+#define CONFIG_INTERNAL_H
 
 #include "../../../modules/cvar.h"
-#include "../../g_config.h"
+#include "../../config.h"
 
 struct g_config {
     cvar_table cvars;
