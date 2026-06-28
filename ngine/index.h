@@ -14,6 +14,7 @@
 #define SCF_IMPLEMENTATION
 #define LOG_IMPLEMENTATION
 #define LOG_USE_SIMPLE
+#define FILE_WATCHER_IMPLEMENTATION
 #include "../modules/index.h"
 
 #endif

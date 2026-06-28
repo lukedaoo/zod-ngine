@@ -75,7 +75,7 @@ int run_test_dir(bool asan, const char *dir) {
     return 0;
 }
 
-static const char  *TEST_DIRS[]     = {"modules", "modules/collections", "ngine"};
+static const char  *TEST_DIRS[]     = {"modules", "modules/collections", "ngine/test"};
 static const size_t TEST_DIRS_COUNT = sizeof(TEST_DIRS) / sizeof(TEST_DIRS[0]);
 
 int run_tests(bool asan, const char *dir) {

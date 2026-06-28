@@ -2,6 +2,7 @@
 #define FILE_WATCHER_H
 
 typedef enum {
+    ERROR,
     FILE_NONE,     // no change since last check
     FILE_NEW,      // appeared (was absent, now exists)
     FILE_CHANGED,  // mtime or size differs from last check
@@ -73,6 +74,7 @@ file_watcher *file_watcher_watch(const char *path) {
 }
 
 file_status file_watcher_check(file_watcher *w) {
+    if (!w) return FILE_NONE;
     time_t mtime;
     bool   exists = file_watcher_stat(w->path, &mtime);
 
@@ -91,7 +93,10 @@ file_status file_watcher_check(file_watcher *w) {
     return status;
 }
 
-void file_watcher_close(file_watcher *w) { free(w); }
+void file_watcher_close(file_watcher *w) {
+    if (!w) return;
+    free(w);
+}
 
 #endif
 #endif

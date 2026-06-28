@@ -5,6 +5,9 @@
 #include "ini.h"
 #include "scf.h"
 
+// @fix:
+// password      12312321321 ---> casted as int, not string
+// solution: 
 bool cvar_load_ini(cvar_table *table, const char *ini_path, ini_handler handler,
                    bool force_reload);
 

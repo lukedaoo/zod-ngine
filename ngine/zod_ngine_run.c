@@ -10,7 +10,7 @@ void before_init(void) {
     log_debug("before_init");
 }
 
-bool load_config_from_file(const char *filepath, cvar_table *cvars) {
+static bool load_config_from_file_custom(const char *filepath, cvar_table *cvars) {
     const char *ext = strrchr(filepath, '.');
     if (!ext) {
         log_debug("config: no file extension in path: %s", filepath);
@@ -22,6 +22,7 @@ bool load_config_from_file(const char *filepath, cvar_table *cvars) {
     if (strcmp(ext, ".ini") == 0) {
         return cvar_load_ini(cvars, filepath, cvar_default_config_parser_handler, false);
     }
+    log_debug("config: unsupported file extension: %s", ext);
     return false;
 }
 
@@ -50,10 +51,10 @@ bool load_args(const int argc, const char **argv, cvar_table *cvars) {
 
 void after_init(void) {
     log_debug("config — window: %d x %d, title: '%s', vsync: %d, log_level: %s",
-              get_int_config("window.width", 800), get_int_config("window.height", 600),
-              get_string_config("window.title", "zod-ngine"),
-              get_bool_config("window.vsync", true),
-              get_string_config("log.level", "error"));
+              config_get_int("window.width", 800), config_get_int("window.height", 600),
+              config_get_string("window.title", "zod-ngine"),
+              config_get_bool("window.vsync", true),
+              config_get_string("log.level", "error"));
 
     for (size_t i = 0; i < g_ctx.config->cvars.size; ++i) {
         const char *name = g_ctx.config->cvars.data[i].name;
@@ -64,19 +65,20 @@ void after_init(void) {
 int main(const int argc, const char **argv) {
     const zod_engine_dispatch dispatch = {
          .before_init           = before_init,
-         .load_config_from_file = load_config_from_file,
+         .load_config_from_file = load_config_from_file_custom,
          .load_args             = load_args,
          .after_init            = after_init,
     };
 
     const zod_engine_init_params params = {
-         .argc        = argc,
-         .argv        = argv,
-         .config_path = CONFIG_PATH,
-         .dispatch    = dispatch,
+         .argc              = argc,
+         .argv              = argv,
+         .config_file_setup = {.config_path = CONFIG_PATH, .hot_reload = true},
+         .dispatch          = dispatch,
     };
 
     zod_ngine_init(params);
+    main_loop();
     zod_ngine_destroy();
     return 0;
 }
