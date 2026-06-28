@@ -13,3 +13,5 @@ tmp/
 
 .idea
 *.txt
+
+compile_commands.json

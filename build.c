@@ -160,6 +160,89 @@ int run_run(bool execute, const char *target, const char *mode) {
     return 0;
 }
 
+static const char *COMPDB_SCAN_DIRS[] = {
+    "modules",
+    "modules/collections",
+    "ngine",
+    "ngine/test",
+    "ngine/internal/config",
+    "ngine/internal/engine_context",
+    "ngine/internal/zod_ngine",
+    "ngine/internal/error",
+};
+static const size_t COMPDB_SCAN_DIRS_COUNT =
+     sizeof(COMPDB_SCAN_DIRS) / sizeof(COMPDB_SCAN_DIRS[0]);
+
+static const char *COMPDB_DEFINES[] = {
+    "-DCARG_IMPLEMENTATION",          "-DCVAR_IMPLEMENTATION",
+    "-DCVAR_LOAD_IMPLEMENTATION",     "-DINI_IMPLEMENTATION",
+    "-DSCF_IMPLEMENTATION",           "-DLOG_IMPLEMENTATION",
+    "-DLOG_USE_SIMPLE",               "-DFILE_WATCHER_IMPLEMENTATION",
+    "-DSTRING_VIEW_IMPLEMENTATION",   "-DARRAY_LIST_IMPLEMENTATION",
+    "-DZOD_NGINE_IMPLEMENTATION",     "-DNOB_IMPLEMENTATION",
+};
+static const size_t COMPDB_DEFINES_COUNT =
+     sizeof(COMPDB_DEFINES) / sizeof(COMPDB_DEFINES[0]);
+
+static void compdb_entry(FILE *f, const char *cwd, const char *filepath, bool is_header,
+                         bool *first) {
+    if (!*first) fprintf(f, ",\n");
+    *first = false;
+    fprintf(f, "  {\n");
+    fprintf(f, "    \"directory\": \"%s\",\n", cwd);
+    fprintf(f, "    \"file\": \"%s/%s\",\n", cwd, filepath);
+    fprintf(f, "    \"arguments\": [\n");
+    fprintf(f, "      \"cc\", \"-Wall\", \"-Wextra\", \"-std=c23\",\n");
+    for (size_t i = 0; i < COMPDB_DEFINES_COUNT; ++i)
+        fprintf(f, "      \"%s\",\n", COMPDB_DEFINES[i]);
+    if (is_header) fprintf(f, "      \"-x\", \"c\",\n");
+    fprintf(f, "      \"%s/%s\"\n", cwd, filepath);
+    fprintf(f, "    ]\n");
+    fprintf(f, "  }");
+}
+
+int run_compdb(void) {
+    char cwd[4096];
+    if (!getcwd(cwd, sizeof(cwd))) {
+        nob_log(NOB_ERROR, "getcwd failed");
+        return 1;
+    }
+
+    FILE *f = fopen("compile_commands.json", "w");
+    if (!f) {
+        nob_log(NOB_ERROR, "failed to open compile_commands.json");
+        return 1;
+    }
+
+    fprintf(f, "[\n");
+    bool first = true;
+
+    for (size_t d = 0; d < COMPDB_SCAN_DIRS_COUNT; ++d) {
+        const char    *dir   = COMPDB_SCAN_DIRS[d];
+        Nob_File_Paths files = {0};
+        if (!nob_read_entire_dir(dir, &files)) continue;
+        for (size_t i = 0; i < files.count; ++i) {
+            const char *name = files.items[i];
+            size_t      len  = strlen(name);
+            bool        is_c = len > 2 && strcmp(name + len - 2, ".c") == 0;
+            bool        is_h = len > 2 && strcmp(name + len - 2, ".h") == 0;
+            if (!is_c && !is_h) continue;
+            compdb_entry(f, cwd, nob_temp_sprintf("%s/%s", dir, name), is_h, &first);
+        }
+    }
+
+    const char *root_files[] = {C_ENTRY, ENGINE_ENTRY};
+    for (size_t i = 0; i < 2; ++i) {
+        if (nob_file_exists(root_files[i]) > 0)
+            compdb_entry(f, cwd, root_files[i], false, &first);
+    }
+
+    fprintf(f, "\n]\n");
+    fclose(f);
+    nob_log(NOB_INFO, "wrote compile_commands.json (%zu dirs scanned)", COMPDB_SCAN_DIRS_COUNT);
+    return 0;
+}
+
 int main(int argc, char **argv) {
     NOB_GO_REBUILD_URSELF(argc, argv);
 
@@ -172,7 +255,12 @@ int main(int argc, char **argv) {
         nob_log(NOB_INFO, "  test [dir]                    run tests (modules, ngine)");
         nob_log(NOB_INFO, "  test-asan [dir]               run tests with asan");
         nob_log(NOB_INFO, "  clean                         remove build artifacts");
+        nob_log(NOB_INFO, "  compdb                        generate compile_commands.json");
         return 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "compdb") == 0) {
+        return run_compdb();
     }
 
     if (argc > 1 && strcmp(argv[1], "test-build") == 0) {

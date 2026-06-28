@@ -29,7 +29,6 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     //
     // Stage 2: file overlay
     //
-
     if (dispatch.load_config_from_file) {
         if (!config_file.config_path) {
             log_debug("no config file path provided");
@@ -39,11 +38,11 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         if (!dispatch.load_config_from_file(config_file.config_path,
                                             &g_config_storage.cvars)) {
             log_debug("config file load failed, keeping preset values");
-        }
-        if (config_file.hot_reload) {
-            log_debug("config file watcher enabled");
-            g_config_storage.config_file_watcher =
-                 file_watcher_watch(config_file.config_path);
+            if (config_file.hot_reload) {
+                log_debug("config file watcher enabled");
+                g_config_storage.config_file_watcher =
+                     file_watcher_watch(config_file.config_path);
+            }
         }
     }
 
