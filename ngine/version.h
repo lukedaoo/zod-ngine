@@ -1,0 +1,6 @@
+#ifndef ZOD_NGINE_VERSION_H
+#define ZOD_NGINE_VERSION_H
+
+#define ZOD_NGINE_VERSION "0.1.0"
+
+#endif

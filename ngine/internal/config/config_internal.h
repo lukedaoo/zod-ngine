@@ -1,8 +1,9 @@
 #ifndef CONFIG_INTERNAL_H
 #define CONFIG_INTERNAL_H
 
-#include "../../../modules/cvar.h"
-#include "../../../modules/file_watcher.h"
+#include <modules/cvar.h>
+#include <modules/file_watcher.h>
+
 #include "../../config.h"
 
 struct g_config {

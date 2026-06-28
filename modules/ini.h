@@ -1,6 +1,8 @@
 #ifndef INI_H_
 #define INI_H_
 
+#include <stdbool.h>
+
 typedef bool (*ini_handler)(const char *section, const char *key, const char *value,
                             void *user);
 
@@ -11,6 +13,7 @@ bool ini_parse_string(const char *string, ini_handler handler, void *user);
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #ifndef INI_LINE_STR_MAX_SIZE
 #define INI_LINE_STR_MAX_SIZE 1024

@@ -15,10 +15,11 @@
 #define LOG_IMPLEMENTATION
 #define LOG_USE_SIMPLE
 #define FILE_WATCHER_IMPLEMENTATION
-#include "../modules/index.h"
+#include <modules/index.h>
 
 #endif
 
+#include "version.h"
 #include "config.h"
 #include "clock.h"
 #include "engine_context.h"

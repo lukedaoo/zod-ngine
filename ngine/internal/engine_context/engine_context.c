@@ -1,5 +1,5 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
-#include "../../../modules/log.h"
+#include <modules/log.h>
 
 #include "engine_context_internal.h"
 

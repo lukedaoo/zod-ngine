@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "../modules/cvar.h"
+#include <modules/cvar.h>
 
 typedef struct {
     void (*before_init)(void);

@@ -2,7 +2,7 @@
 #include "lib/nob.h"
 
 #define C_COMPILER      "cc"
-#define C_FLAGS         "-Wall", "-Wextra", "-std=c23"
+#define C_FLAGS         "-Wall", "-Wextra", "-std=c23", "-I."
 #define C_DEBUG_FLAGS   "-g", "-O0", "-DDEBUG"
 #define C_ASAN_FLAGS    "-g", "-O0", "-fsanitize=address"
 #define C_RELEASE_FLAGS "-O3", "-DNDEBUG"
@@ -86,10 +86,45 @@ int run_test_dir(bool asan, const char *dir, int *passed, int *failed) {
 static const char  *TEST_DIRS[]     = {"modules", "modules/collections", "ngine/test"};
 static const size_t TEST_DIRS_COUNT = sizeof(TEST_DIRS) / sizeof(TEST_DIRS[0]);
 
+static int check_modules_separation(void) {
+    static const char *const dirs[] = {"modules", "modules/collections"};
+    bool                     clean  = true;
+
+    for (size_t d = 0; d < sizeof(dirs) / sizeof(*dirs); ++d) {
+        Nob_File_Paths files = {0};
+        if (!nob_read_entire_dir(dirs[d], &files)) return 1;
+
+        for (size_t i = 0; i < files.count; ++i) {
+            const char *name = files.items[i];
+            size_t      len  = strlen(name);
+            if (len < 2 || strcmp(name + len - 2, ".h") != 0) continue;
+
+            const char        *path = nob_temp_sprintf("%s/%s", dirs[d], name);
+            Nob_String_Builder sb   = {0};
+            if (!nob_read_entire_file(path, &sb)) return 1;
+            nob_sb_append_null(&sb);
+
+            char *line = strtok(sb.items, "\n");
+            while (line) {
+                if (strstr(line, "#include") && strstr(line, "ngine")) {
+                    nob_log(NOB_ERROR, "check-modules: %s: %s", path, line);
+                    clean = false;
+                }
+                line = strtok(NULL, "\n");
+            }
+            nob_da_free(sb);
+        }
+    }
+
+    if (clean) nob_log(NOB_INFO, "check-modules: OK");
+    return clean ? 0 : 1;
+}
+
 int run_tests(bool asan, const char *dir) {
 #ifdef _WIN32
     if (!nob_mkdir_if_not_exists("tmp")) return 1;
 #endif
+    if (check_modules_separation() != 0) return 1;
     int passed = 0, failed = 0;
     if (dir) {
         bool found = false;
@@ -201,7 +236,7 @@ static void compdb_entry(FILE *f, const char *cwd, const char *filepath, bool is
     fprintf(f, "    \"directory\": \"%s\",\n", cwd);
     fprintf(f, "    \"file\": \"%s/%s\",\n", cwd, filepath);
     fprintf(f, "    \"arguments\": [\n");
-    fprintf(f, "      \"cc\", \"-Wall\", \"-Wextra\", \"-std=c23\",\n");
+    fprintf(f, "      \"cc\", \"-Wall\", \"-Wextra\", \"-std=c23\", \"-I.\",\n");
 #ifdef __linux__
     fprintf(f, "      \"-I/usr/include/SDL3\",\n");
 #elif defined(_WIN32)
@@ -245,8 +280,7 @@ int run_compdb(void) {
         }
     }
 
-    if (nob_file_exists(C_ENTRY) > 0)
-        compdb_entry(f, cwd, C_ENTRY, false, &first);
+    if (nob_file_exists(C_ENTRY) > 0) compdb_entry(f, cwd, C_ENTRY, false, &first);
 
     fprintf(f, "\n]\n");
     fclose(f);

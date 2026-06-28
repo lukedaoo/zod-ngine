@@ -2,10 +2,10 @@
 #include <unistd.h>
 #include <SDL3/SDL.h>
 
-#include "../../../modules/cvar.h"
-#include "../../../modules/log.h"
-#include "../../../modules/cvar_load.h"
-#include "../../../modules/file_watcher.h"
+#include <modules/cvar.h>
+#include <modules/log.h>
+#include <modules/cvar_load.h>
+#include <modules/file_watcher.h>
 
 #include "../../zod_ngine.h"
 
@@ -24,13 +24,6 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     }
 
     log_info("zod_ngine: init");
-
-    {
-        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
-            log_info("SDL: initialized failed");
-            return false;
-        }
-    }
 
     {
         log_debug("config: initializing...");
@@ -60,6 +53,13 @@ bool zod_ngine_init(const zod_engine_init_params params) {
             } else {
                 log_debug("config: args applied");
             }
+        }
+    }
+
+    {
+        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
+            log_info("SDL: initialized failed");
+            return false;
         }
     }
 

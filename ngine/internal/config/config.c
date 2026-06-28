@@ -1,8 +1,9 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
+#include <modules/log.h>
+#include <modules/cvar_load.h>
+
 #include "config_internal.h"
-#include "../../../modules/log.h"
-#include "../../../modules/cvar_load.h"
 
 void g_config_seed_preset(g_config *cfg) {
     cvar_set_int(&cfg->cvars, "engine.target_fps", 60);

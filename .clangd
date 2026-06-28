@@ -1,5 +1,5 @@
 CompileFlags:
-  Add: [-std=c23, -Wall, -Wextra, -I/usr/include/SDL3]
+  Add: [-std=c23, -Wall, -Wextra, -I/usr/include/SDL3, -I.]
 Index:
   Background: Build
 ---
