@@ -8,6 +8,7 @@
 struct engine_context {
     g_config config;
     g_clock  clock;
+    bool     should_exit;
 };
 
 #endif

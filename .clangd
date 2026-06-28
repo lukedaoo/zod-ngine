@@ -1,5 +1,7 @@
 CompileFlags:
   Add: [-std=c23, -Wall, -Wextra, -I/usr/include/SDL3]
+Index:
+  Background: Build
 ---
 If:
   PathMatch: .*\.h

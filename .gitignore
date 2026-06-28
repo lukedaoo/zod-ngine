@@ -15,3 +15,8 @@ tmp/
 *.txt
 
 compile_commands.json
+
+build/
+cmake-build-debug/
+graphify-out/
+memory/

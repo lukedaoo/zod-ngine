@@ -83,7 +83,7 @@ void zod_ngine_destroy(void) {
 }
 
 void main_loop(void) {
-    while (true) {
+    while (!g_ctx.should_exit) {
         if (g_ctx.config.config_file_watcher) {
             file_status status = file_watcher_check(g_ctx.config.config_file_watcher);
             if (status == FILE_CHANGED) {

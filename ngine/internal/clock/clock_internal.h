@@ -2,7 +2,6 @@
 #define CLOCK_INTERNAL_H
 
 #include <stdint.h>
-
 #include "../../clock.h"
 
 struct g_clock {
@@ -24,5 +23,4 @@ struct g_clock {
     uint32_t frame_rate;   // target FPS
     uint32_t frame_count;  // total frames rendered
 };
-
 #endif
