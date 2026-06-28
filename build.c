@@ -50,7 +50,7 @@ int build_test_dir(const char *dir) {
     return 0;
 }
 
-int run_test_dir(bool asan, const char *dir) {
+int run_test_dir(bool asan, const char *dir, int *passed, int *failed) {
     Nob_File_Paths files = {0};
     if (!nob_read_entire_dir(dir, &files)) return 1;
 
@@ -70,7 +70,13 @@ int run_test_dir(bool asan, const char *dir) {
 
         Nob_Cmd run_test = {0};
         nob_cmd_append(&run_test, bin);
-        if (!nob_cmd_run(&run_test)) return 1;
+        if (nob_cmd_run(&run_test)) {
+            nob_log(NOB_INFO, "PASS  %s/%s", dir, name);
+            (*passed)++;
+        } else {
+            nob_log(NOB_ERROR, "FAIL  %s/%s", dir, name);
+            (*failed)++;
+        }
     }
     return 0;
 }
@@ -82,13 +88,14 @@ int run_tests(bool asan, const char *dir) {
 #ifdef _WIN32
     if (!nob_mkdir_if_not_exists("tmp")) return 1;
 #endif
+    int passed = 0, failed = 0;
     if (dir) {
         bool found = false;
         for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) {
             if (strcmp(dir, TEST_DIRS[i]) == 0 ||
                 nob_sv_starts_with(nob_sv_from_cstr(TEST_DIRS[i]),
                                    nob_sv_from_cstr(dir))) {
-                run_test_dir(asan, TEST_DIRS[i]);
+                run_test_dir(asan, TEST_DIRS[i], &passed, &failed);
                 found = true;
             }
         }
@@ -98,10 +105,16 @@ int run_tests(bool asan, const char *dir) {
                     dir);
             return 1;
         }
-        return 0;
+    } else {
+        for (size_t i = 0; i < TEST_DIRS_COUNT; ++i)
+            run_test_dir(asan, TEST_DIRS[i], &passed, &failed);
     }
-    for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) run_test_dir(asan, TEST_DIRS[i]);
-    return 0;
+    nob_log(failed ? NOB_ERROR : NOB_INFO,
+            "\n────────────────────────────────────\n"
+            "[test] %d passed  %d failed\n"
+            "────────────────────────────────────",
+            passed, failed);
+    return failed > 0 ? 1 : 0;
 }
 
 int run_clean(void) {

@@ -5,18 +5,23 @@
 #include "ini.h"
 #include "scf.h"
 
-// @fix:
-// password      12312321321 ---> casted as int, not string
-// solution: 
 bool cvar_load_ini(cvar_table *table, const char *ini_path, ini_handler handler,
                    bool force_reload);
 
 bool cvar_load_scf(cvar_table *table, const char *scf_path, scf_handler handler,
                    bool force_reload);
 
-// Generic cvar_handler: maps any "[section] key = value" to a cvar named
-// "section.key", inferring CVAR_BOOL/CVAR_INT/CVAR_FLOAT/CVAR_STRING from
-// the value text.
+// Maps "section.key = value" into a cvar, inferring type in priority order:
+//
+//   'val' or "val"   CVAR_STRING (quotes stripped, type forced)
+//   '1.5F or '1.5f   CVAR_FLOAT  (unmatched leading quote + float suffix)
+//   '42L  or '42l    CVAR_INT    (unmatched leading quote + int suffix)
+//   1.5F / 1.5f      CVAR_FLOAT  (explicit float suffix, no quote)
+//   42L  / 42l       CVAR_INT    (explicit int suffix, no quote)
+//   true / false     CVAR_BOOL
+//   42               CVAR_INT    (strtol, whole string consumed)
+//   1.5              CVAR_FLOAT  (strtof, whole string consumed)
+//   anything else    CVAR_STRING
 bool cvar_default_config_parser_handler(const char *section, const char *key,
                                         const char *value, void *user);
 #ifdef CVAR_LOAD_IMPLEMENTATION
@@ -32,26 +37,80 @@ bool cvar_default_config_parser_handler(const char *section, const char *key,
     char name[CVAR_NAME_MAX];
     snprintf(name, sizeof(name), "%s.%s", section, key);
 
-    if (strcmp(value, "true") == 0 || strcmp(value, "false") == 0) {
-        bool b = strcmp(value, "true") == 0;
-        return cvar_set_bool(cvars, name, b);
+    size_t len = strlen(value);
+
+    //
+    // If the value is wrapped in quotes, remove them. It is a string
+    //
+    {
+        if (len >= 2 && ((value[0] == '\'' && value[len - 1] == '\'') ||
+                         (value[0] == '"' && value[len - 1] == '"'))) {
+            char   buf[512];
+            size_t inner = len - 2;
+            if (inner >= sizeof(buf)) return false;
+            memcpy(buf, value + 1, inner);
+            buf[inner] = '\0';
+            return cvar_set_string(cvars, name, buf);
+        }
     }
+
+    if (value[0] == '\'' || value[0] == '"') {
+        value++;
+        len--;
+    }
+
+    //
+    // If the value ends with 'f' or 'l', try to parse it as a float or int
+    //
+    if (len > 0) {
+        char last = value[len - 1];
+        char buf[128];
+
+        if (last == 'f' || last == 'F') {
+            size_t nlen = len - 1;
+            if (nlen > 0 && nlen < sizeof(buf)) {
+                memcpy(buf, value, nlen);
+                buf[nlen] = '\0';
+                char *end;
+                float f = strtof(buf, &end);
+                if (end != buf && *end == '\0') return cvar_set_float(cvars, name, f);
+            }
+        }
+
+        if (last == 'l' || last == 'L') {
+            size_t nlen = len - 1;
+            if (nlen > 0 && nlen < sizeof(buf)) {
+                memcpy(buf, value, nlen);
+                buf[nlen] = '\0';
+                char *end;
+                long  v = strtol(buf, &end, 10);
+                if (end != buf && *end == '\0') return cvar_set_int(cvars, name, (int)v);
+            }
+        }
+    }
+
+    //
+    // If the value is "true" or "false", try to parse it as a bool
+    //
+    if (strcmp(value, "true") == 0 || strcmp(value, "false") == 0)
+        return cvar_set_bool(cvars, name, strcmp(value, "true") == 0);
 
     char *end;
-    long  ival = strtol(value, &end, 10);
-    if (*value != '\0' && *end == '\0') {
-        int i = (int)ival;
-        return cvar_set_int(cvars, name, i);
+
+    //
+    // Try to parse it as an int
+    //
+    {
+        long ival = strtol(value, &end, 10);
+        if (*value != '\0' && *end == '\0') return cvar_set_int(cvars, name, (int)ival);
     }
 
-    float fval = strtof(value, &end);
-    if (end != value) {
-        if (*end == '\0') {
-            return cvar_set_float(cvars, name, fval);
-        }
-        if ((*end == 'f' || *end == 'F') && end[1] == '\0') {
-            return cvar_set_float(cvars, name, fval);
-        }
+    //
+    // Try to parse it as a float
+    //
+    {
+        float fval = strtof(value, &end);
+        if (end != value && *end == '\0') return cvar_set_float(cvars, name, fval);
     }
 
     return cvar_set_string(cvars, name, value);

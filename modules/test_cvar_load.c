@@ -82,6 +82,7 @@ MU_TEST(test_cvar_reload_ini_success) {
     cvar_destroy(&table);
     remove(TEST_INI);
 }
+
 MU_TEST(test_cvar_reload_ini_failure_keeps_old) {
     cvar_table table = {0};
 
@@ -164,9 +165,137 @@ MU_TEST_SUITE(cvar_float_suffix_suite) {
     MU_RUN_TEST(test_invalid_bare_suffix_rejected_as_string);
 }
 
+static cvar_t *parse_single(cvar_table *t, const char *value) {
+    cvar_default_config_parser_handler("s", "k", value, t);
+    return cvar_get(t, "s.k");
+}
+
+MU_TEST(test_int_suffix_upper_l) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "42L");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(42, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_int_suffix_lower_l) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "99l");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(99, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_int_suffix_negative) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "-7L");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(-7, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_int_suffix_bare_l_is_string) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "L");
+    mu_check(v != NULL && v->type == CVAR_STRING);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_int_suffix_non_numeric_is_string) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "helloL");
+    mu_check(v != NULL && v->type == CVAR_STRING);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_quote_strip_leading) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "'hello");
+    mu_check(v != NULL && v->type == CVAR_STRING);
+    mu_assert_string_eq("hello", v->value.str.data);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_quote_strip_does_not_affect_no_quote) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "hello");
+    mu_check(v != NULL && v->type == CVAR_STRING);
+    mu_assert_string_eq("hello", v->value.str.data);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_quote_strip_int_still_parsed) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "'42");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(42, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST_SUITE(cvar_int_suffix_suite) {
+    MU_RUN_TEST(test_int_suffix_upper_l);
+    MU_RUN_TEST(test_int_suffix_lower_l);
+    MU_RUN_TEST(test_int_suffix_negative);
+    MU_RUN_TEST(test_int_suffix_bare_l_is_string);
+    MU_RUN_TEST(test_int_suffix_non_numeric_is_string);
+}
+
+MU_TEST(test_matched_single_quotes_force_string) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "'123123123'");
+    mu_check(v != NULL && v->type == CVAR_STRING);
+    mu_assert_string_eq("123123123", v->value.str.data);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_matched_double_quotes_force_string) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "\"123123123\"");
+    mu_check(v != NULL && v->type == CVAR_STRING);
+    mu_assert_string_eq("123123123", v->value.str.data);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_matched_quotes_strip_both) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "'hello world'");
+    mu_check(v != NULL && v->type == CVAR_STRING);
+    mu_assert_string_eq("hello world", v->value.str.data);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_unmatched_leading_quote_float_suffix) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "'1.23F");
+    mu_check(v != NULL && v->type == CVAR_FLOAT);
+    mu_check(v->value.f > 1.22f && v->value.f < 1.24f);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_unmatched_leading_quote_int_suffix) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "'123L");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(123, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST_SUITE(cvar_quote_strip_suite) {
+    MU_RUN_TEST(test_quote_strip_leading);
+    MU_RUN_TEST(test_quote_strip_does_not_affect_no_quote);
+    MU_RUN_TEST(test_quote_strip_int_still_parsed);
+    MU_RUN_TEST(test_matched_single_quotes_force_string);
+    MU_RUN_TEST(test_matched_double_quotes_force_string);
+    MU_RUN_TEST(test_matched_quotes_strip_both);
+    MU_RUN_TEST(test_unmatched_leading_quote_float_suffix);
+    MU_RUN_TEST(test_unmatched_leading_quote_int_suffix);
+}
+
 int main(void) {
     MU_RUN_SUITE(cvar_reload_suite);
     MU_RUN_SUITE(cvar_float_suffix_suite);
+    MU_RUN_SUITE(cvar_int_suffix_suite);
+    MU_RUN_SUITE(cvar_quote_strip_suite);
     MU_REPORT();
     return MU_EXIT_CODE;
 }
