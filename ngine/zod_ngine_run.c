@@ -31,6 +31,7 @@ bool load_args(const int argc, const char **argv, cvar_table *cvars) {
          {.flag = "--log-level", .arg_count = 1, .type = CARG_STRING, .required = false},
          {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false},
     };
+
     carg_table cargs = {0};
     if (!carg_parse(defs, 2, argc, argv, &cargs)) {
         return false;

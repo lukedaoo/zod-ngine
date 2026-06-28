@@ -29,15 +29,12 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     //
     // Stage 2: file overlay
     //
-    if (config_file.load_config_func) {
-        if (!config_file.config_path) {
-            log_debug("no config file path provided");
-            return false;
-        }
+    if (config_file.load_config_func && config_file.config_path) {
         log_debug("loading config file from path: %s", config_file.config_path);
         if (!config_file.load_config_func(config_file.config_path,
                                           &g_config_storage.cvars)) {
             log_debug("config file load failed, keeping preset values");
+        } else {
             if (config_file.hot_reload) {
                 log_debug("config file watcher enabled");
                 g_config_storage.config_file_watcher =
@@ -88,7 +85,7 @@ void main_loop(void) {
         // @hack: this is bad. Just make the file watcher works
         log_info("main loop: config %s",
                  config_get_string("client.password", "zod-ngine"));
-        sleep(2);
+        sleep(1);
     }
 }
 
