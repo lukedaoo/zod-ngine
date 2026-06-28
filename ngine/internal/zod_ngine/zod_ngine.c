@@ -6,6 +6,7 @@
 
 #include "../../zod_ngine.h"
 #include "../config/config_internal.h"
+#include "../clock/clock_internal.h"
 #include "../engine_context/engine_context_internal.h"
 #include <unistd.h>
 
@@ -19,104 +20,114 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         dispatch.before_init();
     }
 
-    log_debug("initializing engine...");
+    log_info("zod_ngine: init");
+    {
+        log_debug("config: initializing...");
 
-    //
-    // Stage 1: seed preset defaults into embedded cvars
-    //
-    g_config_seed_preset(&g_config_storage);
+        g_config_seed_preset(&g_ctx.config);
+        log_debug("config: preset loaded");
 
-    //
-    // Stage 2: file overlay
-    //
-    if (config_file.load_config_func && config_file.config_path) {
-        log_debug("loading config file from path: %s", config_file.config_path);
-        if (!config_file.load_config_func(config_file.config_path,
-                                          &g_config_storage.cvars)) {
-            log_debug("config file load failed, keeping preset values");
-        } else {
-            if (config_file.hot_reload) {
-                log_debug("config file watcher enabled");
-                g_config_storage.config_file_watcher =
-                     file_watcher_watch(config_file.config_path);
-                g_config_storage.reload_config_func = config_file.load_config_func;
+        if (config_file.load_config_func && config_file.config_path) {
+            if (!config_file.load_config_func(config_file.config_path,
+                                              &g_ctx.config.cvars)) {
+                log_warn("config: file load failed (%s) — using preset",
+                         config_file.config_path);
+            } else {
+                log_debug("config: loaded from %s", config_file.config_path);
+                if (config_file.hot_reload) {
+                    g_ctx.config.config_file_watcher =
+                         file_watcher_watch(config_file.config_path);
+                    g_ctx.config.reload_config_func = config_file.load_config_func;
+                    log_debug("config: hot reload enabled");
+                }
+            }
+        }
+
+        if (dispatch.load_args) {
+            if (!dispatch.load_args(argc, argv, &g_ctx.config.cvars)) {
+                log_warn("config: args parse failed — some overrides ignored");
+            } else {
+                log_debug("config: args applied");
             }
         }
     }
 
-    //
-    // Stage 3: CLI overlay
-    //
-    if (dispatch.load_args) {
-        log_debug("parsing command line...");
-        if (!dispatch.load_args(argc, argv, &g_config_storage.cvars)) {
-            log_debug("failed to parse command line, some args are invalid");
-        }
+    {
+        log_debug("clock: setting up clock...");
+        const int target_fps = config_get_int("engine.target_fps", 60);
+        g_clock_init(target_fps);
     }
-
-    g_ctx.config = &g_config_storage;
 
     if (dispatch.after_init) {
         dispatch.after_init();
     }
 
+    log_info("zod_ngine: ready");
     return true;
 }
 
 void zod_ngine_destroy(void) {
     log_debug("destroying engine...");
-    if (g_ctx.config) {
-        file_watcher_close(g_ctx.config->config_file_watcher);
-        cvar_destroy(&g_ctx.config->cvars);
-    }
+    file_watcher_close(g_ctx.config.config_file_watcher);
+    cvar_destroy(&g_ctx.config.cvars);
 }
 
 void main_loop(void) {
     while (true) {
-        if (g_ctx.config->config_file_watcher) {
-            file_status status = file_watcher_check(g_ctx.config->config_file_watcher);
+        if (g_ctx.config.config_file_watcher) {
+            file_status status = file_watcher_check(g_ctx.config.config_file_watcher);
             if (status == FILE_CHANGED) {
                 log_info("config file changed");
-                if (!g_reload_config_from_file(g_ctx.config)) {
+                if (!g_config_reload_from_file(&g_ctx.config)) {
                     log_warn("failed to load config file");
                 }
             }
         }
         // @hack: this is bad. Just make the file watcher works
-        log_info("main loop: config %s",
-                 config_get_string("client.password", "zod-ngine"));
+        // log_info("main loop: config %s",
+        //          config_get_string("client.password", "zod-ngine"));
         sleep(1);
     }
 }
 
 int config_get_int(const char *name, int fallback) {
-    return cvar_get_int(&g_config_storage.cvars, name, fallback);
+    return cvar_get_int(&g_ctx.config.cvars, name, fallback);
 }
 
 float config_get_float(const char *name, float fallback) {
-    return cvar_get_float(&g_config_storage.cvars, name, fallback);
+    return cvar_get_float(&g_ctx.config.cvars, name, fallback);
 }
 
 bool config_get_bool(const char *name, bool fallback) {
-    return cvar_get_bool(&g_config_storage.cvars, name, fallback);
+    return cvar_get_bool(&g_ctx.config.cvars, name, fallback);
 }
 
 const char *config_get_string(const char *name, const char *fallback) {
-    return cvar_get_string(&g_config_storage.cvars, name, fallback);
+    return cvar_get_string(&g_ctx.config.cvars, name, fallback);
 }
 
 bool config_set_int(const char *name, int value) {
-    return cvar_set_int(&g_config_storage.cvars, name, value);
+    return cvar_set_int(&g_ctx.config.cvars, name, value);
 }
 bool config_set_float(const char *name, float value) {
-    return cvar_set_float(&g_config_storage.cvars, name, value);
+    return cvar_set_float(&g_ctx.config.cvars, name, value);
 }
 bool config_set_bool(const char *name, bool value) {
-    return cvar_set_bool(&g_config_storage.cvars, name, value);
+    return cvar_set_bool(&g_ctx.config.cvars, name, value);
 }
 
 bool config_set_string(const char *name, const char *value) {
-    return cvar_set_string(&g_config_storage.cvars, name, value);
+    return cvar_set_string(&g_ctx.config.cvars, name, value);
 }
+
+float    clock_dt(void) { return g_ctx.clock.dt; }
+float    clock_delta(void) { return g_ctx.clock.delta; }
+float    clock_now(void) { return g_ctx.clock.now; }
+float    clock_frame_time(void) { return g_ctx.clock.now - g_ctx.clock.frame_last; }
+uint32_t clock_frame(void) { return g_ctx.clock.frame_count; }
+bool     clock_paused(void) { return g_ctx.clock.paused; }
+
+void clock_set_time_scale(float scale) { g_ctx.clock.time_scale = scale; }
+void clock_set_paused(bool paused) { g_ctx.clock.paused = paused; }
 
 #endif

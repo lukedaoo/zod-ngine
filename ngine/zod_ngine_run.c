@@ -57,8 +57,8 @@ void after_init(void) {
               config_get_bool("window.vsync", true),
               config_get_string("log.level", "error"));
 
-    for (size_t i = 0; i < g_ctx.config->cvars.size; ++i) {
-        const char *name = g_ctx.config->cvars.data[i].name;
+    for (size_t i = 0; i < g_ctx.config.cvars.size; ++i) {
+        const char *name = g_ctx.config.cvars.data[i].name;
         log_debug("config: %s", name);
     }
 }

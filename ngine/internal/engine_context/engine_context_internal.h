@@ -3,9 +3,11 @@
 
 #include "../../engine_context.h"
 #include "../config/config_internal.h"
+#include "../clock/clock_internal.h"
 
 struct engine_context {
-    g_config *config;
+    g_config config;
+    g_clock  clock;
 };
 
 #endif

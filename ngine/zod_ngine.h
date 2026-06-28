@@ -2,6 +2,7 @@
 #define ZOD_NGINE_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "../modules/cvar.h"
 
 typedef struct {
@@ -47,5 +48,23 @@ bool        config_set_int(const char *name, int value);
 bool        config_set_float(const char *name, float value);
 bool        config_set_bool(const char *name, bool value);
 bool        config_set_string(const char *name, const char *value);
+
+//
+// Clock accessors
+//
+
+// @info(clock):
+//   dt         — scaled delta time (0 when paused, affected by time_scale)
+//   delta      — unscaled delta time (always ticks, use for UI/menus)
+//   time_scale — multiplier applied to delta: 1.0 = normal, 0.5 = half speed
+//   frame_time — elapsed time of the current frame (unscaled, now - frame_last)
+float    clock_dt(void);
+float    clock_delta(void);
+float    clock_now(void);
+float    clock_frame_time(void);
+uint32_t clock_frame(void);
+bool     clock_paused(void);
+void     clock_set_time_scale(float scale);
+void     clock_set_paused(bool paused);
 
 #endif

@@ -20,12 +20,16 @@
 #endif
 
 #include "config.h"
+#include "clock.h"
 #include "engine_context.h"
+
+#include "zod_error.h"
 #include "zod_ngine.h"
 
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
 #include "internal/config/config.c"
+#include "internal/clock/clock.c"
 #include "internal/engine_context/engine_context.c"
 #include "internal/zod_ngine/zod_ngine.c"
 #include "internal/error/zod_error.c"

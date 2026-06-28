@@ -5,8 +5,6 @@ typedef struct g_config g_config;
 
 void g_config_seed_preset(g_config *cfg);
 
-bool g_reload_config_from_file(g_config *cfg);
-
-extern g_config g_config_storage;
+bool g_config_reload_from_file(g_config *cfg);
 
 #endif

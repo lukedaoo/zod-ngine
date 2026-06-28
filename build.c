@@ -65,6 +65,8 @@ int run_test_dir(bool asan, const char *dir, int *passed, int *failed) {
 
         Nob_Cmd test_cmd = {0};
         nob_cmd_append(&test_cmd, C_COMPILER, C_FLAGS, "-o", bin, src);
+        if (nob_sv_starts_with(nob_sv_from_cstr(dir), nob_sv_from_cstr("ngine")))
+            nob_cmd_append(&test_cmd, SDL_FLAGS);
         if (asan) nob_cmd_append(&test_cmd, C_ASAN_FLAGS);
         if (!nob_cmd_run(&test_cmd)) return 1;
 
@@ -161,25 +163,32 @@ int run_run(bool execute, const char *target, const char *mode) {
 }
 
 static const char *COMPDB_SCAN_DIRS[] = {
-    "modules",
-    "modules/collections",
-    "ngine",
-    "ngine/test",
-    "ngine/internal/config",
-    "ngine/internal/engine_context",
-    "ngine/internal/zod_ngine",
-    "ngine/internal/error",
+     "modules",
+     "modules/collections",
+     "ngine",
+     "ngine/test",
+     "ngine/internal/clock",
+     "ngine/internal/config",
+     "ngine/internal/engine_context",
+     "ngine/internal/zod_ngine",
+     "ngine/internal/error",
 };
 static const size_t COMPDB_SCAN_DIRS_COUNT =
      sizeof(COMPDB_SCAN_DIRS) / sizeof(COMPDB_SCAN_DIRS[0]);
 
 static const char *COMPDB_DEFINES[] = {
-    "-DCARG_IMPLEMENTATION",          "-DCVAR_IMPLEMENTATION",
-    "-DCVAR_LOAD_IMPLEMENTATION",     "-DINI_IMPLEMENTATION",
-    "-DSCF_IMPLEMENTATION",           "-DLOG_IMPLEMENTATION",
-    "-DLOG_USE_SIMPLE",               "-DFILE_WATCHER_IMPLEMENTATION",
-    "-DSTRING_VIEW_IMPLEMENTATION",   "-DARRAY_LIST_IMPLEMENTATION",
-    "-DZOD_NGINE_IMPLEMENTATION",     "-DNOB_IMPLEMENTATION",
+     "-DCARG_IMPLEMENTATION",
+     "-DCVAR_IMPLEMENTATION",
+     "-DCVAR_LOAD_IMPLEMENTATION",
+     "-DINI_IMPLEMENTATION",
+     "-DSCF_IMPLEMENTATION",
+     "-DLOG_IMPLEMENTATION",
+     "-DLOG_USE_SIMPLE",
+     "-DFILE_WATCHER_IMPLEMENTATION",
+     "-DSTRING_VIEW_IMPLEMENTATION",
+     "-DARRAY_LIST_IMPLEMENTATION",
+     "-DZOD_NGINE_IMPLEMENTATION",
+     "-DNOB_IMPLEMENTATION",
 };
 static const size_t COMPDB_DEFINES_COUNT =
      sizeof(COMPDB_DEFINES) / sizeof(COMPDB_DEFINES[0]);
@@ -193,6 +202,11 @@ static void compdb_entry(FILE *f, const char *cwd, const char *filepath, bool is
     fprintf(f, "    \"file\": \"%s/%s\",\n", cwd, filepath);
     fprintf(f, "    \"arguments\": [\n");
     fprintf(f, "      \"cc\", \"-Wall\", \"-Wextra\", \"-std=c23\",\n");
+#ifdef __linux__
+    fprintf(f, "      \"-I/usr/include/SDL3\",\n");
+#elif defined(_WIN32)
+    fprintf(f, "      \"-I/ucrt64/include/SDL3\",\n");
+#endif
     for (size_t i = 0; i < COMPDB_DEFINES_COUNT; ++i)
         fprintf(f, "      \"%s\",\n", COMPDB_DEFINES[i]);
     if (is_header) fprintf(f, "      \"-x\", \"c\",\n");
@@ -239,7 +253,8 @@ int run_compdb(void) {
 
     fprintf(f, "\n]\n");
     fclose(f);
-    nob_log(NOB_INFO, "wrote compile_commands.json (%zu dirs scanned)", COMPDB_SCAN_DIRS_COUNT);
+    nob_log(NOB_INFO, "wrote compile_commands.json (%zu dirs scanned)",
+            COMPDB_SCAN_DIRS_COUNT);
     return 0;
 }
 
@@ -255,7 +270,8 @@ int main(int argc, char **argv) {
         nob_log(NOB_INFO, "  test [dir]                    run tests (modules, ngine)");
         nob_log(NOB_INFO, "  test-asan [dir]               run tests with asan");
         nob_log(NOB_INFO, "  clean                         remove build artifacts");
-        nob_log(NOB_INFO, "  compdb                        generate compile_commands.json");
+        nob_log(NOB_INFO,
+                "  compdb                        generate compile_commands.json");
         return 0;
     }
 

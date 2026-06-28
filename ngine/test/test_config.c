@@ -6,9 +6,9 @@
 #include "../index.h"
 
 static void reset(void) {
-    cvar_destroy(&g_config_storage.cvars);
-    g_config_storage = (g_config){0};
-    g_config_seed_preset(&g_config_storage);
+    cvar_destroy(&g_ctx.config.cvars);
+    g_ctx = (engine_context){0};
+    g_config_seed_preset(&g_ctx.config);
 }
 
 MU_TEST(test_preset_int_defaults) {
@@ -49,12 +49,10 @@ MU_TEST(test_set_get_roundtrip) {
 }
 
 MU_TEST(test_engine_config_valid_without_cvars) {
-    cvar_destroy(&g_config_storage.cvars);
-    g_config_storage = (g_config){0};
-    g_ctx.config     = &g_config_storage;
+    cvar_destroy(&g_ctx.config.cvars);
+    g_ctx = (engine_context){0};
 
-    mu_check(g_ctx.config != NULL);
-    mu_check(g_ctx.config->cvars.data == NULL);
+    mu_check(g_ctx.config.cvars.data == NULL);
 
     mu_assert_int_eq(99, config_get_int("window.width", 99));
     mu_check(config_get_float("window.height", 1.0f) == 1.0f);

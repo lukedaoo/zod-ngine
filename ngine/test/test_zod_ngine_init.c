@@ -38,8 +38,7 @@ static void order_before_init(void) { call_order[call_count++] = 0; }
 static void order_after_init(void) { call_order[call_count++] = 1; }
 
 static void reset(void) {
-    cvar_destroy(&g_config_storage.cvars);
-    g_config_storage           = (g_config){0};
+    cvar_destroy(&g_ctx.config.cvars);
     g_ctx                      = (engine_context){0};
     before_init_called         = false;
     after_init_called          = false;
@@ -124,7 +123,7 @@ MU_TEST(test_init_config_load_receives_correct_args) {
     });
     mu_check(load_config_called);
     mu_assert_string_eq("/dev/null", load_config_received_path);
-    mu_check(load_config_received_cvars == &g_config_storage.cvars);
+    mu_check(load_config_received_cvars == &g_ctx.config.cvars);
 }
 
 MU_TEST(test_init_load_args_failure_continues) {
@@ -140,7 +139,7 @@ MU_TEST(test_init_load_args_failure_continues) {
 MU_TEST(test_init_stores_config_in_ctx) {
     reset();
     zod_ngine_init((zod_engine_init_params){0});
-    mu_check(g_ctx.config == &g_config_storage);
+    mu_assert_int_eq(800, config_get_int("window.width", 0));
 }
 
 MU_TEST(test_init_both_stages_fail_preset_survives) {
@@ -158,7 +157,6 @@ MU_TEST(test_init_both_stages_fail_preset_survives) {
     mu_assert_int_eq(800, config_get_int("window.width", 0));
     mu_assert_int_eq(600, config_get_int("window.height", 0));
     mu_assert_string_eq("zod-ngine", config_get_string("window.title", ""));
-    mu_check(g_ctx.config == &g_config_storage);
 }
 
 MU_TEST(test_init_hot_reload_on_failure_no_watcher) {
@@ -172,8 +170,8 @@ MU_TEST(test_init_hot_reload_on_failure_no_watcher) {
                    .hot_reload       = true,
               },
     });
-    mu_check(g_config_storage.reload_config_func == NULL);
-    mu_check(g_config_storage.config_file_watcher == NULL);
+    mu_check(g_ctx.config.reload_config_func == NULL);
+    mu_check(g_ctx.config.config_file_watcher == NULL);
 }
 
 MU_TEST(test_init_hot_reload_on_success_attaches_watcher) {
@@ -187,8 +185,8 @@ MU_TEST(test_init_hot_reload_on_success_attaches_watcher) {
                    .hot_reload       = true,
               },
     });
-    mu_check(g_config_storage.reload_config_func == stub_load_config);
-    mu_check(g_config_storage.config_file_watcher != NULL);
+    mu_check(g_ctx.config.reload_config_func == stub_load_config);
+    mu_check(g_ctx.config.config_file_watcher != NULL);
 }
 
 MU_TEST(test_stage2_load_success_returns_true) {
@@ -213,8 +211,8 @@ MU_TEST(test_stage2_load_success_hot_reload_attaches_watcher) {
                    .hot_reload       = true,
               },
     });
-    mu_check(g_config_storage.config_file_watcher != NULL);
-    mu_check(g_config_storage.reload_config_func == stub_load_config);
+    mu_check(g_ctx.config.config_file_watcher != NULL);
+    mu_check(g_ctx.config.reload_config_func == stub_load_config);
 }
 
 MU_TEST(test_stage2_load_success_no_hot_reload_no_watcher) {
@@ -228,8 +226,8 @@ MU_TEST(test_stage2_load_success_no_hot_reload_no_watcher) {
                    .hot_reload       = false,
               },
     });
-    mu_check(g_config_storage.config_file_watcher == NULL);
-    mu_check(g_config_storage.reload_config_func == NULL);
+    mu_check(g_ctx.config.config_file_watcher == NULL);
+    mu_check(g_ctx.config.reload_config_func == NULL);
 }
 
 MU_TEST(test_stage2_load_fail_no_watcher_regardless_of_hot_reload) {
@@ -243,8 +241,8 @@ MU_TEST(test_stage2_load_fail_no_watcher_regardless_of_hot_reload) {
                    .hot_reload       = true,
               },
     });
-    mu_check(g_config_storage.config_file_watcher == NULL);
-    mu_check(g_config_storage.reload_config_func == NULL);
+    mu_check(g_ctx.config.config_file_watcher == NULL);
+    mu_check(g_ctx.config.reload_config_func == NULL);
 }
 
 MU_TEST(test_stage2_load_fail_presets_survive) {

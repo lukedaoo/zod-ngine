@@ -5,10 +5,13 @@
 #include "../../../modules/cvar_load.h"
 
 void g_config_seed_preset(g_config *cfg) {
+    cvar_set_int(&cfg->cvars, "engine.target_fps", 60);
+
     cvar_set_int(&cfg->cvars, "window.width", 800);
     cvar_set_int(&cfg->cvars, "window.height", 600);
     cvar_set_string(&cfg->cvars, "window.title", "zod-ngine");
     cvar_set_bool(&cfg->cvars, "window.vsync", true);
+
     cvar_set_int(&cfg->cvars, "log.level", 0);
 }
 
@@ -28,7 +31,7 @@ static bool load_config_from_file_default(const char *filepath, cvar_table *cvar
     return false;
 }
 
-bool g_reload_config_from_file(g_config *cfg) {
+bool g_config_reload_from_file(g_config *cfg) {
     if (!cfg || !cfg->config_file_watcher) {
         log_warn("config: no file watcher");
         return false;
@@ -45,7 +48,5 @@ bool g_reload_config_from_file(g_config *cfg) {
     }
     return true;
 }
-
-g_config g_config_storage = {0};
 
 #endif
