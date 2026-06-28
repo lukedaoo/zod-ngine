@@ -1,9 +1,10 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
-#include "clock_internal.h"
-#include "../engine_context/engine_context_internal.h"
 #include <string.h>
 #include <SDL3/SDL.h>
+
+#include "clock_internal.h"
+#include "../engine_context/engine_context_internal.h"
 
 void g_clock_init(uint32_t target_fps) {
     memset(&g_ctx.clock, 0, sizeof(g_ctx.clock));

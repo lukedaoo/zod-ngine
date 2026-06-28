@@ -1,14 +1,17 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
+#include <unistd.h>
+#include <SDL3/SDL.h>
+
 #include "../../../modules/cvar.h"
 #include "../../../modules/log.h"
 #include "../../../modules/cvar_load.h"
 #include "../../../modules/file_watcher.h"
 
 #include "../../zod_ngine.h"
+
 #include "../config/config_internal.h"
 #include "../clock/clock_internal.h"
 #include "../engine_context/engine_context_internal.h"
-#include <unistd.h>
 
 bool zod_ngine_init(const zod_engine_init_params params) {
     const int                     argc        = params.argc;
@@ -21,6 +24,14 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     }
 
     log_info("zod_ngine: init");
+
+    {
+        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
+            log_info("SDL: initialized failed");
+            return false;
+        }
+    }
+
     {
         log_debug("config: initializing...");
 
@@ -67,9 +78,8 @@ bool zod_ngine_init(const zod_engine_init_params params) {
 }
 
 void zod_ngine_destroy(void) {
-    log_debug("destroying engine...");
-    file_watcher_close(g_ctx.config.config_file_watcher);
-    cvar_destroy(&g_ctx.config.cvars);
+    log_debug("zod_ngine: destroying engine...");
+    engine_context_destroy();
 }
 
 void main_loop(void) {
@@ -83,10 +93,9 @@ void main_loop(void) {
                 }
             }
         }
-        // @hack: this is bad. Just make the file watcher works
-        // log_info("main loop: config %s",
-        //          config_get_string("client.password", "zod-ngine"));
-        sleep(1);
+        g_clock_update();
+        log_info("main loop: elapsed %.3f", g_ctx.clock.elapsed);
+        g_clock_sleep_to_target_fps();
     }
 }
 

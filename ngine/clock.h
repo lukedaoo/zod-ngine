@@ -1,5 +1,5 @@
-#ifndef ZOD_CLOCK_CONFIG_H
-#define ZOD_CLOCK_CONFIG_H
+#ifndef ZOD_NGINE_CLOCK_H
+#define ZOD_NGINE_CLOCK_H
 
 #include <stdint.h>
 

@@ -245,11 +245,8 @@ int run_compdb(void) {
         }
     }
 
-    const char *root_files[] = {C_ENTRY, ENGINE_ENTRY};
-    for (size_t i = 0; i < 2; ++i) {
-        if (nob_file_exists(root_files[i]) > 0)
-            compdb_entry(f, cwd, root_files[i], false, &first);
-    }
+    if (nob_file_exists(C_ENTRY) > 0)
+        compdb_entry(f, cwd, C_ENTRY, false, &first);
 
     fprintf(f, "\n]\n");
     fclose(f);
