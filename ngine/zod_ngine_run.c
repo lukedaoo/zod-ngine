@@ -64,16 +64,17 @@ void after_init(void) {
 
 int main(const int argc, const char **argv) {
     const zod_engine_dispatch dispatch = {
-         .before_init           = before_init,
-         .load_config_from_file = load_config_from_file_custom,
-         .load_args             = load_args,
-         .after_init            = after_init,
+         .before_init = before_init,
+         .load_args   = load_args,
+         .after_init  = after_init,
     };
 
     const zod_engine_init_params params = {
          .argc              = argc,
          .argv              = argv,
-         .config_file_setup = {.config_path = CONFIG_PATH, .hot_reload = true},
+         .config_file_setup = {.config_path      = CONFIG_PATH,
+                               .hot_reload       = true,
+                               .load_config_func = load_config_from_file_custom},
          .dispatch          = dispatch,
     };
 

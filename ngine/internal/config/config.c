@@ -33,7 +33,13 @@ bool g_reload_config_from_file(g_config *cfg) {
         log_warn("config: no file watcher");
         return false;
     }
-    if (!load_config_from_file_default(cfg->config_file_watcher->path, &cfg->cvars)) {
+
+    if (!cfg->reload_config_func) {
+        log_warn("config: no reload function. Try to use default");
+        cfg->reload_config_func = load_config_from_file_default;
+    }
+
+    if (!cfg->reload_config_func(cfg->config_file_watcher->path, &cfg->cvars)) {
         log_warn("failed to load config file");
         return false;
     }

@@ -8,6 +8,7 @@
 struct g_config {
     cvar_table    cvars;
     file_watcher *config_file_watcher;
+    bool (*reload_config_func)(const char *filepath, cvar_table *cvars);
 };
 
 #endif

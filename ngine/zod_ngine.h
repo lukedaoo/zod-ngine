@@ -6,7 +6,6 @@
 
 typedef struct {
     void (*before_init)(void);
-    bool (*load_config_from_file)(const char *filepath, cvar_table *cvars);
     bool (*load_args)(int argc, const char **argv, cvar_table *cvars);
     void (*after_init)(void);
 
@@ -17,6 +16,7 @@ typedef struct {
 typedef struct {
     const char *config_path;
     bool        hot_reload;
+    bool (*load_config_func)(const char *filepath, cvar_table *cvars);
 } zod_config_file_setup_t;
 
 typedef struct {
