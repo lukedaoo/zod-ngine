@@ -3,6 +3,7 @@
 #include <stdbool.h>
 
 #define NGINE_UNIT_TEST
+#undef ZOD_NGINE_IMPLEMENTATION
 #define ZOD_NGINE_IMPLEMENTATION
 #include "../index.h"
 

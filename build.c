@@ -186,7 +186,8 @@ int run_run(bool execute, const char *target, const char *mode) {
     const char *src       = is_engine ? ENGINE_ENTRY : C_ENTRY;
 
     Nob_Cmd cmd = {0};
-    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", out, src, GLAD_SRC, SDL_FLAGS, GLAD_FLAGS);
+    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", out, src, GLAD_SRC, SDL_FLAGS,
+                   GLAD_FLAGS);
     if (strcmp(mode, "release") == 0) {
         nob_cmd_append(&cmd, C_RELEASE_FLAGS);
     } else {
@@ -217,18 +218,18 @@ static const size_t COMPDB_SCAN_DIRS_COUNT =
      sizeof(COMPDB_SCAN_DIRS) / sizeof(COMPDB_SCAN_DIRS[0]);
 
 static const char *COMPDB_DEFINES[] = {
-     "-DCARG_IMPLEMENTATION",
-     "-DCVAR_IMPLEMENTATION",
-     "-DCVAR_LOAD_IMPLEMENTATION",
-     "-DINI_IMPLEMENTATION",
-     "-DSCF_IMPLEMENTATION",
-     "-DLOG_IMPLEMENTATION",
-     "-DLOG_USE_SIMPLE",
-     "-DFILE_WATCHER_IMPLEMENTATION",
-     "-DSTRING_VIEW_IMPLEMENTATION",
-     "-DARRAY_LIST_IMPLEMENTATION",
-     "-DZOD_NGINE_IMPLEMENTATION",
-     "-DNOB_IMPLEMENTATION",
+     /*      "-DCARG_IMPLEMENTATION",
+          "-DCVAR_IMPLEMENTATION",
+          "-DCVAR_LOAD_IMPLEMENTATION",
+          "-DINI_IMPLEMENTATION",
+          "-DSCF_IMPLEMENTATION",
+          "-DLOG_IMPLEMENTATION",
+          "-DLOG_USE_SIMPLE",
+          "-DFILE_WATCHER_IMPLEMENTATION",
+          "-DSTRING_VIEW_IMPLEMENTATION",
+          "-DARRAY_LIST_IMPLEMENTATION",
+          "-DZOD_NGINE_IMPLEMENTATION",
+          "-DNOB_IMPLEMENTATION" */
 };
 static const size_t COMPDB_DEFINES_COUNT =
      sizeof(COMPDB_DEFINES) / sizeof(COMPDB_DEFINES[0]);

@@ -2,7 +2,6 @@
 #define WINDOW_INTERNAL_H
 
 #include <SDL3/SDL.h>
-#include "../../window.h"
 
 struct Window {
     SDL_Window   *handle;

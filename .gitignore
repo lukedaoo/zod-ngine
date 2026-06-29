@@ -17,6 +17,7 @@ tmp/
 compile_commands.json
 
 build/
+.cache/
 cmake-build-debug/
 graphify-out/
 memory/

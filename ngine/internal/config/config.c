@@ -6,6 +6,7 @@
 #include <modules/cvar_load.h>
 
 #include "config_internal.h"
+
 #include "../engine_context/engine_context_internal.h"
 
 #ifndef DEFAULT_CONFIG_TARGET_FPS

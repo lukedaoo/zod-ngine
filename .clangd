@@ -1,46 +1,28 @@
 CompileFlags:
-  Add: [-std=c23, -Wall, -Wextra, -I/usr/include/SDL3, -I.]
+  Add:
+    # standard + warnings
+    - -std=c23
+    - -Wall
+    - -Wextra
+    # includes
+    - -I.
+    - -I/usr/include/SDL3
+    - -Ilib/glad/include
+    # modules implementation
+    - -DINI_IMPLEMENTATION
+    - -DSCF_IMPLEMENTATION
+    - -DLOG_IMPLEMENTATION
+    - -DCVAR_IMPLEMENTATION
+    - -DCVAR_LOAD_IMPLEMENTATION
+    - -DCARG_IMPLEMENTATION
+    - -DFILE_WATCHER_IMPLEMENTATION
+    - -DSTRING_VIEW_IMPLEMENTATION
+    - -DARRAY_LIST_IMPLEMENTATION
+    # ngine implementation
+    - -DZOD_NGINE_IMPLEMENTATION
 Index:
   Background: Build
----
-If:
-  PathMatch: .*\.h
-CompileFlags:
-  Add:
-    - -x
-    - c
-    - -std=c23
-    - -DLOG_IMPLEMENTATION
-    - -DSTRING_VIEW_IMPLEMENTATION
-    - -DINI_IMPLEMENTATION
-    - -DSCF_IMPLEMENTATION
-    - -DCVAR_IMPLEMENTATION
-    - -DCVAR_LOAD_IMPLEMENTATION
-    - -DFILE_WATCHER_IMPLEMENTATION
-    - -DCARG_IMPLEMENTATION
-    - -DARRAY_LIST_IMPLEMENTATION
-    # Add new modules here
 Diagnostics:
   Suppress:
     - unused-includes
----
-If:
-  PathMatch: .*/index\.h$
-Diagnostics:
-  Suppress: unused-includes
----
-If:
-  PathMatch: ngine/internal/.*\.(c|h)$
-CompileFlags:
-  Add:
-    - -DZOD_NGINE_IMPLEMENTATION
-    - -DCVAR_IMPLEMENTATION
-    - -DLOG_IMPLEMENTATION
-    - -DINI_IMPLEMENTATION
-    - -DSCF_IMPLEMENTATION
-    - -DCVAR_LOAD_IMPLEMENTATION
-    - -DCARG_IMPLEMENTATION
-    - -DFILE_WATCHER_IMPLEMENTATION
-Diagnostics:
-  Suppress:
-    - unused-includes
+    - macro-redefined

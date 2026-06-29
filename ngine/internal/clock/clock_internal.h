@@ -2,6 +2,7 @@
 #define CLOCK_INTERNAL_H
 
 #include <stdint.h>
+
 #include "../../clock.h"
 
 struct g_clock {

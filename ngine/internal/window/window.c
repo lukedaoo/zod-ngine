@@ -4,8 +4,11 @@
 #include <stdlib.h>
 
 #include <modules/log.h>
-#include "window_internal.h"
+
+#include "../../window.h"
 #include "../../zod_ngine.h"
+
+#include "window_internal.h"
 
 static bool window_gl_init(Window *window) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
