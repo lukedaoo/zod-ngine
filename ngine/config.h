@@ -7,4 +7,7 @@ void g_config_seed_preset(g_config *cfg);
 
 bool g_config_reload_from_file(g_config *cfg);
 
+// debug
+void g_config_print(g_config *cfg);
+
 #endif

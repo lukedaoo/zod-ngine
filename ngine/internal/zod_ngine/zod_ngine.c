@@ -12,6 +12,7 @@
 #include "../config/config_internal.h"
 #include "../clock/clock_internal.h"
 #include "../engine_context/engine_context_internal.h"
+#include "../../render.h"
 
 bool zod_ngine_init(const zod_engine_init_params params) {
     const int                     argc        = params.argc;
@@ -56,11 +57,26 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         }
     }
 
+#ifdef DEBUG
+    log_debug("config: printing...");
+    g_config_print(&g_ctx.config);
+#endif
+
     {
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
             log_info("SDL: initialized failed");
             return false;
         }
+    }
+    //
+    // window initialization
+    //
+    {
+        const char *title = config_get_string("window.title", "zod-ngine");
+        int         w     = config_get_int("window.width", 800);
+        int         h     = config_get_int("window.height", 600);
+        g_ctx.window      = window_create(title, w, h, SDL_WINDOW_OPENGL);
+        window_apply_config(&g_ctx.window);
     }
 
     {
@@ -80,23 +96,6 @@ bool zod_ngine_init(const zod_engine_init_params params) {
 void zod_ngine_destroy(void) {
     log_debug("zod_ngine: destroying engine...");
     engine_context_destroy();
-}
-
-void main_loop(void) {
-    while (!g_ctx.should_exit) {
-        if (g_ctx.config.config_file_watcher) {
-            file_status status = file_watcher_check(g_ctx.config.config_file_watcher);
-            if (status == FILE_CHANGED) {
-                log_info("config file changed");
-                if (!g_config_reload_from_file(&g_ctx.config)) {
-                    log_warn("failed to load config file");
-                }
-            }
-        }
-        g_clock_update();
-        log_info("main loop: elapsed %.3f", g_ctx.clock.elapsed);
-        g_clock_sleep_to_target_fps();
-    }
 }
 
 int config_get_int(const char *name, int fallback) {
@@ -138,5 +137,8 @@ bool     clock_paused(void) { return g_ctx.clock.paused; }
 
 void clock_set_time_scale(float scale) { g_ctx.clock.time_scale = scale; }
 void clock_set_paused(bool paused) { g_ctx.clock.paused = paused; }
+
+void zod_begin_drawing(void) { render_begin(); }
+void zod_end_drawing(void) { render_end(&g_ctx.window); }
 
 #endif

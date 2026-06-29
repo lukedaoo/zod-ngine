@@ -5,10 +5,7 @@
 
 #define CONFIG_PATH "run-tree/data/engine.scf"
 
-void before_init(void) {
-    log_set_level(LOG_DEBUG);
-    log_debug("before_init");
-}
+void before_init(void) { log_debug("before_init"); }
 
 static bool load_config_from_file_custom(const char *filepath, cvar_table *cvars) {
     const char *ext = strrchr(filepath, '.');
@@ -80,7 +77,30 @@ int main(const int argc, const char **argv) {
     };
 
     zod_ngine_init(params);
-    main_loop();
+    while (!g_ctx.should_exit) {
+        SDL_Event e;
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_EVENT_QUIT) g_ctx.should_exit = true;
+        }
+
+        if (g_ctx.config.config_file_watcher) {
+            file_status status = file_watcher_check(g_ctx.config.config_file_watcher);
+            if (status == FILE_CHANGED) {
+                log_info("config file changed");
+                if (!g_config_reload_from_file(&g_ctx.config)) {
+                    log_warn("failed to load config file");
+                } else {
+                    window_apply_config(&g_ctx.window);
+                }
+            }
+        }
+
+        zod_begin_drawing();
+        zod_end_drawing();
+
+        g_clock_update();
+        g_clock_sleep_to_target_fps();
+    }
     zod_ngine_destroy();
     return 0;
 }

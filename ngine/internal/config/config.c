@@ -5,6 +5,36 @@
 
 #include "config_internal.h"
 
+#ifndef DEFAULT_CONFIG_TARGET_FPS
+#define DEFAULT_CONFIG_TARGET_FPS 60
+#endif
+
+#ifndef DEFAULT_CONFIG_WINDOW_WIDTH
+#define DEFAULT_CONFIG_WINDOW_WIDTH 800
+#endif
+
+#ifndef DEFAULT_CONFIG_WINDOW_HEIGHT
+#define DEFAULT_CONFIG_WINDOW_HEIGHT 600
+#endif
+
+#ifndef DEFAULT_CONFIG_WINDOW_TITLE
+#define DEFAULT_CONFIG_WINDOW_TITLE "zod-ngine"
+#endif
+
+#ifndef DEFAULT_CONFIG_WINDOW_VSYNC
+#define DEFAULT_CONFIG_WINDOW_VSYNC true
+#endif
+
+#ifndef DEFAULT_CONFIG_LOG_LEVEL
+// LOG_TRACE = 0,
+// LOG_DEBUG = 1,
+// LOG_INFO = 2,
+// LOG_WARN = 3,
+// LOG_ERROR = 4,
+// LOG_FATAL = 5
+#define DEFAULT_CONFIG_LOG_LEVEL 0
+#endif
+
 void g_config_seed_preset(g_config *cfg) {
     cvar_set_int(&cfg->cvars, "engine.target_fps", 60);
 
@@ -49,5 +79,7 @@ bool g_config_reload_from_file(g_config *cfg) {
     }
     return true;
 }
+
+void g_config_print(g_config *cfg) { cvar_print(&cfg->cvars); }
 
 #endif

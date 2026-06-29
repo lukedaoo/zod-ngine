@@ -35,8 +35,6 @@ typedef struct {
 bool zod_ngine_init(const zod_engine_init_params params);
 void zod_ngine_destroy(void);
 
-void main_loop(void);
-
 //
 // Config accessors
 //
@@ -66,5 +64,11 @@ uint32_t clock_frame(void);
 bool     clock_paused(void);
 void     clock_set_time_scale(float scale);
 void     clock_set_paused(bool paused);
+
+//
+// Render accessors
+//
+void zod_begin_drawing(void);
+void zod_end_drawing(void);
 
 #endif

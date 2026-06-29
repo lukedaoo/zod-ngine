@@ -23,6 +23,8 @@ bool cvar_set_float(cvar_table *t, const char *name, float val);
 bool cvar_set_bool(cvar_table *t, const char *name, bool val);
 bool cvar_set_string(cvar_table *t, const char *name, const char *val);
 
+void cvar_print(const cvar_table *table);
+
 #ifdef CVAR_IMPLEMENTATION
 
 #include <stdio.h>
@@ -274,6 +276,37 @@ bool cvar_set_bool(cvar_table *t, const char *name, bool val) {
 
 bool cvar_set_string(cvar_table *t, const char *name, const char *val) {
     return cvar_set(t, name, CVAR_STRING, val);
+}
+
+static void single_cvar_print(const cvar_t *cv) {
+    switch (cv->type) {
+        case CVAR_INT:
+            printf("%s = %d\n", cv->name, cv->value.i);
+            break;
+
+        case CVAR_FLOAT:
+            printf("%s = %f\n", cv->name, cv->value.f);
+            break;
+
+        case CVAR_BOOL:
+            printf("%s = %s\n", cv->name, cv->value.b ? "true" : "false");
+            break;
+
+        case CVAR_STRING:
+            printf("%s = \"%s\"\n", cv->name, cv->value.str.data);
+            break;
+
+        default:
+            printf("%s = <unknown>\n", cv->name);
+            break;
+    }
+}
+
+void cvar_print(const cvar_table *table) {
+    if (!table) return;
+    for (size_t i = 0; i < table->size; i++) {
+        single_cvar_print(&table->data[i]);
+    }
 }
 
 #endif
