@@ -3,9 +3,9 @@
 
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
-#if DEBUG
-#define MODULE_LOG_ENABLED
-#endif
+// #if DEBUG
+// #define MODULE_LOG_ENABLED
+// #endif
 
 #define CARG_IMPLEMENTATION
 #define CVAR_IMPLEMENTATION

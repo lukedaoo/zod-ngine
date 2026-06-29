@@ -32,7 +32,7 @@ MU_TEST(test_int_conversion_when_value_is_not_present) {
     const char *names[] = {"width", "height"};
     cvar_table  table   = {0};
 
-    mu_check(!carg_entry_to_cvars(&carg, names, 2, &table));
+    mu_check(carg_entry_to_cvars(&carg, names, 2, &table));
     mu_assert_int_eq(-1, cvar_get_int(&table, "width", -1));
     mu_assert_int_eq(-1, cvar_get_int(&table, "height", -1));
 
@@ -88,13 +88,13 @@ MU_TEST(test_bool_present_maps_true) {
     cvar_destroy(&table);
 }
 
-MU_TEST(test_bool_absent_maps_false) {
+MU_TEST(test_bool_absent_skips) {
     carg_t carg = {.flag = "--verbose", .type = CARG_BOOL, .present = false, .count = 0};
     const char *names[] = {"verbose"};
     cvar_table  table   = {0};
 
-    mu_check(!carg_entry_to_cvars(&carg, names, 1, &table));
-    mu_check(cvar_get_bool(&table, "verbose", true) == true);  // fallback
+    mu_check(carg_entry_to_cvars(&carg, names, 1, &table));
+    mu_check(cvar_get_bool(&table, "verbose", true) == true);  // fallback, not written
 
     cvar_destroy(&table);
 }
@@ -112,7 +112,11 @@ MU_TEST(test_bool_wrong_names_count_rejected) {
 
 MU_TEST(test_names_count_mismatch_rejected) {
     int    values[] = {200, 300};
-    carg_t carg     = {.flag = "--size", .type = CARG_INT, .count = 2, .value.i = values};
+    carg_t carg     = {.flag    = "--size",
+                       .type    = CARG_INT,
+                       .count   = 2,
+                       .present = true,
+                       .value.i = values};
     const char *names[] = {"width"};
     cvar_table  table   = {0};
 
@@ -192,7 +196,7 @@ MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_float_conversion);
     MU_RUN_TEST(test_string_conversion);
     MU_RUN_TEST(test_bool_present_maps_true);
-    MU_RUN_TEST(test_bool_absent_maps_false);
+    MU_RUN_TEST(test_bool_absent_skips);
     MU_RUN_TEST(test_bool_wrong_names_count_rejected);
     MU_RUN_TEST(test_names_count_mismatch_rejected);
     MU_RUN_TEST(test_null_args_rejected);

@@ -41,7 +41,8 @@ bool window_apply_config(Window *window) {
     bool ok    = true;
     bool vsync = config_get_bool("window.vsync", true);
     if (!SDL_GL_SetSwapInterval(vsync ? 1 : 0) != 0) {
-        log_error("window: failed to set vsync");
+        log_warn("window.apply_config: vsync=%d set failed — %s, continuing without vsync",
+                 vsync ? 1 : 0, SDL_GetError());
         ok = false;
     }
     return ok;

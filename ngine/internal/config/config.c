@@ -49,7 +49,8 @@ void g_config_seed_preset(g_config *cfg) {
 static bool load_config_from_file_default(const char *filepath, cvar_table *cvars) {
     const char *ext = strrchr(filepath, '.');
     if (!ext) {
-        log_debug("config: no file extension in path: %s", filepath);
+        log_warn("config.load: '%s' has no file extension — cannot determine format, use .scf or .ini",
+                 filepath);
         return false;
     }
     if (strcmp(ext, ".scf") == 0) {
@@ -58,35 +59,42 @@ static bool load_config_from_file_default(const char *filepath, cvar_table *cvar
     if (strcmp(ext, ".ini") == 0) {
         return cvar_load_ini(cvars, filepath, cvar_default_config_parser_handler, false);
     }
-    log_debug("config: unsupported file extension: %s", ext);
+    log_warn("config.load: unsupported extension '%s' in '%s' — use .scf or .ini", ext,
+             filepath);
     return false;
 }
 
 bool g_config_reload_from_file(g_config *cfg) {
     if (!cfg || !cfg->config_file_watcher) {
-        log_warn("config: no file watcher");
+        log_error("config.reload: called without a file watcher — enable hot_reload=true in zod_engine_init_params");
         return false;
     }
 
     if (!cfg->reload_config_func) {
-        log_warn("config: no reload function. Try to use default");
+        log_debug("config.reload: no reload func set, falling back to default loader");
         cfg->reload_config_func = load_config_from_file_default;
     }
 
-    if (!cfg->reload_config_func(cfg->config_file_watcher->path, &cfg->cvars)) {
-        log_warn("failed to load config file");
+    g_config tmp = {0};
+    g_config_seed_preset(&tmp);
+    if (!cfg->reload_config_func(cfg->config_file_watcher->path, &tmp.cvars)) {
+        cvar_destroy(&tmp.cvars);
+        log_warn("config.reload: failed to reload '%s' — keeping previous config",
+                 cfg->config_file_watcher->path);
         return false;
     }
+
+    cvar_destroy(&cfg->cvars);
+    cfg->cvars = tmp.cvars;
     return true;
 }
 
 bool g_adjust_config(g_config *cfg) {
     if (!cfg) {
-        log_warn("config: no config to adjust");
+        log_error("config.adjust: called with NULL cfg — this is a bug");
         return false;
     }
     {
-        log_debug("config: converting log.level to int if necessary");
         cvar_t *log_level = cvar_get(&cfg->cvars, "log.level");
         if (log_level && log_level->type == CVAR_STRING) {
             int level_as_int = log_level_from_string(log_level->value.str.data);
@@ -97,7 +105,7 @@ bool g_adjust_config(g_config *cfg) {
 }
 
 void g_config_print(g_config *cfg) {
-    log_debug("config: print:");
+    log_debug("config.print: current values");
     cvar_print(&cfg->cvars);
 }
 

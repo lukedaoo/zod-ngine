@@ -47,7 +47,15 @@ bool cvar_default_config_parser_handler(const char *section, const char *key,
                          (value[0] == '"' && value[len - 1] == '"'))) {
             char   buf[512];
             size_t inner = len - 2;
-            if (inner >= sizeof(buf)) return false;
+            if (inner >= sizeof(buf)) {
+#ifdef MODULE_LOG_ENABLED
+                fprintf(stderr,
+                        "cvar.load: value for '%s' exceeds %zu bytes — truncate or "
+                        "shorten the value\n",
+                        name, sizeof(buf) - 1);
+#endif
+                return false;
+            }
             memcpy(buf, value + 1, inner);
             buf[inner] = '\0';
             return cvar_set_string(cvars, name, buf);

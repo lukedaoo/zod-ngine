@@ -5,12 +5,18 @@
 
 #define CONFIG_PATH "run-tree/data/engine.scf"
 
-void before_init(void) { log_debug("before_init"); }
+void before_init(void) {
+    log_debug("engine.before_init: called");
+    log_set_level(LOG_WARN);
+}
 
 static bool load_config_from_file_custom(const char *filepath, cvar_table *cvars) {
     const char *ext = strrchr(filepath, '.');
     if (!ext) {
-        log_debug("config: no file extension in path: %s", filepath);
+        log_warn(
+             "config.load: '%s' has no file extension — cannot determine format, use "
+             ".scf or .ini",
+             filepath);
         return false;
     }
     if (strcmp(ext, ".scf") == 0) {
@@ -19,7 +25,8 @@ static bool load_config_from_file_custom(const char *filepath, cvar_table *cvars
     if (strcmp(ext, ".ini") == 0) {
         return cvar_load_ini(cvars, filepath, cvar_default_config_parser_handler, false);
     }
-    log_debug("config: unsupported file extension: %s", ext);
+    log_warn("config.load: unsupported extension '%s' in '%s' — use .scf or .ini", ext,
+             filepath);
     return false;
 }
 
@@ -48,16 +55,10 @@ bool load_args(const int argc, const char **argv, cvar_table *cvars) {
 }
 
 void after_init(void) {
-    log_debug("config — window: %d x %d, title: '%s', vsync: %d, log_level: %d",
+    log_debug("engine.after_init: window=%dx%d title='%s' vsync=%d log_level=%d",
               config_get_int("window.width", 800), config_get_int("window.height", 600),
               config_get_string("window.title", "zod-ngine"),
-              config_get_bool("window.vsync", true),
-              config_get_int("log.level", 0));
-
-    for (size_t i = 0; i < g_ctx.config.cvars.size; ++i) {
-        const char *name = g_ctx.config.cvars.data[i].name;
-        log_debug("config: %s", name);
-    }
+              config_get_bool("window.vsync", true), config_get_int("log.level", 0));
 }
 
 int main(const int argc, const char **argv) {
@@ -86,14 +87,15 @@ int main(const int argc, const char **argv) {
         if (g_ctx.config.config_file_watcher) {
             file_status status = file_watcher_check(g_ctx.config.config_file_watcher);
             if (status == FILE_CHANGED) {
-                log_info("config file changed");
+                log_info("config.watcher: '%s' changed, reloading",
+                         g_ctx.config.config_file_watcher->path);
                 if (!g_config_reload_from_file(&g_ctx.config)) {
-                    log_warn("failed to load config file");
+                    log_warn("config.watcher: reload failed — keeping previous config");
                 } else {
                     g_adjust_config(&g_ctx.config);
                     zod_ngine_apply_config();
                 }
-            g_config_print(&g_ctx.config);
+                g_config_print(&g_ctx.config);
             }
         }
 

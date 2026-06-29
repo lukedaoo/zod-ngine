@@ -94,6 +94,73 @@ MU_TEST(test_adjust_config_null_returns_false) {
     mu_check(!g_adjust_config(NULL));
 }
 
+static bool reload_succeeds(const char *path, cvar_table *cvars) {
+    (void)path;
+    cvar_set_int(cvars, "window.width", 1280);
+    cvar_set_int(cvars, "window.height", 720);
+    return true;
+}
+
+static bool reload_fails(const char *path, cvar_table *cvars) {
+    (void)path;
+    (void)cvars;
+    return false;
+}
+
+static bool reload_partial_then_fail(const char *path, cvar_table *cvars) {
+    (void)path;
+    cvar_set_int(cvars, "window.width", 9999);
+    return false;
+}
+
+MU_TEST(test_reload_no_watcher_returns_false) {
+    reset();
+    g_ctx.config.config_file_watcher = NULL;
+    mu_check(!g_config_reload_from_file(&g_ctx.config));
+}
+
+MU_TEST(test_reload_success_updates_config) {
+    reset();
+    file_watcher fw = {.path = "fake.scf"};
+    g_ctx.config.config_file_watcher = &fw;
+    g_ctx.config.reload_config_func  = reload_succeeds;
+
+    mu_check(g_config_reload_from_file(&g_ctx.config));
+    mu_assert_int_eq(1280, config_get_int("window.width", 0));
+    mu_assert_int_eq(720, config_get_int("window.height", 0));
+    mu_assert_int_eq(60, config_get_int("engine.target_fps", 0));
+
+    g_ctx.config.config_file_watcher = NULL;
+}
+
+MU_TEST(test_reload_fail_preserves_config) {
+    reset();
+    config_set_int("window.width", 1920);
+
+    file_watcher fw = {.path = "fake.scf"};
+    g_ctx.config.config_file_watcher = &fw;
+    g_ctx.config.reload_config_func  = reload_fails;
+
+    mu_check(!g_config_reload_from_file(&g_ctx.config));
+    mu_assert_int_eq(1920, config_get_int("window.width", 0));
+
+    g_ctx.config.config_file_watcher = NULL;
+}
+
+MU_TEST(test_reload_partial_fail_preserves_config) {
+    reset();
+    config_set_int("window.width", 1920);
+
+    file_watcher fw = {.path = "fake.scf"};
+    g_ctx.config.config_file_watcher = &fw;
+    g_ctx.config.reload_config_func  = reload_partial_then_fail;
+
+    mu_check(!g_config_reload_from_file(&g_ctx.config));
+    mu_assert_int_eq(1920, config_get_int("window.width", 0));
+
+    g_ctx.config.config_file_watcher = NULL;
+}
+
 MU_TEST_SUITE(config_suite) {
     MU_RUN_TEST(test_preset_int_defaults);
     MU_RUN_TEST(test_preset_string_default);
@@ -105,6 +172,10 @@ MU_TEST_SUITE(config_suite) {
     MU_RUN_TEST(test_adjust_config_leaves_int_unchanged);
     MU_RUN_TEST(test_adjust_config_all_string_levels);
     MU_RUN_TEST(test_adjust_config_null_returns_false);
+    MU_RUN_TEST(test_reload_no_watcher_returns_false);
+    MU_RUN_TEST(test_reload_success_updates_config);
+    MU_RUN_TEST(test_reload_fail_preserves_config);
+    MU_RUN_TEST(test_reload_partial_fail_preserves_config);
 }
 
 int main(void) {
