@@ -18,10 +18,10 @@
 #include "../../zod_error.h"
 
 bool zod_ngine_init(const zod_engine_init_params params) {
-    const int                     argc        = params.argc;
-    const char                  **argv        = params.argv;
-    const zod_config_file_setup_t config_file = params.config_file_setup;
-    const zod_engine_dispatch     dispatch    = params.dispatch;
+    const int                 argc         = params.argc;
+    const char              **argv         = params.argv;
+    const zod_config_setup_t  config_setup = params.config_setup;
+    const zod_engine_dispatch dispatch     = params.dispatch;
 
     if (dispatch.before_init) {
         dispatch.before_init();
@@ -32,27 +32,30 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     {
         log_debug("config.init: seeding defaults");
         g_config_seed_preset(&g_ctx.config);
+        g_ctx.config.user_schema = config_setup.schema;
 
-        if (config_file.load_config_func && config_file.config_path) {
-            if (!config_file.load_config_func(config_file.config_path,
-                                              &g_ctx.config.cvars)) {
+        if (config_setup.load_config_func && config_setup.config_path) {
+            if (!config_setup.load_config_func(config_setup.config_path,
+                                               &g_ctx.config.cvars)) {
                 log_warn("config.init: failed to load '%s' — using preset defaults",
-                         config_file.config_path);
+                         config_setup.config_path);
             } else {
-                log_debug("config.init: loaded from '%s'", config_file.config_path);
-                if (config_file.hot_reload) {
-                    g_ctx.config.config_file_watcher =
-                         file_watcher_watch(config_file.config_path);
-                    g_ctx.config.reload_config_func = config_file.load_config_func;
-                    log_debug("config.init: hot reload enabled for '%s'",
-                              config_file.config_path);
-                }
+                log_debug("config.init: loaded from '%s'", config_setup.config_path);
+            }
+            if (config_setup.hot_reload) {
+                g_ctx.config.config_file_watcher =
+                     file_watcher_watch(config_setup.config_path);
+                g_ctx.config.reload_config_func = config_setup.load_config_func;
+                log_debug("config.init: hot reload enabled for '%s'",
+                          config_setup.config_path);
             }
         }
 
         if (dispatch.load_args) {
             if (!dispatch.load_args(argc, argv, &g_ctx.config.cvars)) {
-                log_warn("config.init: CLI args parse failed — command-line overrides ignored");
+                log_warn(
+                     "config.init: CLI args parse failed — command-line overrides "
+                     "ignored");
             } else {
                 log_debug("config.init: CLI args applied");
             }
@@ -80,7 +83,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         int         w     = config_get_int("window.width", 800);
         int         h     = config_get_int("window.height", 600);
         g_ctx.window      = window_create(title, w, h, SDL_WINDOW_OPENGL);
-        zod_ngine_apply_config();
+        zod_ngine_apply_config(false);
     }
 
     {
@@ -102,19 +105,12 @@ void zod_ngine_destroy(void) {
     engine_context_destroy();
 }
 
-void zod_ngine_apply_config(void) {
+void zod_ngine_apply_config(bool adjust_config) {
+    if (adjust_config) {
+        g_adjust_config(&g_ctx.config);
+    }
     log_set_level(config_get_int("log.level", LOG_TRACE));
     window_apply_config(&g_ctx.window);
-
-    int w = config_get_int("window.width", 800);
-    int h = config_get_int("window.height", 600);
-    if (w != g_ctx.window.width || h != g_ctx.window.height) {
-        SDL_SetWindowSize(g_ctx.window.handle, w, h);
-        g_ctx.window.width  = w;
-        g_ctx.window.height = h;
-        glViewport(0, 0, w, h);
-        log_debug("window.apply_config: resized to %dx%d", w, h);
-    }
 }
 
 int config_get_int(const char *name, int fallback) {

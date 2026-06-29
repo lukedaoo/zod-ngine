@@ -96,7 +96,7 @@ MU_TEST(test_init_hook_order) {
 MU_TEST(test_init_missing_config_path_returns_true_no_load_config_from_file) {
     reset();
     bool ok = zod_ngine_init((zod_engine_init_params){
-         .config_file_setup = {.load_config_func = stub_load_config, .config_path = NULL},
+         .config_setup = {.load_config_func = stub_load_config, .config_path = NULL},
     });
     mu_check(ok);
     mu_check(!load_config_called);
@@ -106,8 +106,8 @@ MU_TEST(test_init_config_load_failure_keeps_presets) {
     reset();
     load_config_return_val = false;
     bool ok                = zod_ngine_init((zod_engine_init_params){
-         .config_file_setup = {.load_config_func = stub_load_config,
-                               .config_path      = "/dev/null"},
+         .config_setup = {.load_config_func = stub_load_config,
+                          .config_path      = "/dev/null"},
     });
     mu_check(ok);
     mu_check(load_config_called);
@@ -118,8 +118,8 @@ MU_TEST(test_init_config_load_receives_correct_args) {
     reset();
     load_config_return_val = true;
     zod_ngine_init((zod_engine_init_params){
-         .config_file_setup = {.load_config_func = stub_load_config,
-                               .config_path      = "/dev/null"},
+         .config_setup = {.load_config_func = stub_load_config,
+                          .config_path      = "/dev/null"},
     });
     mu_check(load_config_called);
     mu_assert_string_eq("/dev/null", load_config_received_path);
@@ -147,9 +147,9 @@ MU_TEST(test_init_both_stages_fail_preset_survives) {
     load_config_return_val = false;
     load_args_return_val   = false;
     bool ok                = zod_ngine_init((zod_engine_init_params){
-         .config_file_setup = {.load_config_func = stub_load_config,
-                               .config_path      = "/dev/null"},
-         .dispatch          = {.load_args = stub_load_args},
+         .config_setup = {.load_config_func = stub_load_config,
+                          .config_path      = "/dev/null"},
+         .dispatch     = {.load_args = stub_load_args},
     });
     mu_check(ok);
     mu_check(load_config_called);
@@ -163,7 +163,7 @@ MU_TEST(test_init_hot_reload_on_failure_no_watcher) {
     reset();
     load_config_return_val = false;
     zod_ngine_init((zod_engine_init_params){
-         .config_file_setup =
+         .config_setup =
               {
                    .load_config_func = stub_load_config,
                    .config_path      = "/dev/null",
@@ -178,7 +178,7 @@ MU_TEST(test_init_hot_reload_on_success_attaches_watcher) {
     reset();
     load_config_return_val = true;
     zod_ngine_init((zod_engine_init_params){
-         .config_file_setup =
+         .config_setup =
               {
                    .load_config_func = stub_load_config,
                    .config_path      = "/dev/null",
@@ -193,8 +193,8 @@ MU_TEST(test_stage2_load_success_returns_true) {
     reset();
     load_config_return_val = true;
     bool ok                = zod_ngine_init((zod_engine_init_params){
-         .config_file_setup = {.load_config_func = stub_load_config,
-                               .config_path      = "/dev/null"},
+         .config_setup = {.load_config_func = stub_load_config,
+                          .config_path      = "/dev/null"},
     });
     mu_check(ok);
     mu_check(load_config_called);
@@ -204,7 +204,7 @@ MU_TEST(test_stage2_load_success_hot_reload_attaches_watcher) {
     reset();
     load_config_return_val = true;
     zod_ngine_init((zod_engine_init_params){
-         .config_file_setup =
+         .config_setup =
               {
                    .load_config_func = stub_load_config,
                    .config_path      = "/dev/null",
@@ -219,7 +219,7 @@ MU_TEST(test_stage2_load_success_no_hot_reload_no_watcher) {
     reset();
     load_config_return_val = true;
     zod_ngine_init((zod_engine_init_params){
-         .config_file_setup =
+         .config_setup =
               {
                    .load_config_func = stub_load_config,
                    .config_path      = "/dev/null",
@@ -230,27 +230,27 @@ MU_TEST(test_stage2_load_success_no_hot_reload_no_watcher) {
     mu_check(g_ctx.config.reload_config_func == NULL);
 }
 
-MU_TEST(test_stage2_load_fail_no_watcher_regardless_of_hot_reload) {
+MU_TEST(test_stage2_load_fail_still_attaches_watcher_if_hot_reload) {
     reset();
     load_config_return_val = false;
     zod_ngine_init((zod_engine_init_params){
-         .config_file_setup =
+         .config_setup =
               {
                    .load_config_func = stub_load_config,
                    .config_path      = "/dev/null",
                    .hot_reload       = true,
               },
     });
-    mu_check(g_ctx.config.config_file_watcher == NULL);
-    mu_check(g_ctx.config.reload_config_func == NULL);
+    mu_check(g_ctx.config.config_file_watcher != NULL);
+    mu_check(g_ctx.config.reload_config_func != NULL);
 }
 
 MU_TEST(test_stage2_load_fail_presets_survive) {
     reset();
     load_config_return_val = false;
     zod_ngine_init((zod_engine_init_params){
-         .config_file_setup = {.load_config_func = stub_load_config,
-                               .config_path      = "/dev/null"},
+         .config_setup = {.load_config_func = stub_load_config,
+                          .config_path      = "/dev/null"},
     });
     mu_assert_int_eq(800, config_get_int("window.width", 0));
     mu_assert_int_eq(600, config_get_int("window.height", 0));
@@ -261,7 +261,7 @@ MU_TEST_SUITE(zod_ngine_stage2_suite) {
     MU_RUN_TEST(test_stage2_load_success_returns_true);
     MU_RUN_TEST(test_stage2_load_success_hot_reload_attaches_watcher);
     MU_RUN_TEST(test_stage2_load_success_no_hot_reload_no_watcher);
-    MU_RUN_TEST(test_stage2_load_fail_no_watcher_regardless_of_hot_reload);
+    MU_RUN_TEST(test_stage2_load_fail_still_attaches_watcher_if_hot_reload);
     MU_RUN_TEST(test_stage2_load_fail_presets_survive);
 }
 

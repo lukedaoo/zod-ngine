@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <modules/cvar.h>
+#include <modules/cvar_load.h>
 
 typedef struct {
     void (*before_init)(void);
@@ -15,16 +16,17 @@ typedef struct {
 } zod_engine_dispatch;
 
 typedef struct {
-    const char *config_path;
-    bool        hot_reload;
+    const char        *config_path;
+    bool               hot_reload;
+    const cvar_schema *schema;
     bool (*load_config_func)(const char *filepath, cvar_table *cvars);
-} zod_config_file_setup_t;
+} zod_config_setup_t;
 
 typedef struct {
     int          argc;
     const char **argv;
 
-    zod_config_file_setup_t config_file_setup;
+    zod_config_setup_t config_setup;
 
     zod_engine_dispatch dispatch;
 } zod_engine_init_params;
@@ -35,7 +37,7 @@ typedef struct {
 bool zod_ngine_init(const zod_engine_init_params params);
 void zod_ngine_destroy(void);
 
-void zod_ngine_apply_config(void);
+void zod_ngine_apply_config(bool adjust_config);
 
 //
 // Config accessors

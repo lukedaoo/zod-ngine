@@ -110,7 +110,7 @@ MU_TEST_SUITE(cvar_reload_suite) {
 
 static cvar_type infer_value_type(const char *value) {
     cvar_table table = {0};
-    cvar_default_config_parser_handler("test", "value", value, &table);
+    cvar_infer_handler("test", "value", value, &table);
     cvar_t   *v    = cvar_get(&table, "test.value");
     cvar_type type = v->type;
     cvar_destroy(&table);
@@ -135,7 +135,7 @@ MU_TEST(test_float_no_suffix_still_float) {
 
 MU_TEST(test_float_suffix_value_correct) {
     cvar_table table = {0};
-    mu_check(cvar_default_config_parser_handler("test", "value", "3.14F", &table));
+    mu_check(cvar_infer_handler("test", "value", "3.14F", &table));
     cvar_t *v = cvar_get(&table, "test.value");
     mu_check(v->value.f > 3.13f && v->value.f < 3.15f);
     cvar_destroy(&table);
@@ -166,7 +166,7 @@ MU_TEST_SUITE(cvar_float_suffix_suite) {
 }
 
 static cvar_t *parse_single(cvar_table *t, const char *value) {
-    cvar_default_config_parser_handler("s", "k", value, t);
+    cvar_infer_handler("s", "k", value, t);
     return cvar_get(t, "s.k");
 }
 

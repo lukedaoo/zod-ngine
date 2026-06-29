@@ -41,9 +41,20 @@ bool window_apply_config(Window *window) {
     bool ok    = true;
     bool vsync = config_get_bool("window.vsync", true);
     if (!SDL_GL_SetSwapInterval(vsync ? 1 : 0) != 0) {
-        log_warn("window.apply_config: vsync=%d set failed — %s, continuing without vsync",
-                 vsync ? 1 : 0, SDL_GetError());
+        log_warn(
+             "window.apply_config: vsync=%d set failed — %s, continuing without vsync",
+             vsync ? 1 : 0, SDL_GetError());
         ok = false;
+    }
+
+    int w = config_get_int("window.width", 800);
+    int h = config_get_int("window.height", 600);
+    if (w != window->width || h != window->height) {
+        SDL_SetWindowSize(window->handle, w, h);
+        window->width  = w;
+        window->height = h;
+        glViewport(0, 0, w, h);
+        log_debug("window.apply_config: resized to %dx%d", w, h);
     }
     return ok;
 }

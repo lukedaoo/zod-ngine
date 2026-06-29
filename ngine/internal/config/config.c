@@ -1,9 +1,12 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
+#include <stdlib.h>
+
 #include <modules/log.h>
 #include <modules/cvar_load.h>
 
 #include "config_internal.h"
+#include "../engine_context/engine_context_internal.h"
 
 #ifndef DEFAULT_CONFIG_TARGET_FPS
 #define DEFAULT_CONFIG_TARGET_FPS 60
@@ -35,6 +38,17 @@
 #define DEFAULT_CONFIG_LOG_LEVEL 0
 #endif
 
+static const cvar_schema_entry g_engine_schema_entries[] = {
+     {"engine.target_fps", CVAR_INT}, {"window.width", CVAR_INT},
+     {"window.height", CVAR_INT},     {"window.title", CVAR_STRING},
+     {"window.vsync", CVAR_BOOL},
+};
+
+static const cvar_schema g_engine_schema = {
+     .entries = g_engine_schema_entries,
+     .count   = 5,
+};
+
 void g_config_seed_preset(g_config *cfg) {
     cvar_set_int(&cfg->cvars, "engine.target_fps", DEFAULT_CONFIG_TARGET_FPS);
 
@@ -49,24 +63,39 @@ void g_config_seed_preset(g_config *cfg) {
 static bool load_config_from_file_default(const char *filepath, cvar_table *cvars) {
     const char *ext = strrchr(filepath, '.');
     if (!ext) {
-        log_warn("config.load: '%s' has no file extension — cannot determine format, use .scf or .ini",
-                 filepath);
+        log_warn(
+             "config.load: '%s' has no file extension — cannot determine format, use "
+             ".scf or .ini",
+             filepath);
         return false;
     }
+
+    size_t cap = g_engine_schema.count +
+                 (g_ctx.config.user_schema ? g_ctx.config.user_schema->count : 0);
+    cvar_schema_entry *merged_buf = malloc(cap * sizeof *merged_buf);
+
+    size_t n =
+         cvar_schema_merge(&g_engine_schema, g_ctx.config.user_schema, merged_buf, cap);
+    cvar_schema schema = {.entries = merged_buf, .count = n};
+
+    bool ok = false;
     if (strcmp(ext, ".scf") == 0) {
-        return cvar_load_scf(cvars, filepath, cvar_default_config_parser_handler, false);
+        ok = cvar_load_scf_typed(cvars, filepath, &schema, false);
+    } else if (strcmp(ext, ".ini") == 0) {
+        ok = cvar_load_ini_typed(cvars, filepath, &schema, false);
+    } else {
+        log_warn("config.load: unsupported extension '%s' in '%s' — use .scf or .ini",
+                 ext, filepath);
     }
-    if (strcmp(ext, ".ini") == 0) {
-        return cvar_load_ini(cvars, filepath, cvar_default_config_parser_handler, false);
-    }
-    log_warn("config.load: unsupported extension '%s' in '%s' — use .scf or .ini", ext,
-             filepath);
-    return false;
+    free(merged_buf);
+    return ok;
 }
 
 bool g_config_reload_from_file(g_config *cfg) {
     if (!cfg || !cfg->config_file_watcher) {
-        log_error("config.reload: called without a file watcher — enable hot_reload=true in zod_engine_init_params");
+        log_error(
+             "config.reload: called without a file watcher — enable hot_reload=true in "
+             "zod_engine_init_params");
         return false;
     }
 
@@ -98,6 +127,8 @@ bool g_adjust_config(g_config *cfg) {
         cvar_t *log_level = cvar_get(&cfg->cvars, "log.level");
         if (log_level && log_level->type == CVAR_STRING) {
             int level_as_int = log_level_from_string(log_level->value.str.data);
+            log_debug("config.adjust: log.level set to int '%d' from string '%s",
+                      level_as_int, log_level->value.str.data);
             cvar_set_int(&cfg->cvars, "log.level", level_as_int);
         }
     }

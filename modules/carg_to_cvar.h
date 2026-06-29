@@ -19,9 +19,10 @@ bool carg_entry_to_cvars(const carg_t *carg, const char **names, const size_t na
 
     if (!carg->present) {
 #ifdef MODULE_LOG_ENABLED
-fprintf(stderr,
-        "cvar.carg_entry_to_cvars: flag '%s' not present, skipping (returning true)\n",
-        carg->flag);
+        fprintf(stderr,
+                "cvar.carg_entry_to_cvars: flag '%s' not present, skipping (returning "
+                "true)\n",
+                carg->flag);
 #endif
         return true;
     }

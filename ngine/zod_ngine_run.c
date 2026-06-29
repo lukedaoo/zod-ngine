@@ -20,10 +20,10 @@ static bool load_config_from_file_custom(const char *filepath, cvar_table *cvars
         return false;
     }
     if (strcmp(ext, ".scf") == 0) {
-        return cvar_load_scf(cvars, filepath, cvar_default_config_parser_handler, false);
+        return cvar_load_scf_typed(cvars, filepath, g_ctx.config.user_schema, false);
     }
     if (strcmp(ext, ".ini") == 0) {
-        return cvar_load_ini(cvars, filepath, cvar_default_config_parser_handler, false);
+        return cvar_load_ini_typed(cvars, filepath, g_ctx.config.user_schema, false);
     }
     log_warn("config.load: unsupported extension '%s' in '%s' — use .scf or .ini", ext,
              filepath);
@@ -69,12 +69,23 @@ int main(const int argc, const char **argv) {
     };
 
     const zod_engine_init_params params = {
-         .argc              = argc,
-         .argv              = argv,
-         .config_file_setup = {.config_path      = CONFIG_PATH,
-                               .hot_reload       = true,
-                               .load_config_func = load_config_from_file_custom},
-         .dispatch          = dispatch,
+         .argc         = argc,
+         .argv         = argv,
+         .config_setup = {.config_path = CONFIG_PATH,
+                          .hot_reload  = true,
+                          .schema =
+                               &(cvar_schema){
+                                    .entries =
+                                         (cvar_schema_entry[]){
+                                              {"window.width", CVAR_INT},
+                                              {"window.height", CVAR_INT},
+                                              {"window.vsync", CVAR_BOOL},
+                                              {"window.title", CVAR_STRING},
+                                         },
+                                    .count = 4,
+                               },
+                          .load_config_func = load_config_from_file_custom},
+         .dispatch     = dispatch,
     };
 
     zod_ngine_init(params);
@@ -92,8 +103,7 @@ int main(const int argc, const char **argv) {
                 if (!g_config_reload_from_file(&g_ctx.config)) {
                     log_warn("config.watcher: reload failed — keeping previous config");
                 } else {
-                    g_adjust_config(&g_ctx.config);
-                    zod_ngine_apply_config();
+                    zod_ngine_apply_config(true);
                 }
                 g_config_print(&g_ctx.config);
             }
