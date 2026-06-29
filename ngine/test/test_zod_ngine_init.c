@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 
+#define NGINE_UNIT_TEST
 #define ZOD_NGINE_IMPLEMENTATION
 #include "../index.h"
 
@@ -159,7 +160,7 @@ MU_TEST(test_init_both_stages_fail_preset_survives) {
     mu_assert_string_eq("zod-ngine", config_get_string("window.title", ""));
 }
 
-MU_TEST(test_init_hot_reload_on_failure_no_watcher) {
+MU_TEST(test_init_hot_reload_on_failure_still_attaches_watcher) {
     reset();
     load_config_return_val = false;
     zod_ngine_init((zod_engine_init_params){
@@ -170,8 +171,8 @@ MU_TEST(test_init_hot_reload_on_failure_no_watcher) {
                    .hot_reload       = true,
               },
     });
-    mu_check(g_ctx.config.reload_config_func == NULL);
-    mu_check(g_ctx.config.config_file_watcher == NULL);
+    mu_check(g_ctx.config.reload_config_func != NULL);
+    mu_check(g_ctx.config.config_file_watcher != NULL);
 }
 
 MU_TEST(test_init_hot_reload_on_success_attaches_watcher) {
@@ -277,7 +278,7 @@ MU_TEST_SUITE(zod_ngine_init_suite) {
     MU_RUN_TEST(test_init_load_args_failure_continues);
     MU_RUN_TEST(test_init_stores_config_in_ctx);
     MU_RUN_TEST(test_init_both_stages_fail_preset_survives);
-    MU_RUN_TEST(test_init_hot_reload_on_failure_no_watcher);
+    MU_RUN_TEST(test_init_hot_reload_on_failure_still_attaches_watcher);
     MU_RUN_TEST(test_init_hot_reload_on_success_attaches_watcher);
 }
 

@@ -20,6 +20,7 @@
 #endif
 
 #include "version.h"
+#include "ngine_config.h"
 #include "config.h"
 #include "clock.h"
 #include "engine_context.h"

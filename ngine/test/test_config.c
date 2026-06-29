@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 
+#define NGINE_UNIT_TEST
 #define ZOD_NGINE_IMPLEMENTATION
 #include "../index.h"
 

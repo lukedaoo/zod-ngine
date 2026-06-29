@@ -67,6 +67,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     g_config_print(&g_ctx.config);
 #endif
 
+#ifndef NGINE_UNIT_TEST
     {
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
             zod_set_error("SDL_Init failed: %s", SDL_GetError());
@@ -75,9 +76,6 @@ bool zod_ngine_init(const zod_engine_init_params params) {
             return false;
         }
     }
-    //
-    // window initialization
-    //
     {
         const char *title = config_get_string("window.title", "zod-ngine");
         int         w     = config_get_int("window.width", 800);
@@ -85,6 +83,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         g_ctx.window      = window_create(title, w, h, SDL_WINDOW_OPENGL);
         zod_ngine_apply_config(false);
     }
+#endif
 
     {
         const int target_fps = config_get_int("engine.target_fps", 60);
