@@ -66,13 +66,13 @@ MU_TEST(test_adjust_config_converts_string_debug_to_int) {
     reset();
     cvar_set_string(&g_ctx.config.cvars, "log.level", "debug");
     mu_assert_int_eq(-1, config_get_int("log.level", -1));
-    mu_check(g_adjust_config(&g_ctx.config));
+    mu_check(g_config_adjust(&g_ctx.config));
     mu_assert_int_eq(LOG_DEBUG, config_get_int("log.level", -1));
 }
 
 MU_TEST(test_adjust_config_leaves_int_unchanged) {
     reset();
-    mu_check(g_adjust_config(&g_ctx.config));
+    mu_check(g_config_adjust(&g_ctx.config));
     mu_assert_int_eq(LOG_TRACE, config_get_int("log.level", -1));
 }
 
@@ -87,13 +87,13 @@ MU_TEST(test_adjust_config_all_string_levels) {
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         reset();
         cvar_set_string(&g_ctx.config.cvars, "log.level", cases[i].s);
-        mu_check(g_adjust_config(&g_ctx.config));
+        mu_check(g_config_adjust(&g_ctx.config));
         mu_assert_int_eq(cases[i].v, config_get_int("log.level", -1));
     }
 }
 
 MU_TEST(test_adjust_config_null_returns_false) {
-    mu_check(!g_adjust_config(NULL));
+    mu_check(!g_config_adjust(NULL));
 }
 
 static bool reload_succeeds(const char *path, cvar_table *cvars) {

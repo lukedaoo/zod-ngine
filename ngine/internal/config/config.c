@@ -130,7 +130,7 @@ bool g_config_reload_from_file(g_config *cfg) {
     return true;
 }
 
-bool g_adjust_config(g_config *cfg) {
+bool g_config_adjust(g_config *cfg) {
     if (!cfg) {
         log_error("config.adjust: called with NULL cfg — this is a bug");
         return false;

@@ -60,7 +60,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
                 log_debug("config.init: CLI args applied");
             }
         }
-        g_adjust_config(&g_ctx.config);
+        g_config_adjust(&g_ctx.config);
     }
 
 #ifdef DEBUG
@@ -109,7 +109,7 @@ void zod_ngine_destroy(void) {
 
 void zod_ngine_apply_config(bool adjust_config) {
     if (adjust_config) {
-        g_adjust_config(&g_ctx.config);
+        g_config_adjust(&g_ctx.config);
     }
     log_set_level(config_get_int("log.level", LOG_TRACE));
     window_apply_config(&g_ctx.window);
