@@ -4,11 +4,11 @@ nob: build.c
 run: nob
 	./nob run $(filter-out $@,$(MAKECMDGOALS))
 
-debug: nob
-	./nob debug
+build-debug: nob
+	./nob build-debug $(filter-out $@,$(MAKECMDGOALS))
 
-release: nob
-	./nob release
+build-release: nob
+	./nob build-release $(filter-out $@,$(MAKECMDGOALS))
 
 test: nob
 	./nob test $(filter-out $@,$(MAKECMDGOALS))
@@ -23,4 +23,4 @@ clean:
 	@if [ -f nob ]; then ./nob clean; fi
 	rm -f nob
 
-.PHONY: run debug release test test-asan help clean
+.PHONY: run build-debug build-release test test-asan help working clean

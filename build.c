@@ -217,20 +217,18 @@ static const char *COMPDB_SCAN_DIRS[] = {
 static const size_t COMPDB_SCAN_DIRS_COUNT =
      sizeof(COMPDB_SCAN_DIRS) / sizeof(COMPDB_SCAN_DIRS[0]);
 
-static const char *COMPDB_DEFINES[] = {
-     /*      "-DCARG_IMPLEMENTATION",
-          "-DCVAR_IMPLEMENTATION",
-          "-DCVAR_LOAD_IMPLEMENTATION",
-          "-DINI_IMPLEMENTATION",
-          "-DSCF_IMPLEMENTATION",
-          "-DLOG_IMPLEMENTATION",
-          "-DLOG_USE_SIMPLE",
-          "-DFILE_WATCHER_IMPLEMENTATION",
-          "-DSTRING_VIEW_IMPLEMENTATION",
-          "-DARRAY_LIST_IMPLEMENTATION",
-          "-DZOD_NGINE_IMPLEMENTATION",
-          "-DNOB_IMPLEMENTATION" */
-};
+static const char  *COMPDB_DEFINES[] = {"-DCARG_IMPLEMENTATION",
+                                        "-DCVAR_IMPLEMENTATION",
+                                        "-DCVAR_LOAD_IMPLEMENTATION",
+                                        "-DINI_IMPLEMENTATION",
+                                        "-DSCF_IMPLEMENTATION",
+                                        "-DLOG_IMPLEMENTATION",
+                                        "-DLOG_USE_SIMPLE",
+                                        "-DFILE_WATCHER_IMPLEMENTATION",
+                                        "-DSTRING_VIEW_IMPLEMENTATION",
+                                        "-DARRAY_LIST_IMPLEMENTATION",
+                                        "-DZOD_NGINE_IMPLEMENTATION",
+                                        "-DNOB_IMPLEMENTATION"};
 static const size_t COMPDB_DEFINES_COUNT =
      sizeof(COMPDB_DEFINES) / sizeof(COMPDB_DEFINES[0]);
 
@@ -303,8 +301,8 @@ int main(int argc, char **argv) {
         nob_log(NOB_INFO, "usage: ./nob [command] [options]");
         nob_log(NOB_INFO, "  (none)                        build main debug");
         nob_log(NOB_INFO, "  run [engine] [debug|release]  build and run");
-        nob_log(NOB_INFO, "  engine [debug|release]        build engine_run");
-        nob_log(NOB_INFO, "  debug|release                 build main with mode");
+        nob_log(NOB_INFO, "  build-debug [engine]          build with debug symbols");
+        nob_log(NOB_INFO, "  build-release [engine]        build with optimizations");
         nob_log(NOB_INFO, "  test [dir]                    run tests (modules, ngine)");
         nob_log(NOB_INFO, "  test-asan [dir]               run tests with asan");
         nob_log(NOB_INFO, "  clean                         remove build artifacts");
@@ -348,13 +346,16 @@ int main(int argc, char **argv) {
         return run_run(true, engine ? "engine" : "main", mode);
     }
 
-    if (argc > 1 && strcmp(argv[1], "engine") == 0) {
-        const char *mode = argc > 2 ? argv[2] : "debug";
-        return run_run(false, "engine", mode);
+    if (argc > 1 &&
+        (strcmp(argv[1], "build-debug") == 0 || strcmp(argv[1], "build-release") == 0)) {
+        bool        engine = argc > 2 && strcmp(argv[2], "engine") == 0;
+        const char *mode   = strcmp(argv[1], "build-release") == 0 ? "release" : "debug";
+        return run_run(false, engine ? "engine" : "main", mode);
     }
 
-    // clang-format off
-    const char *mode = argc > 1 ? argv[1] : "debug";
-    // clang-format on
-    return run_run(false, "main", mode);
+    if (argc > 1) {
+        nob_log(NOB_ERROR, "unknown command '%s'. run ./nob help", argv[1]);
+        return 1;
+    }
+    return run_run(false, "main", "debug");
 }
