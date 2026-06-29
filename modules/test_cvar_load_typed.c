@@ -151,7 +151,7 @@ MU_TEST(test_typed_scf_force_reload_accepts_correct_types) {
     cvar_set_int(&table, "window.height", 600);
 
     write_file(TEST_SCF, ":/window\nwidth 1280\nheight 720\n");
-    mu_check(cvar_load_scf_typed(&table, TEST_SCF, &schema, true));
+    mu_check(cvar_load_scf(&table, TEST_SCF, &schema, true));
     mu_assert_int_eq(1280, cvar_get_int(&table, "window.width", -1));
     mu_assert_int_eq(720, cvar_get_int(&table, "window.height", -1));
 
@@ -166,7 +166,7 @@ MU_TEST(test_typed_scf_force_reload_rejects_type_mismatch) {
     cvar_set_int(&table, "window.width", 800);
 
     write_file(TEST_SCF, ":/window\nwidth \"bad\"\n");
-    mu_check(!cvar_load_scf_typed(&table, TEST_SCF, &schema, true));
+    mu_check(!cvar_load_scf(&table, TEST_SCF, &schema, true));
     mu_assert_int_eq(800, cvar_get_int(&table, "window.width", -1));
 
     cvar_destroy(&table);
@@ -178,7 +178,7 @@ MU_TEST(test_typed_scf_null_schema_force_reload_succeeds) {
     cvar_set_int(&table, "window.width", 800);
 
     write_file(TEST_SCF, ":/window\nwidth 1280\n");
-    mu_check(cvar_load_scf_typed(&table, TEST_SCF, NULL, true));
+    mu_check(cvar_load_scf(&table, TEST_SCF, NULL, true));
     mu_assert_int_eq(1280, cvar_get_int(&table, "window.width", -1));
 
     cvar_destroy(&table);

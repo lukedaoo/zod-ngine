@@ -81,9 +81,9 @@ static bool load_config_from_file_default(const char *filepath, cvar_table *cvar
 
     bool ok = false;
     if (strcmp(ext, ".scf") == 0) {
-        ok = cvar_load_scf_typed(cvars, filepath, &schema, false);
+        ok = cvar_load_scf(cvars, filepath, &schema, false);
     } else if (strcmp(ext, ".ini") == 0) {
-        ok = cvar_load_ini_typed(cvars, filepath, &schema, false);
+        ok = cvar_load_ini(cvars, filepath, &schema, false);
     } else {
         log_warn("config.load: unsupported extension '%s' in '%s' — use .scf or .ini",
                  ext, filepath);

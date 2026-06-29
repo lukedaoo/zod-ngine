@@ -5,27 +5,6 @@
 #include "ini.h"
 #include "scf.h"
 
-bool cvar_load_ini(cvar_table *table, const char *ini_path, ini_handler handler,
-                   bool force_reload);
-
-bool cvar_load_scf(cvar_table *table, const char *scf_path, scf_handler handler,
-                   bool force_reload);
-
-// Maps "section.key = value" into a cvar, inferring type in priority order:
-//
-//   'val' or "val"   CVAR_STRING (quotes stripped, type forced)
-//   '1.5F or '1.5f   CVAR_FLOAT  (unmatched leading quote + float suffix)
-//   '42L  or '42l    CVAR_INT    (unmatched leading quote + int suffix)
-//   1.5F / 1.5f      CVAR_FLOAT  (explicit float suffix, no quote)
-//   42L  / 42l       CVAR_INT    (explicit int suffix, no quote)
-//   true / false     CVAR_BOOL
-//   0xFF / 0xDEAD    CVAR_INT    (0x prefix, base-16, wraps on overflow)
-//   42               CVAR_INT    (strtol, whole string consumed)
-//   1.5              CVAR_FLOAT  (strtof, whole string consumed)
-//   anything else    CVAR_STRING
-bool cvar_infer_handler(const char *section, const char *key, const char *value,
-                        void *user);
-
 typedef struct {
     const char *name;  // "section.key"
     cvar_type   expected;
@@ -36,26 +15,17 @@ typedef struct {
     size_t                   count;
 } cvar_schema;
 
-typedef struct {
-    cvar_table        *table;
-    const cvar_schema *schema;  // NULL = untyped (falls through to default handler)
-} cvar_load_ctx;
+// schema=NULL: infer types only. schema=&s: validate against schema, abort on mismatch.
+// force_reload=true: parse into scratch table, swap only on success.
+bool cvar_load_ini(cvar_table *table, const char *path, const cvar_schema *schema,
+                   bool force_reload);
+bool cvar_load_scf(cvar_table *table, const char *path, const cvar_schema *schema,
+                   bool force_reload);
 
 // Merges first then second into out_entries[out_cap].
 // Second entries win on name collision. Returns number of entries written.
 size_t cvar_schema_merge(const cvar_schema *first, const cvar_schema *second,
                          cvar_schema_entry *out_entries, size_t out_cap);
-
-// Like cvar_infer_handler but validates inferred type against ctx->schema
-// before storing. Returns false (aborts parse) on type mismatch.
-// user must be cvar_load_ctx *.
-bool cvar_strict_handler(const char *section, const char *key, const char *value,
-                         void *user);
-
-bool cvar_load_scf_typed(cvar_table *table, const char *path, const cvar_schema *schema,
-                         bool force_reload);
-bool cvar_load_ini_typed(cvar_table *table, const char *path, const cvar_schema *schema,
-                         bool force_reload);
 
 #ifdef CVAR_LOAD_IMPLEMENTATION
 
@@ -63,12 +33,55 @@ bool cvar_load_ini_typed(cvar_table *table, const char *path, const cvar_schema 
 #include <stdlib.h>
 #include <string.h>
 
-bool cvar_infer_handler(const char *section, const char *key, const char *value,
-                        void *user) {
-    cvar_table *cvars = user;
+#ifdef MODULE_LOG_ENABLED
+static const char *cvar_type_name(cvar_type t) {
+    switch (t) {
+        case CVAR_INT:
+            return "int";
+        case CVAR_FLOAT:
+            return "float";
+        case CVAR_BOOL:
+            return "bool";
+        case CVAR_STRING:
+            return "string";
+    }
+    return "unknown";
+}
+#endif
 
+// Maps "section.key = value" into a cvar, inferring type in priority order:
+//
+//   'val' or "val"         CVAR_STRING  (quotes stripped, type forced)
+//   1.5F / 1.5f / '1.5F    CVAR_FLOAT   (explicit float suffix)
+//   42L  / 42l /  '1.5L    CVAR_INT     (explicit int suffix)
+//   true / false           CVAR_BOOL
+//   0xFF / 0xDEAD          CVAR_INT     (0x prefix, strtoul, bit-preserving cast)
+//   42                     CVAR_INT     (strtol, whole string consumed)
+//   1.5                    CVAR_FLOAT   (strtof, whole string consumed)
+//   anything else          CVAR_STRING
+//
+// entry == NULL: infer only. entry != NULL: abort if inferred type != entry->expected.
+static bool cvar_parse_and_set(const char *section, const char *key, const char *value,
+                               cvar_table *table, const cvar_schema_entry *entry) {
     char name[CVAR_NAME_MAX];
     snprintf(name, sizeof(name), "%s.%s", section, key);
+#ifdef MODULE_LOG_ENABLED
+    const char *orig = value;
+#define CHECK_TYPE(got)                                                                \
+    do {                                                                               \
+        if (entry && (got) != entry->expected) {                                       \
+            fprintf(stderr,                                                            \
+                    "cvar.load: '%s' expected %s, got %s ('%s') — aborting load\n",    \
+                    name, cvar_type_name(entry->expected), cvar_type_name(got), orig); \
+            return false;                                                              \
+        }                                                                              \
+    } while (0)
+#else
+#define CHECK_TYPE(got)                                      \
+    do {                                                     \
+        if (entry && (got) != entry->expected) return false; \
+    } while (0)
+#endif
 
     size_t len = strlen(value);
 
@@ -91,7 +104,8 @@ bool cvar_infer_handler(const char *section, const char *key, const char *value,
             }
             memcpy(buf, value + 1, inner);
             buf[inner] = '\0';
-            return cvar_set_string(cvars, name, buf);
+            CHECK_TYPE(CVAR_STRING);
+            return cvar_set_string(table, name, buf);
         }
     }
 
@@ -106,7 +120,6 @@ bool cvar_infer_handler(const char *section, const char *key, const char *value,
     if (len > 0) {
         char last = value[len - 1];
         char buf[128];
-
         bool is_hex = len > 2 && value[0] == '0' && (value[1] == 'x' || value[1] == 'X');
 
         if (!is_hex && (last == 'f' || last == 'F')) {
@@ -116,7 +129,10 @@ bool cvar_infer_handler(const char *section, const char *key, const char *value,
                 buf[nlen] = '\0';
                 char *end;
                 float f = strtof(buf, &end);
-                if (end != buf && *end == '\0') return cvar_set_float(cvars, name, f);
+                if (end != buf && *end == '\0') {
+                    CHECK_TYPE(CVAR_FLOAT);
+                    return cvar_set_float(table, name, f);
+                }
             }
         }
 
@@ -127,7 +143,10 @@ bool cvar_infer_handler(const char *section, const char *key, const char *value,
                 buf[nlen] = '\0';
                 char *end;
                 long  v = strtol(buf, &end, 10);
-                if (end != buf && *end == '\0') return cvar_set_int(cvars, name, (int)v);
+                if (end != buf && *end == '\0') {
+                    CHECK_TYPE(CVAR_INT);
+                    return cvar_set_int(table, name, (int)v);
+                }
             }
         }
     }
@@ -135,8 +154,10 @@ bool cvar_infer_handler(const char *section, const char *key, const char *value,
     //
     // If the value is "true" or "false", try to parse it as a bool
     //
-    if (strcmp(value, "true") == 0 || strcmp(value, "false") == 0)
-        return cvar_set_bool(cvars, name, strcmp(value, "true") == 0);
+    if (strcmp(value, "true") == 0 || strcmp(value, "false") == 0) {
+        CHECK_TYPE(CVAR_BOOL);
+        return cvar_set_bool(table, name, strcmp(value, "true") == 0);
+    }
 
     char *end;
 
@@ -145,10 +166,14 @@ bool cvar_infer_handler(const char *section, const char *key, const char *value,
     //
     if (len > 2 && value[0] == '0' && (value[1] == 'x' || value[1] == 'X')) {
         unsigned long uval = strtoul(value, &end, 16);
-        if (end != value && *end == '\0') return cvar_set_int(cvars, name, (int)uval);
+        if (end != value && *end == '\0') {
+            CHECK_TYPE(CVAR_INT);
+            return cvar_set_int(table, name, (int)uval);
+        }
 #ifdef MODULE_LOG_ENABLED
-        fprintf(stderr, "cvar.load: '%s' has malformed hex literal '%s' — treated as string\n",
-                name, value);
+        fprintf(stderr,
+                "cvar.load: '%s' has malformed hex literal '%s' — treated as string\n",
+                name, orig);
 #endif
     }
 
@@ -157,7 +182,10 @@ bool cvar_infer_handler(const char *section, const char *key, const char *value,
     //
     {
         long ival = strtol(value, &end, 10);
-        if (*value != '\0' && *end == '\0') return cvar_set_int(cvars, name, (int)ival);
+        if (*value != '\0' && *end == '\0') {
+            CHECK_TYPE(CVAR_INT);
+            return cvar_set_int(table, name, (int)ival);
+        }
     }
 
     //
@@ -165,120 +193,70 @@ bool cvar_infer_handler(const char *section, const char *key, const char *value,
     //
     {
         float fval = strtof(value, &end);
-        if (end != value && *end == '\0') return cvar_set_float(cvars, name, fval);
+        if (end != value && *end == '\0') {
+            CHECK_TYPE(CVAR_FLOAT);
+            return cvar_set_float(table, name, fval);
+        }
     }
 
-    return cvar_set_string(cvars, name, value);
+    CHECK_TYPE(CVAR_STRING);
+    return cvar_set_string(table, name, value);
+
+#undef CHECK_TYPE
 }
 
-typedef bool (*parse_func)(const char *filepath, void *handler, void *user);
-
-static bool cvar_load_internal(cvar_table *table, const char *filename, void *handler,
-                               bool force_reload, parse_func parser) {
-    if (!force_reload) {
-        return parser(filename, handler, table);
-    }
-
-    cvar_table next = {0};
-    if (!parser(filename, handler, &next)) {
-        cvar_destroy(&next);
-        return false;
-    }
-
-    cvar_destroy(table);
-    *table = next;
-    return true;
-}
-
-bool cvar_load_ini(cvar_table *table, const char *ini_path, ini_handler handler,
-                   bool force_reload) {
-    return cvar_load_internal(table, ini_path, handler, force_reload,
-                              (parse_func)ini_parse);
-}
-
-bool cvar_load_scf(cvar_table *table, const char *scf_path, scf_handler handler,
-                   bool force_reload) {
-    return cvar_load_internal(table, scf_path, handler, force_reload,
-                              (parse_func)scf_parse);
-}
-
-// ---- schema helpers ----
+typedef struct {
+    cvar_table        *table;
+    const cvar_schema *schema;
+} cvar_load_ctx;
 
 static const cvar_schema_entry *cvar_schema_lookup(const cvar_schema *schema,
-                                                   const char        *name) {
+                                                   const char *section, const char *key) {
     if (!schema) return NULL;
+    char name[CVAR_NAME_MAX];
+    snprintf(name, sizeof(name), "%s.%s", section, key);
     for (size_t i = 0; i < schema->count; i++) {
         if (strcmp(schema->entries[i].name, name) == 0) return &schema->entries[i];
     }
     return NULL;
 }
 
-static cvar_type cvar_infer_type(const char *value) {
-    size_t len = strlen(value);
-
-    if (len >= 2 && ((value[0] == '\'' && value[len - 1] == '\'') ||
-                     (value[0] == '"' && value[len - 1] == '"')))
-        return CVAR_STRING;
-
-    if (value[0] == '\'' || value[0] == '"') {
-        value++;
-        len--;
-    }
-
-    if (len > 0) {
-        char   last = value[len - 1];
-        char   buf[128];
-        char  *end;
-        size_t nlen = len - 1;
-
-        bool is_hex = len > 2 && value[0] == '0' && (value[1] == 'x' || value[1] == 'X');
-
-        if (!is_hex && (last == 'f' || last == 'F') && nlen > 0 && nlen < sizeof(buf)) {
-            memcpy(buf, value, nlen);
-            buf[nlen] = '\0';
-            strtof(buf, &end);
-            if (end != buf && *end == '\0') return CVAR_FLOAT;
-        }
-        if (!is_hex && (last == 'l' || last == 'L') && nlen > 0 && nlen < sizeof(buf)) {
-            memcpy(buf, value, nlen);
-            buf[nlen] = '\0';
-            strtol(buf, &end, 10);
-            if (end != buf && *end == '\0') return CVAR_INT;
-        }
-    }
-
-    if (strcmp(value, "true") == 0 || strcmp(value, "false") == 0) return CVAR_BOOL;
-
-    char *end;
-    if (*value != '\0') {
-        strtol(value, &end, 10);
-        if (*end == '\0') return CVAR_INT;
-    }
-
-    {
-        float f = strtof(value, &end);
-        (void)f;
-        if (end != value && *end == '\0') return CVAR_FLOAT;
-    }
-
-    return CVAR_STRING;
+static bool cvar_strict_handler(const char *section, const char *key, const char *value,
+                                void *user) {
+    cvar_load_ctx           *ctx   = user;
+    const cvar_schema_entry *entry = cvar_schema_lookup(ctx->schema, section, key);
+    return cvar_parse_and_set(section, key, value, ctx->table, entry);
 }
 
-#ifdef MODULE_LOG_ENABLED
-static const char *cvar_type_name(cvar_type t) {
-    switch (t) {
-        case CVAR_INT:
-            return "int";
-        case CVAR_FLOAT:
-            return "float";
-        case CVAR_BOOL:
-            return "bool";
-        case CVAR_STRING:
-            return "string";
+typedef bool (*parse_func)(const char *filepath, void *handler, void *user);
+
+static bool cvar_load_internal(cvar_table *table, const char *path,
+                               const cvar_schema *schema, bool force_reload,
+                               parse_func parser) {
+    if (!force_reload) {
+        cvar_load_ctx ctx = {.table = table, .schema = schema};
+        return parser(path, cvar_strict_handler, &ctx);
     }
-    return "unknown";
+    cvar_table    next = {0};
+    cvar_load_ctx ctx  = {.table = &next, .schema = schema};
+    if (!parser(path, cvar_strict_handler, &ctx)) {
+        cvar_destroy(&next);
+        return false;
+    }
+    cvar_destroy(table);
+    *table = next;
+    return true;
 }
-#endif
+
+bool cvar_load_ini(cvar_table *table, const char *path, const cvar_schema *schema,
+                   bool force_reload) {
+    return cvar_load_internal(table, path, schema, force_reload, (parse_func)ini_parse);
+}
+
+bool cvar_load_scf(cvar_table *table, const char *path, const cvar_schema *schema,
+                   bool force_reload) {
+    return cvar_load_internal(table, path, schema, force_reload, (parse_func)scf_parse);
+}
 
 // @perf(cvar_schema_merge): O(n^2) when the count is small, this is fine.
 // but when the count is large (>200), use hashmap
@@ -331,68 +309,6 @@ size_t cvar_schema_merge(const cvar_schema *first, const cvar_schema *second,
     }
 
     return n;
-}
-
-bool cvar_strict_handler(const char *section, const char *key, const char *value,
-                         void *user) {
-    cvar_load_ctx *ctx = user;
-
-    if (ctx->schema) {
-        char name[CVAR_NAME_MAX];
-        snprintf(name, sizeof(name), "%s.%s", section, key);
-
-        const cvar_schema_entry *entry = cvar_schema_lookup(ctx->schema, name);
-        if (entry) {
-            cvar_type inferred = cvar_infer_type(value);
-            if (inferred != entry->expected) {
-#ifdef MODULE_LOG_ENABLED
-                fprintf(stderr,
-                        "cvar.load: '%s' expected %s, got %s ('%s') — aborting load\n",
-                        name, cvar_type_name(entry->expected), cvar_type_name(inferred),
-                        value);
-#endif
-                return false;
-            }
-        }
-    }
-
-    return cvar_infer_handler(section, key, value, ctx->table);
-}
-
-bool cvar_load_scf_typed(cvar_table *table, const char *path, const cvar_schema *schema,
-                         bool force_reload) {
-    if (!force_reload) {
-        cvar_load_ctx ctx = {.table = table, .schema = schema};
-        return scf_parse(path, cvar_strict_handler, &ctx);
-    }
-
-    cvar_table    next = {0};
-    cvar_load_ctx ctx  = {.table = &next, .schema = schema};
-    if (!scf_parse(path, cvar_strict_handler, &ctx)) {
-        cvar_destroy(&next);
-        return false;
-    }
-    cvar_destroy(table);
-    *table = next;
-    return true;
-}
-
-bool cvar_load_ini_typed(cvar_table *table, const char *path, const cvar_schema *schema,
-                         bool force_reload) {
-    if (!force_reload) {
-        cvar_load_ctx ctx = {.table = table, .schema = schema};
-        return ini_parse(path, cvar_strict_handler, &ctx);
-    }
-
-    cvar_table    next = {0};
-    cvar_load_ctx ctx  = {.table = &next, .schema = schema};
-    if (!ini_parse(path, cvar_strict_handler, &ctx)) {
-        cvar_destroy(&next);
-        return false;
-    }
-    cvar_destroy(table);
-    *table = next;
-    return true;
 }
 
 #endif

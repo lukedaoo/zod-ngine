@@ -28,31 +28,14 @@ static void write_file(const char *path, const char *content) {
     fclose(f);
 }
 
-static bool test_ini_handler(const char *section, const char *key, const char *value,
-                             void *user) {
-    cvar_table *cvars = user;
-
-#define MATCH(s, k) (strcmp(section, s) == 0 && strcmp(key, k) == 0)
-    if (MATCH("test", "value")) {
-        int v = atoi(value);
-        cvar_set_int(cvars, "test.value", v);
-    } else if (MATCH("test", "name")) {
-        cvar_set_string(cvars, "test.name", value);
-    } else {
-        return false;
-    }
-    return true;
-#undef MATCH
-}
-
 MU_TEST(test_cvar_force_reload_ini_success) {
     cvar_table table = {0};
 
     write_file(TEST_INI, "[test]\nvalue=1\nname=alice\n");
-    mu_check(ini_parse(TEST_INI, test_ini_handler, &table));
+    mu_check(cvar_load_ini(&table, TEST_INI, NULL, false));
 
     write_file(TEST_INI, "[test]\nvalue=2\nname=bob\n");
-    mu_check(cvar_load_ini(&table, TEST_INI, test_ini_handler, true));
+    mu_check(cvar_load_ini(&table, TEST_INI, NULL, true));
 
     cvar_t *v = cvar_get(&table, "test.value");
     mu_check(v->value.i == 2);
@@ -68,10 +51,10 @@ MU_TEST(test_cvar_reload_ini_success) {
     cvar_table table = {0};
 
     write_file(TEST_INI, "[test]\nvalue=1\nname=alice\n");
-    mu_check(ini_parse(TEST_INI, test_ini_handler, &table));
+    mu_check(cvar_load_ini(&table, TEST_INI, NULL, false));
 
     write_file(TEST_INI, "[test]\nvalue=2\nname=bob\n");
-    mu_check(cvar_load_ini(&table, TEST_INI, test_ini_handler, false));
+    mu_check(cvar_load_ini(&table, TEST_INI, NULL, false));
 
     cvar_t *v = cvar_get(&table, "test.value");
     mu_check(v->value.i == 2);
@@ -84,13 +67,16 @@ MU_TEST(test_cvar_reload_ini_success) {
 }
 
 MU_TEST(test_cvar_reload_ini_failure_keeps_old) {
-    cvar_table table = {0};
+    static const cvar_schema_entry entries[] = {{"test.value", CVAR_BOOL}};
+    static const cvar_schema       schema    = {.entries = entries, .count = 1};
+    cvar_table                     table     = {0};
 
     write_file(TEST_INI, "[test]\nvalue=1\nname=alice\n");
-    mu_check(ini_parse(TEST_INI, test_ini_handler, &table));
+    mu_check(cvar_load_ini(&table, TEST_INI, NULL, false));
 
-    write_file(TEST_INI, "[test]\nvalue=99\nunknown_key=oops\n");
-    mu_check(!cvar_load_ini(&table, TEST_INI, test_ini_handler, true));
+    // value=99 infers CVAR_INT; schema expects CVAR_BOOL → mismatch → fail
+    write_file(TEST_INI, "[test]\nvalue=99\nname=bob\n");
+    mu_check(!cvar_load_ini(&table, TEST_INI, &schema, true));
 
     cvar_t *v = cvar_get(&table, "test.value");
     mu_check(v->value.i == 1);
@@ -110,7 +96,7 @@ MU_TEST_SUITE(cvar_reload_suite) {
 
 static cvar_type infer_value_type(const char *value) {
     cvar_table table = {0};
-    cvar_infer_handler("test", "value", value, &table);
+    cvar_parse_and_set("test", "value", value, &table, NULL);
     cvar_t   *v    = cvar_get(&table, "test.value");
     cvar_type type = v->type;
     cvar_destroy(&table);
@@ -135,7 +121,7 @@ MU_TEST(test_float_no_suffix_still_float) {
 
 MU_TEST(test_float_suffix_value_correct) {
     cvar_table table = {0};
-    mu_check(cvar_infer_handler("test", "value", "3.14F", &table));
+    mu_check(cvar_parse_and_set("test", "value", "3.14F", &table, NULL));
     cvar_t *v = cvar_get(&table, "test.value");
     mu_check(v->value.f > 3.13f && v->value.f < 3.15f);
     cvar_destroy(&table);
@@ -166,7 +152,7 @@ MU_TEST_SUITE(cvar_float_suffix_suite) {
 }
 
 static cvar_t *parse_single(cvar_table *t, const char *value) {
-    cvar_infer_handler("s", "k", value, t);
+    cvar_parse_and_set("s", "k", value, t, NULL);
     return cvar_get(t, "s.k");
 }
 
@@ -183,6 +169,11 @@ MU_TEST(test_int_suffix_lower_l) {
     cvar_t    *v = parse_single(&t, "99l");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(99, v->value.i);
+
+    cvar_t    *_v = parse_single(&t, "'99l");
+    mu_check(_v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(99, _v->value.i);
+
     cvar_destroy(&t);
 }
 
@@ -191,6 +182,11 @@ MU_TEST(test_int_suffix_negative) {
     cvar_t    *v = parse_single(&t, "-7L");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(-7, v->value.i);
+
+    cvar_t *_v = parse_single(&t, "'-7L");
+    mu_check(_v != NULL && _v->type == CVAR_INT);
+    mu_assert_int_eq(-7, _v->value.i);
+
     cvar_destroy(&t);
 }
 

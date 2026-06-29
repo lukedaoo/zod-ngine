@@ -20,10 +20,10 @@ static bool load_config_from_file_custom(const char *filepath, cvar_table *cvars
         return false;
     }
     if (strcmp(ext, ".scf") == 0) {
-        return cvar_load_scf_typed(cvars, filepath, g_ctx.config.user_schema, false);
+        return cvar_load_scf(cvars, filepath, g_ctx.config.user_schema, false);
     }
     if (strcmp(ext, ".ini") == 0) {
-        return cvar_load_ini_typed(cvars, filepath, g_ctx.config.user_schema, false);
+        return cvar_load_ini(cvars, filepath, g_ctx.config.user_schema, false);
     }
     log_warn("config.load: unsupported extension '%s' in '%s' — use .scf or .ini", ext,
              filepath);
