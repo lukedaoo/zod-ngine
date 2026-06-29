@@ -291,11 +291,152 @@ MU_TEST_SUITE(cvar_quote_strip_suite) {
     MU_RUN_TEST(test_unmatched_leading_quote_int_suffix);
 }
 
+MU_TEST(test_hex_zero) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0x0");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(0, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_one) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0x1");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(1, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_ten) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0x10");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(16, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_ff_lower) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0xff");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(255, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_ff_upper) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0xFF");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(255, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_uppercase_x_prefix) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0Xff");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(255, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_rgb_white) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0xFFFFFF");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(16777215, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_rgba_all_ones_bit_preserved) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0xFFFFFFFF");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_assert_int_eq(-1, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_only_prefix_is_string) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0x");
+    mu_check(v != NULL && v->type == CVAR_STRING);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_invalid_digits_is_string) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0xGG");
+    mu_check(v != NULL && v->type == CVAR_STRING);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_trailing_invalid_is_string) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0x10g");
+    mu_check(v != NULL && v->type == CVAR_STRING);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_no_prefix_is_string) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "ff");
+    mu_check(v != NULL && v->type == CVAR_STRING);
+    cvar_destroy(&t);
+}
+
+// Regression: hex values ending in 'f'/'F' were matched by the float-suffix
+// check (strtof parses "0xf" as 15.0 on glibc), producing CVAR_FLOAT instead
+// of CVAR_INT. The is_hex guard in the suffix block fixes this.
+MU_TEST(test_hex_ending_f_not_float_beef) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0xbeef");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_check(v->type != CVAR_FLOAT);
+    mu_assert_int_eq(0xbeef, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_ending_F_not_float_BEEF) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0xBEEF");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_check(v->type != CVAR_FLOAT);
+    mu_assert_int_eq(0xBEEF, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_hex_ending_f_not_float_deadbeef) {
+    cvar_table t = {0};
+    cvar_t    *v = parse_single(&t, "0xdeadbeef");
+    mu_check(v != NULL && v->type == CVAR_INT);
+    mu_check(v->type != CVAR_FLOAT);
+    mu_assert_int_eq((int)0xdeadbeef, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST_SUITE(cvar_hex_suite) {
+    MU_RUN_TEST(test_hex_zero);
+    MU_RUN_TEST(test_hex_one);
+    MU_RUN_TEST(test_hex_ten);
+    MU_RUN_TEST(test_hex_ff_lower);
+    MU_RUN_TEST(test_hex_ff_upper);
+    MU_RUN_TEST(test_hex_uppercase_x_prefix);
+    MU_RUN_TEST(test_hex_rgb_white);
+    MU_RUN_TEST(test_hex_rgba_all_ones_bit_preserved);
+    MU_RUN_TEST(test_hex_ending_f_not_float_beef);
+    MU_RUN_TEST(test_hex_ending_F_not_float_BEEF);
+    MU_RUN_TEST(test_hex_ending_f_not_float_deadbeef);
+    MU_RUN_TEST(test_hex_only_prefix_is_string);
+    MU_RUN_TEST(test_hex_invalid_digits_is_string);
+    MU_RUN_TEST(test_hex_trailing_invalid_is_string);
+    MU_RUN_TEST(test_hex_no_prefix_is_string);
+}
+
 int main(void) {
     MU_RUN_SUITE(cvar_reload_suite);
     MU_RUN_SUITE(cvar_float_suffix_suite);
     MU_RUN_SUITE(cvar_int_suffix_suite);
     MU_RUN_SUITE(cvar_quote_strip_suite);
+    MU_RUN_SUITE(cvar_hex_suite);
     MU_REPORT();
     return MU_EXIT_CODE;
 }

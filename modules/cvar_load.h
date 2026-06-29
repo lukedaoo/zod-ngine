@@ -19,6 +19,7 @@ bool cvar_load_scf(cvar_table *table, const char *scf_path, scf_handler handler,
 //   1.5F / 1.5f      CVAR_FLOAT  (explicit float suffix, no quote)
 //   42L  / 42l       CVAR_INT    (explicit int suffix, no quote)
 //   true / false     CVAR_BOOL
+//   0xFF / 0xDEAD    CVAR_INT    (0x prefix, base-16, wraps on overflow)
 //   42               CVAR_INT    (strtol, whole string consumed)
 //   1.5              CVAR_FLOAT  (strtof, whole string consumed)
 //   anything else    CVAR_STRING
@@ -106,7 +107,9 @@ bool cvar_infer_handler(const char *section, const char *key, const char *value,
         char last = value[len - 1];
         char buf[128];
 
-        if (last == 'f' || last == 'F') {
+        bool is_hex = len > 2 && value[0] == '0' && (value[1] == 'x' || value[1] == 'X');
+
+        if (!is_hex && (last == 'f' || last == 'F')) {
             size_t nlen = len - 1;
             if (nlen > 0 && nlen < sizeof(buf)) {
                 memcpy(buf, value, nlen);
@@ -117,7 +120,7 @@ bool cvar_infer_handler(const char *section, const char *key, const char *value,
             }
         }
 
-        if (last == 'l' || last == 'L') {
+        if (!is_hex && (last == 'l' || last == 'L')) {
             size_t nlen = len - 1;
             if (nlen > 0 && nlen < sizeof(buf)) {
                 memcpy(buf, value, nlen);
@@ -136,6 +139,18 @@ bool cvar_infer_handler(const char *section, const char *key, const char *value,
         return cvar_set_bool(cvars, name, strcmp(value, "true") == 0);
 
     char *end;
+
+    //
+    // Try to parse it as a hex int (0x prefix — bit-preserving for packed RGBA)
+    //
+    if (len > 2 && value[0] == '0' && (value[1] == 'x' || value[1] == 'X')) {
+        unsigned long uval = strtoul(value, &end, 16);
+        if (end != value && *end == '\0') return cvar_set_int(cvars, name, (int)uval);
+#ifdef MODULE_LOG_ENABLED
+        fprintf(stderr, "cvar.load: '%s' has malformed hex literal '%s' — treated as string\n",
+                name, value);
+#endif
+    }
 
     //
     // Try to parse it as an int
@@ -216,13 +231,15 @@ static cvar_type cvar_infer_type(const char *value) {
         char  *end;
         size_t nlen = len - 1;
 
-        if ((last == 'f' || last == 'F') && nlen > 0 && nlen < sizeof(buf)) {
+        bool is_hex = len > 2 && value[0] == '0' && (value[1] == 'x' || value[1] == 'X');
+
+        if (!is_hex && (last == 'f' || last == 'F') && nlen > 0 && nlen < sizeof(buf)) {
             memcpy(buf, value, nlen);
             buf[nlen] = '\0';
             strtof(buf, &end);
             if (end != buf && *end == '\0') return CVAR_FLOAT;
         }
-        if ((last == 'l' || last == 'L') && nlen > 0 && nlen < sizeof(buf)) {
+        if (!is_hex && (last == 'l' || last == 'L') && nlen > 0 && nlen < sizeof(buf)) {
             memcpy(buf, value, nlen);
             buf[nlen] = '\0';
             strtol(buf, &end, 10);
