@@ -26,6 +26,7 @@
 #include "engine_context.h"
 #include "window.h"
 #include "render.h"
+#include "common.h"
 
 #include "zod_error.h"
 #include "zod_ngine.h"
@@ -39,6 +40,7 @@
 #include "internal/render/render.c"
 #include "internal/zod_ngine/zod_ngine.c"
 #include "internal/error/zod_error.c"
+#include "internal/common/common.c"
 
 #endif
 

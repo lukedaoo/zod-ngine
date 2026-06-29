@@ -26,6 +26,14 @@
 // @default true
 // #define DEFAULT_CONFIG_WINDOW_VSYNC true
 
+// config.c — OS-level window compositing transparency (fixed at creation, no runtime toggle)
+// @default false
+// #define DEFAULT_CONFIG_WINDOW_TRANSPARENT false
+
+// config.c — clear color packed as 0xRRGGBBAA
+// @default 0xFF141A1A  (~0.08r 0.10g 0.10b 1.0a — dark teal-gray)
+// #define DEFAULT_CONFIG_WINDOW_CLEAR_COLOR 0x141A1AFF
+
 // ------- Log
 // config.c — initial log level (0=TRACE 1=DEBUG 2=INFO 3=WARN 4=ERROR 5=FATAL)
 // @default 0

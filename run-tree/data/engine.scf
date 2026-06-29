@@ -1,10 +1,15 @@
+; Engine configuration
 :/engine
-target_fps  144
+target_fps      144            ; target frame rate
 
+; Window configuration
 :/window
-title       "Test Engine"
-width       2000
-height      1100
+title           "Test Engine"
+width           800
+height          600
+transparent     true           ; enable alpha channel
+clear_color     0x141A1AFF     ; clear color. Hex format: 0xRRGGBBAA
 
+; Logging configuration
 :/log
-level       "trace"
+level           "trace"

@@ -29,6 +29,14 @@
 #define DEFAULT_CONFIG_WINDOW_VSYNC true
 #endif
 
+#ifndef DEFAULT_CONFIG_WINDOW_CLEAR_COLOR
+#define DEFAULT_CONFIG_WINDOW_CLEAR_COLOR 0x141A1AFF
+#endif
+
+#ifndef DEFAULT_CONFIG_WINDOW_TRANSPARENT
+#define DEFAULT_CONFIG_WINDOW_TRANSPARENT false
+#endif
+
 #ifndef DEFAULT_CONFIG_LOG_LEVEL
 // LOG_TRACE = 0,
 // LOG_DEBUG = 1,
@@ -40,14 +48,15 @@
 #endif
 
 static const cvar_schema_entry g_engine_schema_entries[] = {
-     {"engine.target_fps", CVAR_INT}, {"window.width", CVAR_INT},
-     {"window.height", CVAR_INT},     {"window.title", CVAR_STRING},
-     {"window.vsync", CVAR_BOOL},
+     {"engine.target_fps", CVAR_INT},   {"window.width", CVAR_INT},
+     {"window.height", CVAR_INT},       {"window.title", CVAR_STRING},
+     {"window.vsync", CVAR_BOOL},       {"window.clear_color", CVAR_INT},
+     {"window.transparent", CVAR_BOOL},
 };
 
 static const cvar_schema g_engine_schema = {
      .entries = g_engine_schema_entries,
-     .count   = 5,
+     .count   = 7,
 };
 
 void g_config_seed_preset(g_config *cfg) {
@@ -57,6 +66,8 @@ void g_config_seed_preset(g_config *cfg) {
     cvar_set_int(&cfg->cvars, "window.height", DEFAULT_CONFIG_WINDOW_HEIGHT);
     cvar_set_string(&cfg->cvars, "window.title", DEFAULT_CONFIG_WINDOW_TITLE);
     cvar_set_bool(&cfg->cvars, "window.vsync", DEFAULT_CONFIG_WINDOW_VSYNC);
+    cvar_set_int(&cfg->cvars, "window.clear_color", DEFAULT_CONFIG_WINDOW_CLEAR_COLOR);
+    cvar_set_bool(&cfg->cvars, "window.transparent", DEFAULT_CONFIG_WINDOW_TRANSPARENT);
 
     cvar_set_int(&cfg->cvars, "log.level", DEFAULT_CONFIG_LOG_LEVEL);
 }

@@ -80,7 +80,10 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         const char *title = config_get_string("window.title", "zod-ngine");
         int         w     = config_get_int("window.width", 800);
         int         h     = config_get_int("window.height", 600);
-        g_ctx.window      = window_create(title, w, h, SDL_WINDOW_OPENGL);
+        // @Robustness: remove hard-coded OpenGL dependency; support backend selection
+        uint32_t flags = SDL_WINDOW_OPENGL;
+        if (config_get_bool("window.transparent", false)) flags |= SDL_WINDOW_TRANSPARENT;
+        g_ctx.window = window_create(title, w, h, flags);
         zod_ngine_apply_config(false);
     }
 #endif

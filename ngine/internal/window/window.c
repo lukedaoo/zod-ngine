@@ -14,6 +14,10 @@ static bool window_gl_init(Window *window) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    // alpha-capable framebuffer required for compositor to honor window transparency
+    if (SDL_GetWindowFlags(window->handle) & SDL_WINDOW_TRANSPARENT) {
+        SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+    }
     window->gl_ctx = SDL_GL_CreateContext(window->handle);
     if (!window->gl_ctx) return false;
     return gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress) != 0;
@@ -59,6 +63,13 @@ bool window_apply_config(Window *window) {
         glViewport(0, 0, w, h);
         log_debug("window.apply_config: resized to %dx%d", w, h);
     }
+#ifdef DEFAULT_CONFIG_WINDOW_CLEAR_COLOR
+    window->clear_color = (uint32_t)config_get_int(
+         "window.clear_color", (int)DEFAULT_CONFIG_WINDOW_CLEAR_COLOR);
+#else
+    window->clear_color = (uint32_t)config_get_int("window.clear_color", (int)0x141A1AFF);
+#endif
+
     return ok;
 }
 
