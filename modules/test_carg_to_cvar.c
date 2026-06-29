@@ -165,7 +165,7 @@ MU_TEST(test_table_conversion) {
     cvar_destroy(&table);
 }
 
-MU_TEST(test_table_conversion_stops_on_first_failure) {
+MU_TEST(test_table_conversion_skipping_on_first_failure) {
     int    size_values[] = {200, 300};
     carg_t entries[2]    = {
          {.flag = "--size", .type = CARG_INT, .count = 2, .value.i = size_values},
@@ -181,7 +181,7 @@ MU_TEST(test_table_conversion_stops_on_first_failure) {
 
     cvar_table table = {0};
 
-    mu_check(!carg_table_to_cvars(&cargs, names_per_carg, names_count_per_carg, &table));
+    mu_check(carg_table_to_cvars(&cargs, names_per_carg, names_count_per_carg, &table));
 
     cvar_destroy(&table);
 }
@@ -197,7 +197,7 @@ MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_names_count_mismatch_rejected);
     MU_RUN_TEST(test_null_args_rejected);
     MU_RUN_TEST(test_table_conversion);
-    MU_RUN_TEST(test_table_conversion_stops_on_first_failure);
+    MU_RUN_TEST(test_table_conversion_skipping_on_first_failure);
 }
 
 int main(void) {

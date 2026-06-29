@@ -60,6 +60,40 @@ MU_TEST(test_engine_config_valid_without_cvars) {
     mu_assert_string_eq("fb", config_get_string("window.title", "fb"));
 }
 
+MU_TEST(test_adjust_config_converts_string_debug_to_int) {
+    reset();
+    cvar_set_string(&g_ctx.config.cvars, "log.level", "debug");
+    mu_assert_int_eq(-1, config_get_int("log.level", -1));
+    mu_check(g_adjust_config(&g_ctx.config));
+    mu_assert_int_eq(LOG_DEBUG, config_get_int("log.level", -1));
+}
+
+MU_TEST(test_adjust_config_leaves_int_unchanged) {
+    reset();
+    mu_check(g_adjust_config(&g_ctx.config));
+    mu_assert_int_eq(LOG_TRACE, config_get_int("log.level", -1));
+}
+
+MU_TEST(test_adjust_config_all_string_levels) {
+    static const struct {
+        const char *s;
+        int         v;
+    } cases[] = {
+         {"trace", LOG_TRACE}, {"debug", LOG_DEBUG}, {"info", LOG_INFO},
+         {"warn", LOG_WARN},   {"error", LOG_ERROR}, {"fatal", LOG_FATAL},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        reset();
+        cvar_set_string(&g_ctx.config.cvars, "log.level", cases[i].s);
+        mu_check(g_adjust_config(&g_ctx.config));
+        mu_assert_int_eq(cases[i].v, config_get_int("log.level", -1));
+    }
+}
+
+MU_TEST(test_adjust_config_null_returns_false) {
+    mu_check(!g_adjust_config(NULL));
+}
+
 MU_TEST_SUITE(config_suite) {
     MU_RUN_TEST(test_preset_int_defaults);
     MU_RUN_TEST(test_preset_string_default);
@@ -67,6 +101,10 @@ MU_TEST_SUITE(config_suite) {
     MU_RUN_TEST(test_fallback_on_missing);
     MU_RUN_TEST(test_set_get_roundtrip);
     MU_RUN_TEST(test_engine_config_valid_without_cvars);
+    MU_RUN_TEST(test_adjust_config_converts_string_debug_to_int);
+    MU_RUN_TEST(test_adjust_config_leaves_int_unchanged);
+    MU_RUN_TEST(test_adjust_config_all_string_levels);
+    MU_RUN_TEST(test_adjust_config_null_returns_false);
 }
 
 int main(void) {

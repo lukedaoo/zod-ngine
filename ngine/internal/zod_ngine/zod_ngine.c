@@ -7,12 +7,13 @@
 #include <modules/cvar_load.h>
 #include <modules/file_watcher.h>
 
+#include "../../config.h"
+#include "../../render.h"
 #include "../../zod_ngine.h"
 
 #include "../config/config_internal.h"
 #include "../clock/clock_internal.h"
 #include "../engine_context/engine_context_internal.h"
-#include "../../render.h"
 
 bool zod_ngine_init(const zod_engine_init_params params) {
     const int                     argc        = params.argc;
@@ -55,6 +56,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
                 log_debug("config: args applied");
             }
         }
+        g_adjust_config(&g_ctx.config);
     }
 
 #ifdef DEBUG
@@ -76,7 +78,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         int         w     = config_get_int("window.width", 800);
         int         h     = config_get_int("window.height", 600);
         g_ctx.window      = window_create(title, w, h, SDL_WINDOW_OPENGL);
-        window_apply_config(&g_ctx.window);
+        zod_ngine_apply_config();
     }
 
     {
@@ -96,6 +98,11 @@ bool zod_ngine_init(const zod_engine_init_params params) {
 void zod_ngine_destroy(void) {
     log_debug("zod_ngine: destroying engine...");
     engine_context_destroy();
+}
+
+void zod_ngine_apply_config(void) {
+    log_set_level(config_get_int("log.level", LOG_TRACE));
+    window_apply_config(&g_ctx.window);
 }
 
 int config_get_int(const char *name, int fallback) {

@@ -77,10 +77,38 @@ MU_TEST(test_log_disable_via_null) {
     fclose(fp);
 }
 
+MU_TEST(test_string_to_log_level) {
+    mu_check(log_level_from_string("trace") == LOG_TRACE);
+    mu_check(log_level_from_string("debug") == LOG_DEBUG);
+    mu_check(log_level_from_string("info") == LOG_INFO);
+    mu_check(log_level_from_string("warn") == LOG_WARN);
+    mu_check(log_level_from_string("error") == LOG_ERROR);
+    mu_check(log_level_from_string("fatal") == LOG_FATAL);
+    mu_check(log_level_from_string("unknown") == LOG_FATAL);
+
+    mu_check(log_level_from_string(NULL) == LOG_FATAL);
+    mu_check(log_level_from_string("") == LOG_FATAL);
+
+    mu_check(log_level_from_string("Trace") == LOG_TRACE);
+    mu_check(log_level_from_string("Debug") == LOG_DEBUG);
+    mu_check(log_level_from_string("Info") == LOG_INFO);
+    mu_check(log_level_from_string("Warn") == LOG_WARN);
+    mu_check(log_level_from_string("Error") == LOG_ERROR);
+    mu_check(log_level_from_string("Fatal") == LOG_FATAL);
+
+    mu_check(log_level_from_string("TRACE") == LOG_TRACE);
+    mu_check(log_level_from_string("DEBUG") == LOG_DEBUG);
+    mu_check(log_level_from_string("INFO") == LOG_INFO);
+    mu_check(log_level_from_string("WARN") == LOG_WARN);
+    mu_check(log_level_from_string("ERROR") == LOG_ERROR);
+    mu_check(log_level_from_string("FATAL") == LOG_FATAL);
+}
+
 MU_TEST_SUITE(log_suite) {
     MU_RUN_TEST(test_log_writes_to_file);
     MU_RUN_TEST(test_log_file_level_threshold);
     MU_RUN_TEST(test_log_disable_via_null);
+    MU_RUN_TEST(test_string_to_log_level);
 }
 
 int main(void) {

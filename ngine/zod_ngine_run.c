@@ -48,11 +48,11 @@ bool load_args(const int argc, const char **argv, cvar_table *cvars) {
 }
 
 void after_init(void) {
-    log_debug("config — window: %d x %d, title: '%s', vsync: %d, log_level: %s",
+    log_debug("config — window: %d x %d, title: '%s', vsync: %d, log_level: %d",
               config_get_int("window.width", 800), config_get_int("window.height", 600),
               config_get_string("window.title", "zod-ngine"),
               config_get_bool("window.vsync", true),
-              config_get_string("log.level", "error"));
+              config_get_int("log.level", 0));
 
     for (size_t i = 0; i < g_ctx.config.cvars.size; ++i) {
         const char *name = g_ctx.config.cvars.data[i].name;
@@ -90,8 +90,10 @@ int main(const int argc, const char **argv) {
                 if (!g_config_reload_from_file(&g_ctx.config)) {
                     log_warn("failed to load config file");
                 } else {
-                    window_apply_config(&g_ctx.window);
+                    g_adjust_config(&g_ctx.config);
+                    zod_ngine_apply_config();
                 }
+            g_config_print(&g_ctx.config);
             }
         }
 

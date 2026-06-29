@@ -19,7 +19,8 @@ bool carg_entry_to_cvars(const carg_t *carg, const char **names, const size_t na
 
     if (!carg->present) {
 #ifdef MODULE_LOG_ENABLED
-        fprintf(stderr, "carg.carg_entry_to_cvars: flag %s not present\n", carg->flag);
+        fprintf(stderr, "carg.carg_entry_to_cvars: flag %s not present. Skipping\n",
+                carg->flag);
 #endif
         return false;
     }
@@ -69,15 +70,15 @@ bool carg_table_to_cvars(const carg_table *cargs, const char ***names_per_carg,
     if (!cargs || !names_per_carg || !names_count_per_carg || !table) {
         return false;
     }
-
+    bool ok = false;
     for (size_t i = 0; i < cargs->size; i++) {
-        if (!carg_entry_to_cvars(&cargs->data[i], names_per_carg[i],
-                                 names_count_per_carg[i], table)) {
-            return false;
+        if (carg_entry_to_cvars(&cargs->data[i], names_per_carg[i],
+                                names_count_per_carg[i], table)) {
+            ok = true;
         }
     }
 
-    return true;
+    return ok;
 }
 #endif
 

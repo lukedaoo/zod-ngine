@@ -24,10 +24,14 @@
 #define C_ENTRY      "main.c"
 #define ENGINE_ENTRY "ngine/zod_ngine_run.c"
 
+#define GLAD_SRC "lib/glad/src/gl.c"
+
 #ifdef _WIN32
-#define SDL_FLAGS "-I/ucrt64/include/SDL3", "-L/ucrt64/lib", "-lSDL3.dll"
+#define SDL_FLAGS  "-I/ucrt64/include/SDL3", "-L/ucrt64/lib", "-lSDL3.dll"
+#define GLAD_FLAGS "-Ilib/glad/include"
 #elif defined(__linux__)
-#define SDL_FLAGS "-I/usr/include/SDL3", "-lSDL3"
+#define SDL_FLAGS  "-I/usr/include/SDL3", "-lSDL3"
+#define GLAD_FLAGS "-Ilib/glad/include", "-ldl"
 #endif
 
 int build_test_dir(const char *dir) {
@@ -66,7 +70,7 @@ int run_test_dir(bool asan, const char *dir, int *passed, int *failed) {
         Nob_Cmd test_cmd = {0};
         nob_cmd_append(&test_cmd, C_COMPILER, C_FLAGS, "-o", bin, src);
         if (nob_sv_starts_with(nob_sv_from_cstr(dir), nob_sv_from_cstr("ngine")))
-            nob_cmd_append(&test_cmd, SDL_FLAGS);
+            nob_cmd_append(&test_cmd, GLAD_SRC, SDL_FLAGS, GLAD_FLAGS);
         if (asan) nob_cmd_append(&test_cmd, C_ASAN_FLAGS);
         if (!nob_cmd_run(&test_cmd)) return 1;
 
@@ -182,7 +186,7 @@ int run_run(bool execute, const char *target, const char *mode) {
     const char *src       = is_engine ? ENGINE_ENTRY : C_ENTRY;
 
     Nob_Cmd cmd = {0};
-    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", out, src, SDL_FLAGS);
+    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", out, src, GLAD_SRC, SDL_FLAGS, GLAD_FLAGS);
     if (strcmp(mode, "release") == 0) {
         nob_cmd_append(&cmd, C_RELEASE_FLAGS);
     } else {
@@ -205,6 +209,7 @@ static const char *COMPDB_SCAN_DIRS[] = {
      "ngine/internal/clock",
      "ngine/internal/config",
      "ngine/internal/engine_context",
+     "ngine/internal/window",
      "ngine/internal/zod_ngine",
      "ngine/internal/error",
 };
@@ -242,6 +247,7 @@ static void compdb_entry(FILE *f, const char *cwd, const char *filepath, bool is
 #elif defined(_WIN32)
     fprintf(f, "      \"-I/ucrt64/include/SDL3\",\n");
 #endif
+    fprintf(f, "      \"-Ilib/glad/include\",\n");
     for (size_t i = 0; i < COMPDB_DEFINES_COUNT; ++i)
         fprintf(f, "      \"%s\",\n", COMPDB_DEFINES[i]);
     if (is_header) fprintf(f, "      \"-x\", \"c\",\n");

@@ -36,14 +36,14 @@
 #endif
 
 void g_config_seed_preset(g_config *cfg) {
-    cvar_set_int(&cfg->cvars, "engine.target_fps", 60);
+    cvar_set_int(&cfg->cvars, "engine.target_fps", DEFAULT_CONFIG_TARGET_FPS);
 
-    cvar_set_int(&cfg->cvars, "window.width", 800);
-    cvar_set_int(&cfg->cvars, "window.height", 600);
-    cvar_set_string(&cfg->cvars, "window.title", "zod-ngine");
-    cvar_set_bool(&cfg->cvars, "window.vsync", true);
+    cvar_set_int(&cfg->cvars, "window.width", DEFAULT_CONFIG_WINDOW_WIDTH);
+    cvar_set_int(&cfg->cvars, "window.height", DEFAULT_CONFIG_WINDOW_HEIGHT);
+    cvar_set_string(&cfg->cvars, "window.title", DEFAULT_CONFIG_WINDOW_TITLE);
+    cvar_set_bool(&cfg->cvars, "window.vsync", DEFAULT_CONFIG_WINDOW_VSYNC);
 
-    cvar_set_int(&cfg->cvars, "log.level", 0);
+    cvar_set_int(&cfg->cvars, "log.level", DEFAULT_CONFIG_LOG_LEVEL);
 }
 
 static bool load_config_from_file_default(const char *filepath, cvar_table *cvars) {
@@ -80,6 +80,25 @@ bool g_config_reload_from_file(g_config *cfg) {
     return true;
 }
 
-void g_config_print(g_config *cfg) { cvar_print(&cfg->cvars); }
+bool g_adjust_config(g_config *cfg) {
+    if (!cfg) {
+        log_warn("config: no config to adjust");
+        return false;
+    }
+    {
+        log_debug("config: converting log.level to int if necessary");
+        cvar_t *log_level = cvar_get(&cfg->cvars, "log.level");
+        if (log_level && log_level->type == CVAR_STRING) {
+            int level_as_int = log_level_from_string(log_level->value.str.data);
+            cvar_set_int(&cfg->cvars, "log.level", level_as_int);
+        }
+    }
+    return true;
+}
+
+void g_config_print(g_config *cfg) {
+    log_debug("config: print:");
+    cvar_print(&cfg->cvars);
+}
 
 #endif

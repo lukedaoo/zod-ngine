@@ -35,6 +35,8 @@ typedef struct {
 bool zod_ngine_init(const zod_engine_init_params params);
 void zod_ngine_destroy(void);
 
+void zod_ngine_apply_config(void);
+
 //
 // Config accessors
 //

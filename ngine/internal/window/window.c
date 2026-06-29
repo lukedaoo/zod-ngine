@@ -2,6 +2,8 @@
 
 #include <glad/gl.h>
 #include <stdlib.h>
+
+#include <modules/log.h>
 #include "window_internal.h"
 #include "../../zod_ngine.h"
 
@@ -36,8 +38,13 @@ void window_destroy(Window *window) {
 
 bool window_apply_config(Window *window) {
     if (!window || !window->gl_ctx) return false;
+    bool ok    = true;
     bool vsync = config_get_bool("window.vsync", true);
-    return SDL_GL_SetSwapInterval(vsync ? 1 : 0);
+    if (!SDL_GL_SetSwapInterval(vsync ? 1 : 0) != 0) {
+        log_error("window: failed to set vsync");
+        ok = false;
+    }
+    return ok;
 }
 
 #endif

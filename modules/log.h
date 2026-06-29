@@ -19,9 +19,12 @@ void log_set_level(int level);
 void log_set_fp(FILE *fp, int level);
 void log_log(int level, const char *source_file, int line, const char *fmt, ...);
 
+int log_level_from_string(const char *level_string);
+
 #ifdef LOG_IMPLEMENTATION
 #include <stdarg.h>
 #include <time.h>
+#include <string.h>
 
 static struct {
     int level;
@@ -92,5 +95,39 @@ void log_log(int level, const char *source_file, int line, const char *fmt, ...)
         va_end(args);
     }
 }
+
+int log_level_from_string(const char *level_string) {
+    if (!level_string) {
+#ifdef MODULE_LOG_ENABLED
+        fprintf(stderr, "log_level_from_string: level_string is NULL\n");
+#endif
+        return LOG_FATAL;
+    }
+
+    char buf[16];
+    //
+    // to lowercase
+    //
+    {
+        strncpy(buf, level_string, sizeof(buf));
+        buf[sizeof(buf) - 1] = '\0';
+        for (size_t i = 0; buf[i] != '\0'; i++) {
+            unsigned char c = (unsigned char)buf[i];
+            if (c >= 'A' && c <= 'Z') {
+                buf[i] = (char)(c + ('a' - 'A'));
+            }
+        }
+    }
+
+    if (strcmp(buf, "trace") == 0) return LOG_TRACE;
+    if (strcmp(buf, "debug") == 0) return LOG_DEBUG;
+    if (strcmp(buf, "info") == 0) return LOG_INFO;
+    if (strcmp(buf, "warn") == 0) return LOG_WARN;
+    if (strcmp(buf, "error") == 0) return LOG_ERROR;
+    if (strcmp(buf, "fatal") == 0) return LOG_FATAL;
+
+    return LOG_FATAL;
+}
+
 #endif  // LOG_IMPLEMENTATION
 #endif  // LOG_H

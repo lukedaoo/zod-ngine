@@ -233,6 +233,18 @@ MU_TEST(test_cvar_replace_updates_value_via_getter) {
 
 MU_TEST(test_cvar_destroy_null_safe) { cvar_destroy(NULL); }
 
+MU_TEST(test_cvar_override) {
+    cvar_table table = {0};
+
+    cvar_set_string(&table, "log.level", "debug");
+    mu_check(table.size == 1);
+    mu_check(table.data[0].type == CVAR_STRING);
+
+    cvar_set_int(&table, "log.level", 2);
+    mu_check(table.size == 1);
+    mu_check(table.data[0].type == CVAR_INT);
+}
+
 MU_TEST_SUITE(cvar_suite) {
     MU_RUN_TEST(test_cvar_set_insert);
     MU_RUN_TEST(test_cvar_set_insert_with_neg);
@@ -247,6 +259,7 @@ MU_TEST_SUITE(cvar_suite) {
     MU_RUN_TEST(test_cvar_set_invalid_args);
     MU_RUN_TEST(test_cvar_replace_updates_value_via_getter);
     MU_RUN_TEST(test_cvar_destroy_null_safe);
+    MU_RUN_TEST(test_cvar_override);
 }
 
 int main(void) {
