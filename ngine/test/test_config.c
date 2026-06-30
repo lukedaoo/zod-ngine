@@ -15,39 +15,39 @@ static void reset(void) {
 
 MU_TEST(test_preset_int_defaults) {
     reset();
-    mu_assert_int_eq(800, config_get_int("window.width", 0));
-    mu_assert_int_eq(600, config_get_int("window.height", 0));
-    mu_assert_int_eq(0, config_get_int("log.level", -1));
+    mu_assert_int_eq(800, zod_config_get_int("window.width", 0));
+    mu_assert_int_eq(600, zod_config_get_int("window.height", 0));
+    mu_assert_int_eq(0, zod_config_get_int("log.level", -1));
 }
 
 MU_TEST(test_preset_string_default) {
     reset();
-    mu_assert_string_eq("zod-ngine", config_get_string("window.title", ""));
+    mu_assert_string_eq("zod-ngine", zod_config_get_string("window.title", ""));
 }
 
 MU_TEST(test_preset_bool_default) {
     reset();
-    mu_check(config_get_bool("window.vsync", false) == true);
+    mu_check(zod_config_get_bool("window.vsync", false) == true);
 }
 
 MU_TEST(test_fallback_on_missing) {
     reset();
-    mu_assert_int_eq(42, config_get_int("no.such.key", 42));
-    mu_check(config_get_float("no.such.key", 1.5f) == 1.5f);
-    mu_check(config_get_bool("no.such.key", true) == true);
-    mu_assert_string_eq("fb", config_get_string("no.such.key", "fb"));
+    mu_assert_int_eq(42, zod_config_get_int("no.such.key", 42));
+    mu_check(zod_config_get_float("no.such.key", 1.5f) == 1.5f);
+    mu_check(zod_config_get_bool("no.such.key", true) == true);
+    mu_assert_string_eq("fb", zod_config_get_string("no.such.key", "fb"));
 }
 
 MU_TEST(test_set_get_roundtrip) {
     reset();
-    mu_check(config_set_int("window.width", 1920));
-    mu_assert_int_eq(1920, config_get_int("window.width", 0));
+    mu_check(zod_config_set_int("window.width", 1920));
+    mu_assert_int_eq(1920, zod_config_get_int("window.width", 0));
 
-    mu_check(config_set_bool("window.vsync", false));
-    mu_check(config_get_bool("window.vsync", true) == false);
+    mu_check(zod_config_set_bool("window.vsync", false));
+    mu_check(zod_config_get_bool("window.vsync", true) == false);
 
-    mu_check(config_set_string("window.title", "custom"));
-    mu_assert_string_eq("custom", config_get_string("window.title", ""));
+    mu_check(zod_config_set_string("window.title", "custom"));
+    mu_assert_string_eq("custom", zod_config_get_string("window.title", ""));
 }
 
 MU_TEST(test_engine_config_valid_without_cvars) {
@@ -56,24 +56,24 @@ MU_TEST(test_engine_config_valid_without_cvars) {
 
     mu_check(g_ctx.config.cvars.data == NULL);
 
-    mu_assert_int_eq(99, config_get_int("window.width", 99));
-    mu_check(config_get_float("window.height", 1.0f) == 1.0f);
-    mu_check(config_get_bool("window.vsync", false) == false);
-    mu_assert_string_eq("fb", config_get_string("window.title", "fb"));
+    mu_assert_int_eq(99, zod_config_get_int("window.width", 99));
+    mu_check(zod_config_get_float("window.height", 1.0f) == 1.0f);
+    mu_check(zod_config_get_bool("window.vsync", false) == false);
+    mu_assert_string_eq("fb", zod_config_get_string("window.title", "fb"));
 }
 
 MU_TEST(test_adjust_config_converts_string_debug_to_int) {
     reset();
     cvar_set_string(&g_ctx.config.cvars, "log.level", "debug");
-    mu_assert_int_eq(-1, config_get_int("log.level", -1));
+    mu_assert_int_eq(-1, zod_config_get_int("log.level", -1));
     mu_check(g_config_adjust(&g_ctx.config));
-    mu_assert_int_eq(LOG_DEBUG, config_get_int("log.level", -1));
+    mu_assert_int_eq(LOG_DEBUG, zod_config_get_int("log.level", -1));
 }
 
 MU_TEST(test_adjust_config_leaves_int_unchanged) {
     reset();
     mu_check(g_config_adjust(&g_ctx.config));
-    mu_assert_int_eq(LOG_TRACE, config_get_int("log.level", -1));
+    mu_assert_int_eq(LOG_TRACE, zod_config_get_int("log.level", -1));
 }
 
 MU_TEST(test_adjust_config_all_string_levels) {
@@ -88,7 +88,7 @@ MU_TEST(test_adjust_config_all_string_levels) {
         reset();
         cvar_set_string(&g_ctx.config.cvars, "log.level", cases[i].s);
         mu_check(g_config_adjust(&g_ctx.config));
-        mu_assert_int_eq(cases[i].v, config_get_int("log.level", -1));
+        mu_assert_int_eq(cases[i].v, zod_config_get_int("log.level", -1));
     }
 }
 
@@ -128,37 +128,37 @@ MU_TEST(test_reload_success_updates_config) {
     g_ctx.config.reload_config_func  = reload_succeeds;
 
     mu_check(g_config_reload_from_file(&g_ctx.config));
-    mu_assert_int_eq(1280, config_get_int("window.width", 0));
-    mu_assert_int_eq(720, config_get_int("window.height", 0));
-    mu_assert_int_eq(60, config_get_int("engine.target_fps", 0));
+    mu_assert_int_eq(1280, zod_config_get_int("window.width", 0));
+    mu_assert_int_eq(720, zod_config_get_int("window.height", 0));
+    mu_assert_int_eq(60, zod_config_get_int("engine.target_fps", 0));
 
     g_ctx.config.config_file_watcher = NULL;
 }
 
 MU_TEST(test_reload_fail_preserves_config) {
     reset();
-    config_set_int("window.width", 1920);
+    zod_config_set_int("window.width", 1920);
 
     file_watcher fw = {.path = "fake.scf"};
     g_ctx.config.config_file_watcher = &fw;
     g_ctx.config.reload_config_func  = reload_fails;
 
     mu_check(!g_config_reload_from_file(&g_ctx.config));
-    mu_assert_int_eq(1920, config_get_int("window.width", 0));
+    mu_assert_int_eq(1920, zod_config_get_int("window.width", 0));
 
     g_ctx.config.config_file_watcher = NULL;
 }
 
 MU_TEST(test_reload_partial_fail_preserves_config) {
     reset();
-    config_set_int("window.width", 1920);
+    zod_config_set_int("window.width", 1920);
 
     file_watcher fw = {.path = "fake.scf"};
     g_ctx.config.config_file_watcher = &fw;
     g_ctx.config.reload_config_func  = reload_partial_then_fail;
 
     mu_check(!g_config_reload_from_file(&g_ctx.config));
-    mu_assert_int_eq(1920, config_get_int("window.width", 0));
+    mu_assert_int_eq(1920, zod_config_get_int("window.width", 0));
 
     g_ctx.config.config_file_watcher = NULL;
 }

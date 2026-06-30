@@ -6,11 +6,10 @@
 #include <modules/log.h>
 
 #include "../../window.h"
-#include "../../clock.h"
-#include "../../zod_ngine.h"
 
 #include "window_internal.h"
 #include "../config/config_internal.h"
+#include "../engine_context/engine_context_internal.h"
 
 static bool window_gl_init(Window *window) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
@@ -53,7 +52,7 @@ bool window_apply_config(Window *window) {
     // vsync
     //
     {
-        bool vsync    = config_get_bool("window.vsync", true);
+        bool vsync    = cvar_get_bool(&g_ctx.config.cvars, "window.vsync", true);
         bool vsync_ok = SDL_GL_SetSwapInterval(vsync ? 1 : 0);
         if (!vsync_ok) {
             log_warn(
@@ -67,8 +66,8 @@ bool window_apply_config(Window *window) {
     // window size
     //
     {
-        int w = config_get_int("window.width", 800);
-        int h = config_get_int("window.height", 600);
+        int w = cvar_get_int(&g_ctx.config.cvars, "window.width", 800);
+        int h = cvar_get_int(&g_ctx.config.cvars, "window.height", 600);
         if (w != window->width || h != window->height) {
             SDL_SetWindowSize(window->handle, w, h);
             window->width  = w;
@@ -81,13 +80,9 @@ bool window_apply_config(Window *window) {
     // clear color
     //
     {
-#ifdef DEFAULT_CONFIG_WINDOW_CLEAR_COLOR
-        window->clear_color = (uint32_t)config_get_int(
-             "window.clear_color", (int)DEFAULT_CONFIG_WINDOW_CLEAR_COLOR);
-#else
-        window->clear_color =
-             (uint32_t)config_get_int("window.clear_color", (int)0x141A1AFF);
-#endif
+        window->clear_color = (uint32_t)cvar_get_int(
+             &g_ctx.config.cvars, "window.clear_color",
+             (int)DEFAULT_CONFIG_WINDOW_CLEAR_COLOR);
     }
     return ok;
 }

@@ -18,8 +18,14 @@ static bool        load_args_return_val;
 static int         call_order[2];
 static int         call_count;
 
-static void stub_before_init(void) { before_init_called = true; }
-static void stub_after_init(void) { after_init_called = true; }
+static void stub_before_init(void *user_data) {
+    (void)user_data;
+    before_init_called = true;
+}
+static void stub_after_init(void *user_data) {
+    (void)user_data;
+    after_init_called = true;
+}
 
 static bool stub_load_config(const char *path, cvar_table *cvars) {
     load_config_called         = true;
@@ -36,8 +42,14 @@ static bool stub_load_args(int argc, const char **argv, cvar_table *cvars) {
     return load_args_return_val;
 }
 
-static void order_before_init(void) { call_order[call_count++] = 0; }
-static void order_after_init(void) { call_order[call_count++] = 1; }
+static void order_before_init(void *user_data) {
+    (void)user_data;
+    call_order[call_count++] = 0;
+}
+static void order_after_init(void *user_data) {
+    (void)user_data;
+    call_order[call_count++] = 1;
+}
 
 static void reset(void) {
     cvar_destroy(&g_ctx.config.cvars);
@@ -61,9 +73,9 @@ MU_TEST(test_init_returns_true_no_dispatch) {
 MU_TEST(test_init_seeds_preset_config) {
     reset();
     zod_ngine_init((zod_engine_init_params){0});
-    mu_assert_int_eq(800, config_get_int("window.width", 0));
-    mu_assert_int_eq(600, config_get_int("window.height", 0));
-    mu_assert_string_eq("zod-ngine", config_get_string("window.title", ""));
+    mu_assert_int_eq(800, zod_config_get_int("window.width", 0));
+    mu_assert_int_eq(600, zod_config_get_int("window.height", 0));
+    mu_assert_string_eq("zod-ngine", zod_config_get_string("window.title", ""));
 }
 
 MU_TEST(test_init_before_init_hook_fires) {
@@ -113,7 +125,7 @@ MU_TEST(test_init_config_load_failure_keeps_presets) {
     });
     mu_check(ok);
     mu_check(load_config_called);
-    mu_assert_int_eq(800, config_get_int("window.width", 0));
+    mu_assert_int_eq(800, zod_config_get_int("window.width", 0));
 }
 
 MU_TEST(test_init_config_load_receives_correct_args) {
@@ -141,7 +153,7 @@ MU_TEST(test_init_load_args_failure_continues) {
 MU_TEST(test_init_stores_config_in_ctx) {
     reset();
     zod_ngine_init((zod_engine_init_params){0});
-    mu_assert_int_eq(800, config_get_int("window.width", 0));
+    mu_assert_int_eq(800, zod_config_get_int("window.width", 0));
 }
 
 MU_TEST(test_init_both_stages_fail_preset_survives) {
@@ -156,9 +168,9 @@ MU_TEST(test_init_both_stages_fail_preset_survives) {
     mu_check(ok);
     mu_check(load_config_called);
     mu_check(load_args_called);
-    mu_assert_int_eq(800, config_get_int("window.width", 0));
-    mu_assert_int_eq(600, config_get_int("window.height", 0));
-    mu_assert_string_eq("zod-ngine", config_get_string("window.title", ""));
+    mu_assert_int_eq(800, zod_config_get_int("window.width", 0));
+    mu_assert_int_eq(600, zod_config_get_int("window.height", 0));
+    mu_assert_string_eq("zod-ngine", zod_config_get_string("window.title", ""));
 }
 
 MU_TEST(test_init_hot_reload_on_failure_still_attaches_watcher) {
@@ -254,9 +266,9 @@ MU_TEST(test_stage2_load_fail_presets_survive) {
          .config_setup = {.load_config_func = stub_load_config,
                           .config_path      = "/dev/null"},
     });
-    mu_assert_int_eq(800, config_get_int("window.width", 0));
-    mu_assert_int_eq(600, config_get_int("window.height", 0));
-    mu_assert_string_eq("zod-ngine", config_get_string("window.title", ""));
+    mu_assert_int_eq(800, zod_config_get_int("window.width", 0));
+    mu_assert_int_eq(600, zod_config_get_int("window.height", 0));
+    mu_assert_string_eq("zod-ngine", zod_config_get_string("window.title", ""));
 }
 
 MU_TEST_SUITE(zod_ngine_stage2_suite) {

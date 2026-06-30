@@ -23,6 +23,7 @@
 #include "ngine_config.h"
 #include "config.h"
 #include "clock.h"
+#include "input.h"
 #include "engine_context.h"
 #include "window.h"
 #include "render.h"
@@ -35,10 +36,13 @@
 
 #include "internal/config/config.c"
 #include "internal/clock/clock.c"
+#include "internal/input/input.c"
 #include "internal/engine_context/engine_context.c"
 #include "internal/window/window.c"
 #include "internal/render/render.c"
 #include "internal/zod_ngine/zod_ngine.c"
+#include "internal/zod_ngine/zod_ngine_config.c"
+#include "internal/zod_ngine/zod_ngine_clock.c"
 #include "internal/error/zod_error.c"
 #include "internal/common/common.c"
 

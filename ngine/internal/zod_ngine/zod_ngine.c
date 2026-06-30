@@ -1,8 +1,6 @@
-#include "ngine/clock.h"
 #ifdef ZOD_NGINE_IMPLEMENTATION
-#include <unistd.h>
+
 #include <SDL3/SDL.h>
-#include <glad/gl.h>
 
 #include <modules/cvar.h>
 #include <modules/log.h>
@@ -24,9 +22,9 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     const zod_config_setup_t  config_setup = params.config_setup;
     const zod_engine_dispatch dispatch     = params.dispatch;
 
-    if (dispatch.before_init) {
-        dispatch.before_init();
-    }
+    void                     *user_data    = params.user_data;
+
+    if (dispatch.before_init) dispatch.before_init(user_data);
 
     log_info("engine.init: starting");
 
@@ -78,26 +76,26 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         }
     }
     {
-        const char *title = config_get_string("window.title", "zod-ngine");
-        int         w     = config_get_int("window.width", 800);
-        int         h     = config_get_int("window.height", 600);
+        const char *title =
+             cvar_get_string(&g_ctx.config.cvars, "window.title", "zod-ngine");
+        int w = cvar_get_int(&g_ctx.config.cvars, "window.width", 800);
+        int h = cvar_get_int(&g_ctx.config.cvars, "window.height", 600);
         // @Robustness: remove hard-coded OpenGL dependency; support backend selection
         uint32_t flags = SDL_WINDOW_OPENGL;
-        if (config_get_bool("window.transparent", false)) flags |= SDL_WINDOW_TRANSPARENT;
+        if (cvar_get_bool(&g_ctx.config.cvars, "window.transparent", false))
+            flags |= SDL_WINDOW_TRANSPARENT;
         g_ctx.window = window_create(title, w, h, flags);
         zod_ngine_apply_config(false);
     }
 #endif
 
     {
-        const int target_fps = config_get_int("engine.target_fps", 60);
+        const int target_fps = cvar_get_int(&g_ctx.config.cvars, "engine.target_fps", 60);
         g_clock_init(target_fps);
         log_debug("clock.init: target fps = %d", target_fps);
     }
 
-    if (dispatch.after_init) {
-        dispatch.after_init();
-    }
+    if (dispatch.after_init) dispatch.after_init(user_data);
 
     log_info("engine.init: ready");
     return true;
@@ -109,60 +107,13 @@ void zod_ngine_destroy(void) {
 }
 
 void zod_ngine_apply_config(bool adjust_config) {
-    if (adjust_config) {
-        g_config_adjust(&g_ctx.config);
-    }
+    if (adjust_config) g_config_adjust(&g_ctx.config);
 
-    log_set_level(config_get_int("log.level", LOG_TRACE));
-
-    g_clock_change_target_fps(
-         config_get_int("engine.target_fps", DEFAULT_CONFIG_TARGET_FPS));
-
+    log_set_level(cvar_get_int(&g_ctx.config.cvars, "log.level", LOG_TRACE));
+    g_clock_change_target_fps(cvar_get_int(&g_ctx.config.cvars, "engine.target_fps",
+                                           DEFAULT_CONFIG_TARGET_FPS));
     window_apply_config(&g_ctx.window);
 }
-
-int config_get_int(const char *name, int fallback) {
-    return cvar_get_int(&g_ctx.config.cvars, name, fallback);
-}
-
-float config_get_float(const char *name, float fallback) {
-    return cvar_get_float(&g_ctx.config.cvars, name, fallback);
-}
-
-bool config_get_bool(const char *name, bool fallback) {
-    return cvar_get_bool(&g_ctx.config.cvars, name, fallback);
-}
-
-const char *config_get_string(const char *name, const char *fallback) {
-    return cvar_get_string(&g_ctx.config.cvars, name, fallback);
-}
-
-bool config_set_int(const char *name, int value) {
-    return cvar_set_int(&g_ctx.config.cvars, name, value);
-}
-bool config_set_float(const char *name, float value) {
-    return cvar_set_float(&g_ctx.config.cvars, name, value);
-}
-bool config_set_bool(const char *name, bool value) {
-    return cvar_set_bool(&g_ctx.config.cvars, name, value);
-}
-
-bool config_set_string(const char *name, const char *value) {
-    return cvar_set_string(&g_ctx.config.cvars, name, value);
-}
-
-float    clock_dt(void) { return g_ctx.clock.dt; }
-float    clock_delta(void) { return g_ctx.clock.delta; }
-double   clock_now(void) { return g_ctx.clock.now; }
-float    clock_frame_time(void) { return (float)(g_ctx.clock.now - g_ctx.clock.last); }
-uint32_t clock_frame(void) { return g_ctx.clock.frame_count; }
-bool     clock_paused(void) { return g_ctx.clock.paused; }
-
-void clock_set_time_scale(float scale) { g_ctx.clock.time_scale = scale; }
-void clock_set_paused(bool paused) { g_ctx.clock.paused = paused; }
-
-void zod_begin_drawing(void) { render_begin(); }
-void zod_end_drawing(void) { render_end(&g_ctx.window); }
 
 bool zod_should_exit(void) { return g_ctx.should_exit; }
 void zod_request_exit(void) { g_ctx.should_exit = true; }
@@ -183,5 +134,8 @@ bool zod_tick_hot_reload(void) {
 #endif
     return true;
 }
+
+void zod_begin_drawing(void) { render_begin(); }
+void zod_end_drawing(void) { render_end(&g_ctx.window); }
 
 #endif

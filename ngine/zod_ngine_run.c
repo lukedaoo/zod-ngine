@@ -5,7 +5,8 @@
 
 #define CONFIG_PATH "run-tree/data/engine.scf"
 
-void before_init(void) {
+void before_init(void *user_data) {
+    (void)user_data;
     log_debug("engine.before_init: called");
     log_set_level(LOG_WARN);
 }
@@ -54,11 +55,14 @@ bool load_args(const int argc, const char **argv, cvar_table *cvars) {
     return true;
 }
 
-void after_init(void) {
+void after_init(void *user_data) {
+    (void)user_data;
     log_debug("engine.after_init: window=%dx%d title='%s' vsync=%d log_level=%d",
-              config_get_int("window.width", 800), config_get_int("window.height", 600),
-              config_get_string("window.title", "zod-ngine"),
-              config_get_bool("window.vsync", true), config_get_int("log.level", 0));
+              zod_config_get_int("window.width", 800),
+              zod_config_get_int("window.height", 600),
+              zod_config_get_string("window.title", "zod-ngine"),
+              zod_config_get_bool("window.vsync", true),
+              zod_config_get_int("log.level", 0));
 }
 
 int main(const int argc, const char **argv) {
@@ -94,27 +98,29 @@ int main(const int argc, const char **argv) {
     float    fps_accum  = 0.0f;
 
     while (!zod_should_exit()) {
-        g_clock_update();
-
+        zod_clock_update();
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) zod_request_exit();
         }
-
+        zod_input_update();
         zod_tick_hot_reload();
 
+        if (zod_key_pressed(SDL_SCANCODE_GRAVE)) {
+            log_info("toggle console");
+        }
+
         zod_begin_drawing();
-        zod_end_drawing();
 
         fps_frames++;
-        fps_accum += clock_delta();
+        fps_accum += zod_clock_delta();
         if (fps_accum >= 1.0f) {
             log_info("engine.fps: %u", fps_frames);
             fps_frames = 0;
             fps_accum -= 1.0f;
         }
-
-        g_clock_sleep_to_target_fps();
+        zod_end_drawing();
+        zod_clock_sleep_to_target_fps();
     }
     zod_ngine_destroy();
     return 0;
