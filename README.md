@@ -1,5 +1,7 @@
 # zod-ngine
 
+> **Status:** In Progress
+
 Game engine written in C23 using SDL3 and OpenGL 4.6.
 
 ## Stack
