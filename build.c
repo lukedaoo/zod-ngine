@@ -210,6 +210,7 @@ static const char *COMPDB_SCAN_DIRS[] = {
      "ngine/internal/clock",
      "ngine/internal/config",
      "ngine/internal/engine_context",
+     "ngine/internal/console",
      "ngine/internal/input",
      "ngine/internal/window",
      "ngine/internal/zod_ngine",
