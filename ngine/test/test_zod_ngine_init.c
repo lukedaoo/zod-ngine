@@ -53,6 +53,8 @@ static void order_after_init(void *user_data) {
 
 static void reset(void) {
     cvar_destroy(&g_ctx.config.cvars);
+    if (g_ctx.config.config_file_watcher)
+        file_watcher_close(g_ctx.config.config_file_watcher);
     g_ctx                      = (engine_context){0};
     before_init_called         = false;
     after_init_called          = false;

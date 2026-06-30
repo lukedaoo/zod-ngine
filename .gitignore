@@ -21,3 +21,5 @@ build/
 cmake-build-debug/
 graphify-out/
 memory/
+
+resources/learning-opengl/bin/

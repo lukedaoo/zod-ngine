@@ -243,6 +243,8 @@ MU_TEST(test_cvar_override) {
     cvar_set_int(&table, "log.level", 2);
     mu_check(table.size == 1);
     mu_check(table.data[0].type == CVAR_INT);
+
+    cvar_destroy(&table);
 }
 
 MU_TEST_SUITE(cvar_suite) {

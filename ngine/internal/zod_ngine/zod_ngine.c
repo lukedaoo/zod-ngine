@@ -8,6 +8,7 @@
 #include <modules/file_watcher.h>
 
 #include "../../config.h"
+#include "../../console.h"
 #include "../../render.h"
 #include "../../zod_error.h"
 #include "../../zod_ngine.h"
@@ -86,6 +87,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
             flags |= SDL_WINDOW_TRANSPARENT;
         g_ctx.window = window_create(title, w, h, flags);
         zod_ngine_apply_config(false);
+        zod_console_init();
     }
 #endif
 
@@ -103,6 +105,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
 
 void zod_ngine_destroy(void) {
     log_debug("engine.destroy: shutting down");
+    zod_console_destroy();
     engine_context_destroy();
 }
 

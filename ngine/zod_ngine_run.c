@@ -106,11 +106,10 @@ int main(const int argc, const char **argv) {
         zod_input_update();
         zod_tick_hot_reload();
 
-        if (zod_key_pressed(SDL_SCANCODE_GRAVE)) {
-            log_info("toggle console");
-        }
+        if (zod_key_pressed(SDL_SCANCODE_GRAVE)) zod_console_toggle();
 
         zod_begin_drawing();
+        zod_console_draw();
 
         fps_frames++;
         fps_accum += zod_clock_delta();
