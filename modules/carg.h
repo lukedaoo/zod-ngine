@@ -8,7 +8,7 @@
  * @info(cargs) — command-line argument parser
  *
  * 1. Define a static array of carg_register_t (flag, arg_count, type, required).
- *    arg_count == 0  →  bool flag, no values consumed.
+ *    arg_count == 0  ->  bool flag, no values consumed.
  *    All flags must start with `--`.
  *
  * 2. Call carg_parse(). Returns false on error (unknown flag, wrong type,

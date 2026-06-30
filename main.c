@@ -86,6 +86,7 @@ int main(const int argc, const char *argv[]) {
     const size_t names_count_per_carg[] = {1, count_size_arg};
 
     carg_table_to_cvars(&cargs, names_per_carg, names_count_per_carg, &cvars);
+    carg_destroy(&cargs);
 
     configuration config = {
          .version         = cvar_get(&cvars, "protocol.version"),

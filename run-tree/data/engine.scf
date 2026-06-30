@@ -9,7 +9,8 @@ width           800
 height          600
 transparent     true           ; enable alpha channel
 clear_color     0x141A1AFF     ; clear color. Hex format: 0xRRGGBBAA
+vsync           true           ; enable vsync
 
 ; Logging configuration
 :/log
-level           "trace"
+level           "debug"        ; trace, debug, info, warning, error, fatal

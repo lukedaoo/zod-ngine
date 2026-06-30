@@ -9,6 +9,10 @@
 // @default 60
 // #define DEFAULT_CONFIG_TARGET_FPS 60
 
+// config.c — minimum frames per second
+// @default 0.25
+// #define DEFAULT_CONFIG_CLOCK_STAMP 0.25F
+
 // ------- Window
 // config.c — initial window width in pixels
 // @default 800

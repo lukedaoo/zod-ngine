@@ -88,31 +88,32 @@ int main(const int argc, const char **argv) {
          .dispatch     = dispatch,
     };
 
-    zod_ngine_init(params);
-    while (!g_ctx.should_exit) {
+    if (!zod_ngine_init(params)) return 1;
+
+    uint32_t fps_frames = 0;
+    float    fps_accum  = 0.0f;
+
+    while (!zod_should_exit()) {
+        g_clock_update();
+
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_EVENT_QUIT) g_ctx.should_exit = true;
+            if (e.type == SDL_EVENT_QUIT) zod_request_exit();
         }
 
-        if (g_ctx.config.config_file_watcher) {
-            file_status status = file_watcher_check(g_ctx.config.config_file_watcher);
-            if (status == FILE_CHANGED) {
-                log_info("config.watcher: '%s' changed, reloading",
-                         g_ctx.config.config_file_watcher->path);
-                if (!g_config_reload_from_file(&g_ctx.config)) {
-                    log_warn("config.watcher: reload failed — keeping previous config");
-                } else {
-                    zod_ngine_apply_config(true);
-                }
-                g_config_print(&g_ctx.config);
-            }
-        }
+        zod_tick_hot_reload();
 
         zod_begin_drawing();
         zod_end_drawing();
 
-        g_clock_update();
+        fps_frames++;
+        fps_accum += clock_delta();
+        if (fps_accum >= 1.0f) {
+            log_info("engine.fps: %u", fps_frames);
+            fps_frames = 0;
+            fps_accum -= 1.0f;
+        }
+
         g_clock_sleep_to_target_fps();
     }
     zod_ngine_destroy();

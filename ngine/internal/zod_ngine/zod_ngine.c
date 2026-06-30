@@ -1,3 +1,4 @@
+#include "ngine/clock.h"
 #ifdef ZOD_NGINE_IMPLEMENTATION
 #include <unistd.h>
 #include <SDL3/SDL.h>
@@ -111,7 +112,12 @@ void zod_ngine_apply_config(bool adjust_config) {
     if (adjust_config) {
         g_config_adjust(&g_ctx.config);
     }
+
     log_set_level(config_get_int("log.level", LOG_TRACE));
+
+    g_clock_change_target_fps(
+         config_get_int("engine.target_fps", DEFAULT_CONFIG_TARGET_FPS));
+
     window_apply_config(&g_ctx.window);
 }
 
@@ -147,8 +153,8 @@ bool config_set_string(const char *name, const char *value) {
 
 float    clock_dt(void) { return g_ctx.clock.dt; }
 float    clock_delta(void) { return g_ctx.clock.delta; }
-float    clock_now(void) { return g_ctx.clock.now; }
-float    clock_frame_time(void) { return g_ctx.clock.now - g_ctx.clock.frame_last; }
+double   clock_now(void) { return g_ctx.clock.now; }
+float    clock_frame_time(void) { return (float)(g_ctx.clock.now - g_ctx.clock.last); }
 uint32_t clock_frame(void) { return g_ctx.clock.frame_count; }
 bool     clock_paused(void) { return g_ctx.clock.paused; }
 
@@ -157,5 +163,25 @@ void clock_set_paused(bool paused) { g_ctx.clock.paused = paused; }
 
 void zod_begin_drawing(void) { render_begin(); }
 void zod_end_drawing(void) { render_end(&g_ctx.window); }
+
+bool zod_should_exit(void) { return g_ctx.should_exit; }
+void zod_request_exit(void) { g_ctx.should_exit = true; }
+
+bool zod_tick_hot_reload(void) {
+    if (!g_ctx.config.config_file_watcher) return false;
+    if (file_watcher_check(g_ctx.config.config_file_watcher) != FILE_CHANGED)
+        return false;
+    log_info("config.watcher: '%s' changed, reloading",
+             g_ctx.config.config_file_watcher->path);
+    if (!g_config_reload_from_file(&g_ctx.config)) {
+        log_warn("config.watcher: reload failed — keeping previous config");
+        return false;
+    }
+    zod_ngine_apply_config(true);
+#if DEBUG
+    g_config_print(&g_ctx.config);
+#endif
+    return true;
+}
 
 #endif

@@ -6,6 +6,7 @@
 typedef struct g_clock g_clock;
 
 void g_clock_init(uint32_t target_fps);
+void g_clock_change_target_fps(uint32_t target_fps);
 void g_clock_update(void);
 void g_clock_sleep_to_target_fps(void);
 

@@ -59,10 +59,10 @@ bool        config_set_string(const char *name, const char *value);
 //   dt         — scaled delta time (0 when paused, affected by time_scale)
 //   delta      — unscaled delta time (always ticks, use for UI/menus)
 //   time_scale — multiplier applied to delta: 1.0 = normal, 0.5 = half speed
-//   frame_time — elapsed time of the current frame (unscaled, now - frame_last)
+//   frame_time — elapsed time of the current frame (unscaled, now - last)
 float    clock_dt(void);
 float    clock_delta(void);
-float    clock_now(void);
+double   clock_now(void);
 float    clock_frame_time(void);
 uint32_t clock_frame(void);
 bool     clock_paused(void);
@@ -74,5 +74,9 @@ void     clock_set_paused(bool paused);
 //
 void zod_begin_drawing(void);
 void zod_end_drawing(void);
+
+bool zod_should_exit(void);
+void zod_request_exit(void);
+bool zod_tick_hot_reload(void);
 
 #endif
