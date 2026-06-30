@@ -1,19 +1,15 @@
-CC      = cc
-CFLAGS  = -std=c23 -Wall -Wextra -I../../lib/glad/include
-LDFLAGS = -lglfw -ldl
-GLAD    = ../../lib/glad/src/gl.c
-SRCS    = $(wildcard src/*.c)
-BINS    = $(patsubst src/%.c,bin/%,$(SRCS))
+NOB = ./nob
 
-.PHONY: all clean
+.PHONY: all clean help
 
-all: $(BINS)
+all: nob
+	$(NOB)
 
-bin/%: src/%.c | bin
-	$(CC) $(CFLAGS) -o $@ $< $(GLAD) $(LDFLAGS)
+clean: nob
+	$(NOB) clean
 
-bin:
-	mkdir -p bin
+help: nob
+	$(NOB) help
 
-clean:
-	rm -rf bin
+nob: build.c
+	cc -o nob build.c
