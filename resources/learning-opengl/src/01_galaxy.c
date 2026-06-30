@@ -14,6 +14,9 @@ int main(void) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+    glfwWindowHintString(GLFW_X11_CLASS_NAME, "learning-opengl");
+    glfwWindowHintString(GLFW_X11_INSTANCE_NAME, "learning-opengl");
+
     GLFWwindow *win = glfwCreateWindow(800, 600, "Shader Display", NULL, NULL);
     if (!win) {
         glfwTerminate();
