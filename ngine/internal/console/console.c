@@ -8,6 +8,7 @@
 #include <modules/log.h>
 
 #include "../../console.h"
+#include "../../common.h"
 #include "../engine_context/engine_context_internal.h"
 
 static struct {
@@ -19,7 +20,8 @@ static struct {
     GLint  u_viewport;
     GLint  u_color;
 } console_state;
-
+// @todo:
+// - Move shader to files
 static const char *VERT_SRC =
      "#version 460 core\n"
      "layout(location=0) in vec2 pos;\n"
@@ -71,10 +73,13 @@ void zod_console_init(void) {
 
     // clang-format off
     static const float verts[] = {
-         0.0f, 0.0f, 1.0f,
-         0.0f, 1.0f, 1.0f,
-         0.0f, 0.0f, 1.0f,
-         1.0f, 0.0f, 1.0f,
+         0.0f, 0.0f, 
+         1.0f, 0.0f, 
+         1.0f, 1.0f,
+
+         0.0f, 0.0f, 
+         1.0f, 1.0f, 
+         0.0f, 1.0f,
     };
     // clang-format on
     glGenVertexArrays(1, &console_state.vao);
@@ -123,15 +128,22 @@ void zod_console_draw(void) {
     glUniform2f(console_state.u_viewport, vw, vh);
     glBindVertexArray(console_state.vao);
 
-    draw_rect(0.0f, 0.0f, vw, panel_h, 0.08f, 0.08f, 0.10f, 0.92f);
+    static const color4f COLOR_CONSOLE_BG     = {1.00f, 0.00f, 0.00f, 0.92f};
+    static const color4f COLOR_CONSOLE_BORDER = {0.28f, 0.50f, 0.62f, 1.00f};
+    static const color4f COLOR_INPUT_BG       = {0.14f, 0.14f, 0.18f, 1.00f};
+    static const color4f COLOR_INPUT_HILITE   = {0.28f, 0.50f, 0.62f, 0.70f};
 
-    draw_rect(0.0f, panel_h - 1.0f, vw, 1.0f, 0.28f, 0.50f, 0.62f, 1.0f);
+    draw_rect(0.0f, 0.0f, vw, panel_h, COLOR_CONSOLE_BG.r, COLOR_CONSOLE_BG.g,
+              COLOR_CONSOLE_BG.b, COLOR_CONSOLE_BG.a);
 
-    draw_rect(pad, panel_h - input_h - pad, vw - pad * 2.0f, input_h, 0.14f, 0.14f, 0.18f,
-              1.0f);
+    draw_rect(0.0f, panel_h - 1.0f, vw, 1.0f, COLOR_CONSOLE_BORDER.r,
+              COLOR_CONSOLE_BORDER.g, COLOR_CONSOLE_BORDER.b, COLOR_CONSOLE_BORDER.a);
 
-    draw_rect(pad, panel_h - input_h - pad, vw - pad * 2.0f, 1.0f, 0.28f, 0.50f, 0.62f,
-              0.7f);
+    draw_rect(pad, panel_h - input_h - pad, vw - pad * 2.0f, input_h, COLOR_INPUT_BG.r,
+              COLOR_INPUT_BG.g, COLOR_INPUT_BG.b, COLOR_INPUT_BG.a);
+
+    draw_rect(pad, panel_h - input_h - pad, vw - pad * 2.0f, 1.0f, COLOR_INPUT_HILITE.r,
+              COLOR_INPUT_HILITE.g, COLOR_INPUT_HILITE.b, COLOR_INPUT_HILITE.a);
 
     glBindVertexArray(0);
     glUseProgram(0);
