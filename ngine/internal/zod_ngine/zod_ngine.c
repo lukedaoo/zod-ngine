@@ -20,14 +20,14 @@
 bool zod_ngine_init(const zod_engine_init_params params) {
     const int                 argc         = params.argc;
     const char              **argv         = params.argv;
-    const zod_config_setup_t  config_setup = params.config_setup;
+    const zod_config_setup    config_setup = params.config_setup;
     const zod_engine_dispatch dispatch     = params.dispatch;
 
-    void                     *user_data    = params.user_data;
+    void *user_data = params.user_data;
 
     if (dispatch.before_init) dispatch.before_init(user_data);
 
-    log_info("engine.init: starting");
+    log_info("\nengine.init: starting");
 
     {
         log_debug("config.init: seeding defaults");
@@ -79,10 +79,11 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     {
         const char *title =
              cvar_get_string(&g_ctx.config.cvars, "window.title", "zod-ngine");
+
         int w = cvar_get_int(&g_ctx.config.cvars, "window.width", 800);
         int h = cvar_get_int(&g_ctx.config.cvars, "window.height", 600);
-        // @Robustness: remove hard-coded OpenGL dependency; support backend selection
-        uint32_t flags = SDL_WINDOW_OPENGL;
+
+        uint32_t flags = 0;
         if (cvar_get_bool(&g_ctx.config.cvars, "window.transparent", false))
             flags |= SDL_WINDOW_TRANSPARENT;
         g_ctx.window = window_create(title, w, h, flags);
@@ -139,6 +140,6 @@ bool zod_tick_hot_reload(void) {
 }
 
 void zod_begin_drawing(void) { render_begin(); }
-void zod_end_drawing(void) { render_end(&g_ctx.window); }
+void zod_end_drawing(void) { render_end(); }
 
 #endif

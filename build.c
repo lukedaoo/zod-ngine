@@ -27,12 +27,17 @@
 #define GLAD_SRC "lib/glad/src/gl.c"
 
 #ifdef _WIN32
-#define SDL_FLAGS  "-I/ucrt64/include/SDL3", "-L/ucrt64/lib", "-lSDL3.dll"
-#define GLAD_FLAGS "-Ilib/glad/include"
+#define SDL_FLAGS    "-I/ucrt64/include/SDL3", "-L/ucrt64/lib", "-lSDL3.dll"
+#define GLAD_FLAGS   "-Ilib/glad/include"
+#define VULKAN_FLAGS "-lvulkan-1"
 #elif defined(__linux__)
-#define SDL_FLAGS  "-I/usr/include/SDL3", "-lSDL3"
-#define GLAD_FLAGS "-Ilib/glad/include", "-ldl"
+#define SDL_FLAGS    "-I/usr/include/SDL3", "-lSDL3"
+#define GLAD_FLAGS   "-Ilib/glad/include", "-ldl"
+#define VULKAN_FLAGS "-lvulkan"
 #endif
+
+#define RENDER_BACKEND_OPENGL_DEFINE "-DRENDER_BACKEND=RENDER_BACKEND_OPENGL"
+#define RENDER_BACKEND_VULKAN_DEFINE "-DRENDER_BACKEND=RENDER_BACKEND_VULKAN"
 
 int build_test_dir(const char *dir) {
     Nob_File_Paths files = {0};
@@ -176,18 +181,29 @@ int run_clean(void) {
     return 0;
 }
 
-int run_run(bool execute, const char *target, const char *mode) {
+int run_run(bool execute, const char *target, const char *mode, const char *backend) {
     if (strcmp(mode, "debug") != 0 && strcmp(mode, "release") != 0) {
         nob_log(NOB_ERROR, "unknown build mode '%s'. use: debug | release", mode);
         return 1;
     }
+    if (strcmp(backend, "opengl") != 0 && strcmp(backend, "vulkan") != 0) {
+        nob_log(NOB_ERROR, "unknown render backend '%s'. use: opengl | vulkan", backend);
+        return 1;
+    }
     bool        is_engine = strcmp(target, "engine") == 0;
+    bool        is_opengl = strcmp(backend, "opengl") == 0;
     const char *out       = is_engine ? ENGINE_TARGET : C_TARGET;
     const char *src       = is_engine ? ENGINE_ENTRY : C_ENTRY;
+    const char *backend_de =
+         is_opengl ? RENDER_BACKEND_OPENGL_DEFINE : RENDER_BACKEND_VULKAN_DEFINE;
 
     Nob_Cmd cmd = {0};
-    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", out, src, GLAD_SRC, SDL_FLAGS,
-                   GLAD_FLAGS);
+    nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, "-o", out, src, backend_de, SDL_FLAGS);
+    if (is_opengl) {
+        nob_cmd_append(&cmd, GLAD_SRC, GLAD_FLAGS);
+    } else {
+        nob_cmd_append(&cmd, VULKAN_FLAGS);
+    }
     if (strcmp(mode, "release") == 0) {
         nob_cmd_append(&cmd, C_RELEASE_FLAGS);
     } else {
@@ -213,6 +229,7 @@ static const char *COMPDB_SCAN_DIRS[] = {
      "ngine/internal/console",
      "ngine/internal/input",
      "ngine/internal/window",
+     "ngine/internal/render",
      "ngine/internal/zod_ngine",
      "ngine/internal/error",
 };
@@ -296,15 +313,25 @@ int run_compdb(void) {
     return 0;
 }
 
+static const char *parse_backend_flag(int argc, char **argv) {
+    for (int i = 1; i < argc; ++i) {
+        if (strncmp(argv[i], "--backend=", 10) == 0) return argv[i] + 10;
+    }
+    return "opengl";
+}
+
 int main(int argc, char **argv) {
     NOB_GO_REBUILD_URSELF(argc, argv);
 
     if (argc > 1 && strcmp(argv[1], "help") == 0) {
         nob_log(NOB_INFO, "usage: ./nob [command] [options]");
         nob_log(NOB_INFO, "  (none)                        build main debug");
-        nob_log(NOB_INFO, "  run [engine] [debug|release]  build and run");
-        nob_log(NOB_INFO, "  build-debug [engine]          build with debug symbols");
-        nob_log(NOB_INFO, "  build-release [engine]        build with optimizations");
+        nob_log(NOB_INFO, "  run [engine] [debug|release] [--backend=opengl|vulkan]");
+        nob_log(NOB_INFO, "                                build and run");
+        nob_log(NOB_INFO, "  build-debug [engine] [--backend=opengl|vulkan]");
+        nob_log(NOB_INFO, "                                build with debug symbols");
+        nob_log(NOB_INFO, "  build-release [engine] [--backend=opengl|vulkan]");
+        nob_log(NOB_INFO, "                                build with optimizations");
         nob_log(NOB_INFO, "  test [dir]                    run tests (modules, ngine)");
         nob_log(NOB_INFO, "  test-asan [dir]               run tests with asan");
         nob_log(NOB_INFO, "  clean                         remove build artifacts");
@@ -345,19 +372,21 @@ int main(int argc, char **argv) {
             ? (argc > 3 ? argv[3] : "debug")
             : (argc > 2 ? argv[2] : "debug");
         // clang-format on
-        return run_run(true, engine ? "engine" : "main", mode);
+        return run_run(true, engine ? "engine" : "main", mode,
+                       parse_backend_flag(argc, argv));
     }
 
     if (argc > 1 &&
         (strcmp(argv[1], "build-debug") == 0 || strcmp(argv[1], "build-release") == 0)) {
         bool        engine = argc > 2 && strcmp(argv[2], "engine") == 0;
         const char *mode   = strcmp(argv[1], "build-release") == 0 ? "release" : "debug";
-        return run_run(false, engine ? "engine" : "main", mode);
+        return run_run(false, engine ? "engine" : "main", mode,
+                       parse_backend_flag(argc, argv));
     }
 
     if (argc > 1) {
         nob_log(NOB_ERROR, "unknown command '%s'. run ./nob help", argv[1]);
         return 1;
     }
-    return run_run(false, "main", "debug");
+    return run_run(false, "main", "debug", "opengl");
 }

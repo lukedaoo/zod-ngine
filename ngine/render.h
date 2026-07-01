@@ -3,6 +3,6 @@
 #include "window.h"
 
 void render_begin(void);
-void render_end(const Window *window);
+void render_end(void);
 
 #endif

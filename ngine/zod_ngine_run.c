@@ -8,7 +8,6 @@
 void before_init(void *user_data) {
     (void)user_data;
     log_debug("engine.before_init: called");
-    log_set_level(LOG_WARN);
 }
 
 static bool load_config_from_file_custom(const char *filepath, cvar_table *cvars) {
@@ -32,7 +31,7 @@ static bool load_config_from_file_custom(const char *filepath, cvar_table *cvars
 }
 
 bool load_args(const int argc, const char **argv, cvar_table *cvars) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--log-level", .arg_count = 1, .type = CARG_STRING, .required = false},
          {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false},
     };
@@ -66,6 +65,7 @@ void after_init(void *user_data) {
 }
 
 int main(const int argc, const char **argv) {
+    log_debug("zod-ngine run-tree: starting");
     const zod_engine_dispatch dispatch = {
          .before_init = before_init,
          .load_args   = load_args,

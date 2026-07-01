@@ -3,11 +3,11 @@
 
 #include <stdint.h>
 
-typedef struct Window Window;
+typedef struct window window;
 
-Window window_create(const char *title, int width, int height, uint32_t flags);
-void   window_destroy(Window *window);
+window window_create(const char *title, int width, int height, uint32_t flags);
+void   window_destroy(window *window);
 
-bool window_apply_config(Window *window);
+bool window_apply_config(window *window);
 
 #endif

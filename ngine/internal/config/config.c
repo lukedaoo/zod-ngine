@@ -106,7 +106,7 @@ bool g_config_adjust(g_config *cfg) {
                           log_level->value.str.data);
                 return false;
             }
-            log_debug("config.adjust: log.level '%s' -> %d",
+            log_debug("config.adjust: log.level. string '%s' to int '%d'",
                       log_level->value.str.data, level_as_int);
             cvar_set_int(&cfg->cvars, "log.level", level_as_int);
         }

@@ -19,17 +19,17 @@ void zod_input_update(void) {
 }
 
 bool zod_key_down(zod_key_t key) {
-    return (key >= 0 && key < SDL_SCANCODE_COUNT) ? g_ctx.input.curr[key] : false;
+    return (key < SDL_SCANCODE_COUNT) ? g_ctx.input.curr[key] : false;
 }
 
 bool zod_key_pressed(zod_key_t key) {
-    return (key >= 0 && key < SDL_SCANCODE_COUNT)
+    return (key < SDL_SCANCODE_COUNT)
                ? (g_ctx.input.curr[key] && !g_ctx.input.prev[key])
                : false;
 }
 
 bool zod_key_released(zod_key_t key) {
-    return (key >= 0 && key < SDL_SCANCODE_COUNT)
+    return (key < SDL_SCANCODE_COUNT)
                ? (!g_ctx.input.curr[key] && g_ctx.input.prev[key])
                : false;
 }

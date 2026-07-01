@@ -4,7 +4,7 @@
 #include "carg.h"
 
 MU_TEST(test_parse_no_flags) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--verbose", .arg_count = 0, .type = CARG_BOOL, .required = false}};
     const char *av[]  = {"prog"};
     int         argc  = 1;
@@ -17,7 +17,7 @@ MU_TEST(test_parse_no_flags) {
 }
 
 MU_TEST(test_parse_bool_flag) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--verbose", .arg_count = 0, .type = CARG_BOOL, .required = false}};
     const char *av[]  = {"prog", "--verbose"};
     int         argc  = 2;
@@ -30,7 +30,7 @@ MU_TEST(test_parse_bool_flag) {
 }
 
 MU_TEST(test_parse_single_int) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--count", .arg_count = 1, .type = CARG_INT, .required = false}};
 
     const char *av[]  = {"prog", "--count", "5"};
@@ -47,7 +47,7 @@ MU_TEST(test_parse_single_int) {
 }
 
 MU_TEST(test_parse_single_float) {
-    carg_register_t defs[] = {{.flag      = "--master-volume",
+    carg_register defs[] = {{.flag      = "--master-volume",
                                .arg_count = 1,
                                .type      = CARG_FLOAT,
                                .required  = false}};
@@ -65,7 +65,7 @@ MU_TEST(test_parse_single_float) {
 }
 
 MU_TEST(test_parse_single_string) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--name", .arg_count = 1, .type = CARG_STRING, .required = false}};
     const char *av[]  = {"prog", "--name", "test"};
     carg_table  table = {0};
@@ -81,7 +81,7 @@ MU_TEST(test_parse_single_string) {
 }
 
 MU_TEST(test_parse_multiple_ints) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false}};
     const char *av[]  = {"prog", "--size", "10", "20"};
     carg_table  table = {0};
@@ -98,7 +98,7 @@ MU_TEST(test_parse_multiple_ints) {
 }
 
 MU_TEST(test_parse_multiple_floats) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--range", .arg_count = 2, .type = CARG_FLOAT, .required = false}};
     const char *av[]  = {"prog", "--range", "1.5", "2.5"};
     carg_table  table = {0};
@@ -115,7 +115,7 @@ MU_TEST(test_parse_multiple_floats) {
 }
 
 MU_TEST(test_parse_multiple_strings) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--tags", .arg_count = 2, .type = CARG_STRING, .required = false}};
     const char *av[]  = {"prog", "--tags", "foo", "bar"};
     carg_table  table = {0};
@@ -132,7 +132,7 @@ MU_TEST(test_parse_multiple_strings) {
 }
 
 MU_TEST(test_parse_required_and_optional_mix) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--size", .arg_count = 1, .type = CARG_INT, .required = true},
          {.flag = "--verbose", .arg_count = 0, .type = CARG_BOOL, .required = false},
     };
@@ -151,9 +151,9 @@ MU_TEST(test_parse_required_and_optional_mix) {
 }
 
 MU_TEST(test_parse_bad_flag_format_fails) {
-    carg_register_t single_dash[] = {
+    carg_register single_dash[] = {
          {.flag = "-size", .arg_count = 1, .type = CARG_INT, .required = false}};
-    carg_register_t no_dash[] = {
+    carg_register no_dash[] = {
          {.flag = "size", .arg_count = 1, .type = CARG_INT, .required = false}};
     const char *av[]  = {"prog"};
     carg_table  table = {0};
@@ -163,7 +163,7 @@ MU_TEST(test_parse_bad_flag_format_fails) {
 }
 
 MU_TEST(test_parse_unknown_flag_fails) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--size", .arg_count = 1, .type = CARG_INT, .required = false}};
     const char *av[]  = {"prog", "--bogus", "5"};
     carg_table  table = {0};
@@ -172,7 +172,7 @@ MU_TEST(test_parse_unknown_flag_fails) {
 }
 
 MU_TEST(test_parse_missing_required_fails) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--size", .arg_count = 1, .type = CARG_INT, .required = true}};
     const char *av[]  = {"prog"};
     carg_table  table = {0};
@@ -181,7 +181,7 @@ MU_TEST(test_parse_missing_required_fails) {
 }
 
 MU_TEST(test_parse_too_few_values_fails) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false}};
     const char *av[]  = {"prog", "--size", "10"};
     carg_table  table = {0};
@@ -190,7 +190,7 @@ MU_TEST(test_parse_too_few_values_fails) {
 }
 
 MU_TEST(test_parse_invalid_int_fails) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--count", .arg_count = 1, .type = CARG_INT, .required = false}};
     const char *av[]  = {"prog", "--count", "abc"};
     carg_table  table = {0};
@@ -199,7 +199,7 @@ MU_TEST(test_parse_invalid_int_fails) {
 }
 
 MU_TEST(test_parse_invalid_float_fails) {
-    carg_register_t defs[] = {{.flag      = "--master-volume",
+    carg_register defs[] = {{.flag      = "--master-volume",
                                .arg_count = 1,
                                .type      = CARG_FLOAT,
                                .required  = false}};
@@ -210,7 +210,7 @@ MU_TEST(test_parse_invalid_float_fails) {
 }
 
 MU_TEST(test_getter_bool_present_and_absent) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--verbose", .arg_count = 0, .type = CARG_BOOL, .required = false},
          {.flag = "--quiet", .arg_count = 0, .type = CARG_BOOL, .required = false},
     };
@@ -226,7 +226,7 @@ MU_TEST(test_getter_bool_present_and_absent) {
 }
 
 MU_TEST(test_getter_int_array_present_and_absent) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--size", .arg_count = 1, .type = CARG_INT, .required = false},
          {.flag = "--scale", .arg_count = 1, .type = CARG_INT, .required = false},
     };
@@ -247,7 +247,7 @@ MU_TEST(test_getter_int_array_present_and_absent) {
 }
 
 MU_TEST(test_getter_float_array_present_and_absent) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--volume", .arg_count = 1, .type = CARG_FLOAT, .required = false},
          {.flag = "--gain", .arg_count = 1, .type = CARG_FLOAT, .required = false},
     };
@@ -268,7 +268,7 @@ MU_TEST(test_getter_float_array_present_and_absent) {
 }
 
 MU_TEST(test_getter_string_array_present_and_absent) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--name", .arg_count = 1, .type = CARG_STRING, .required = false},
          {.flag = "--title", .arg_count = 1, .type = CARG_STRING, .required = false},
     };
@@ -289,7 +289,7 @@ MU_TEST(test_getter_string_array_present_and_absent) {
 }
 
 MU_TEST(test_get_returns_null_for_nonexistent_flag) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--size", .arg_count = 1, .type = CARG_INT, .required = false}};
     const char *av[]  = {"prog", "--size", "5"};
     carg_table  table = {0};
@@ -301,7 +301,7 @@ MU_TEST(test_get_returns_null_for_nonexistent_flag) {
 }
 
 MU_TEST(test_parse_excess_values_fails) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false}};
     const char *av[]  = {"prog", "--size", "10", "20", "300"};
     carg_table  table = {0};
@@ -310,7 +310,7 @@ MU_TEST(test_parse_excess_values_fails) {
 }
 
 MU_TEST(test_parse_excess_values_before_flag_fails) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--size", .arg_count = 2, .type = CARG_INT, .required = false},
          {.flag = "--verbose", .arg_count = 0, .type = CARG_BOOL, .required = false},
     };
@@ -323,7 +323,7 @@ MU_TEST(test_parse_excess_values_before_flag_fails) {
 MU_TEST(test_destroy_null_safe) { carg_destroy(NULL); }
 
 MU_TEST(test_destroy_populated_table_all_types) {
-    carg_register_t defs[] = {
+    carg_register defs[] = {
          {.flag = "--size", .arg_count = 1, .type = CARG_INT, .required = false},
          {.flag = "--volume", .arg_count = 1, .type = CARG_FLOAT, .required = false},
          {.flag = "--name", .arg_count = 1, .type = CARG_STRING, .required = false},

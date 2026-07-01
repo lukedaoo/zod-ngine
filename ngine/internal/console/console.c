@@ -1,5 +1,9 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
+#include "../render/render_internal.h"
+
+#if RENDER_BACKEND == RENDER_BACKEND_OPENGL
+
 #include <glad/gl.h>
 #include <modules/log.h>
 
@@ -134,5 +138,17 @@ void zod_console_draw(void) {
 
     if (!prev_blend) glDisable(GL_BLEND);
 }
+
+#else  // RENDER_BACKEND != RENDER_BACKEND_OPENGL — console not ported to this backend yet
+
+#include "../../console.h"
+
+void zod_console_init(void) {}
+void zod_console_destroy(void) {}
+void zod_console_toggle(void) {}
+bool zod_console_is_open(void) { return false; }
+void zod_console_draw(void) {}
+
+#endif
 
 #endif

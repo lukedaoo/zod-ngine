@@ -40,7 +40,15 @@
 #include "internal/input/input.c"
 #include "internal/engine_context/engine_context.c"
 #include "internal/window/window.c"
+#include "internal/render/render_internal.h"
+
+#if RENDER_BACKEND == RENDER_BACKEND_OPENGL
+#include "internal/render/render_backend_gl.c"
+#elif RENDER_BACKEND == RENDER_BACKEND_VULKAN
+#include "internal/render/render_backend_vulkan.c"
+#endif
 #include "internal/render/render.c"
+
 #include "internal/zod_ngine/zod_ngine.c"
 #include "internal/zod_ngine/zod_ngine_config.c"
 #include "internal/zod_ngine/zod_ngine_clock.c"

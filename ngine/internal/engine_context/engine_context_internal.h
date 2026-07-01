@@ -14,7 +14,7 @@ struct engine_context {
     g_config config;
     g_clock  clock;
     g_input  input;
-    Window   window;
+    window   window;
     bool     should_exit;
 };
 

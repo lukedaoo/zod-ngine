@@ -8,7 +8,7 @@
 
 MU_TEST(test_int_conversion) {
     int         values[] = {200, 300};
-    carg_t      carg     = {.flag    = "--size",
+    carg      carg     = {.flag    = "--size",
                             .type    = CARG_INT,
                             .count   = 2,
                             .value.i = values,
@@ -24,7 +24,7 @@ MU_TEST(test_int_conversion) {
 }
 
 MU_TEST(test_int_conversion_when_value_is_not_present) {
-    carg_t      carg    = {.flag    = "--size",
+    carg      carg    = {.flag    = "--size",
                            .type    = CARG_INT,
                            .count   = 2,
                            .value.i = NULL,
@@ -41,7 +41,7 @@ MU_TEST(test_int_conversion_when_value_is_not_present) {
 
 MU_TEST(test_float_conversion) {
     float       values[] = {1.5f, 2.5f};
-    carg_t      carg     = {.flag    = "--scale",
+    carg      carg     = {.flag    = "--scale",
                             .type    = CARG_FLOAT,
                             .count   = 2,
                             .value.f = values,
@@ -58,7 +58,7 @@ MU_TEST(test_float_conversion) {
 
 MU_TEST(test_string_conversion) {
     const char *values[] = {"a.ini", "b.ini"};
-    carg_t      carg     = {.flag    = "--paths",
+    carg      carg     = {.flag    = "--paths",
                             .type    = CARG_STRING,
                             .count   = 2,
                             .value.s = values,
@@ -74,7 +74,7 @@ MU_TEST(test_string_conversion) {
 }
 
 MU_TEST(test_bool_present_maps_true) {
-    carg_t      carg    = {.flag    = "--verbose",
+    carg      carg    = {.flag    = "--verbose",
                            .type    = CARG_BOOL,
                            .present = true,
                            .count   = 0,
@@ -89,7 +89,7 @@ MU_TEST(test_bool_present_maps_true) {
 }
 
 MU_TEST(test_bool_absent_skips) {
-    carg_t carg = {.flag = "--verbose", .type = CARG_BOOL, .present = false, .count = 0};
+    carg carg = {.flag = "--verbose", .type = CARG_BOOL, .present = false, .count = 0};
     const char *names[] = {"verbose"};
     cvar_table  table   = {0};
 
@@ -100,7 +100,7 @@ MU_TEST(test_bool_absent_skips) {
 }
 
 MU_TEST(test_bool_wrong_names_count_rejected) {
-    carg_t carg = {.flag = "--verbose", .type = CARG_BOOL, .present = true, .count = 0};
+    carg carg = {.flag = "--verbose", .type = CARG_BOOL, .present = true, .count = 0};
     const char *names[] = {"a", "b"};
     cvar_table  table   = {0};
 
@@ -112,7 +112,7 @@ MU_TEST(test_bool_wrong_names_count_rejected) {
 
 MU_TEST(test_names_count_mismatch_rejected) {
     int    values[] = {200, 300};
-    carg_t carg     = {.flag    = "--size",
+    carg carg     = {.flag    = "--size",
                        .type    = CARG_INT,
                        .count   = 2,
                        .present = true,
@@ -128,7 +128,7 @@ MU_TEST(test_names_count_mismatch_rejected) {
 
 MU_TEST(test_null_args_rejected) {
     int    values[] = {200};
-    carg_t carg     = {.flag = "--size", .type = CARG_INT, .count = 1, .value.i = values};
+    carg carg     = {.flag = "--size", .type = CARG_INT, .count = 1, .value.i = values};
     const char *names[] = {"width"};
     cvar_table  table   = {0};
 
@@ -139,7 +139,7 @@ MU_TEST(test_null_args_rejected) {
 
 MU_TEST(test_table_conversion) {
     int    size_values[] = {200, 300};
-    carg_t entries[2]    = {
+    carg entries[2]    = {
          {.flag    = "--size",
           .type    = CARG_INT,
           .count   = 2,
@@ -171,7 +171,7 @@ MU_TEST(test_table_conversion) {
 
 MU_TEST(test_table_conversion_skipping_on_first_failure) {
     int    size_values[] = {200, 300};
-    carg_t entries[2]    = {
+    carg entries[2]    = {
          {.flag = "--size", .type = CARG_INT, .count = 2, .value.i = size_values},
          {.flag = "--verbose", .type = CARG_BOOL, .present = true, .count = 0},
     };

@@ -7,7 +7,7 @@
 /*
  * @info(cargs) — command-line argument parser
  *
- * 1. Define a static array of carg_register_t (flag, arg_count, type, required).
+ * 1. Define a static array of carg_register (flag, arg_count, type, required).
  *    arg_count == 0  ->  bool flag, no values consumed.
  *    All flags must start with `--`.
  *
@@ -21,7 +21,7 @@
  * 4. Call carg_destroy() when done.
  *
  * Example:
- *   carg_register_t defs[] = {
+ *   carg_register defs[] = {
  *       {.flag="--size", .arg_count=2, .type=CARG_INT,  .required=true },
  *       {.flag="--log",  .arg_count=0, .type=CARG_BOOL, .required=false},
  *   };
@@ -40,16 +40,16 @@ typedef struct {
     size_t      arg_count;
     carg_type   type;
     bool        required;
-} carg_register_t;
+} carg_register;
 
 typedef struct carg_table carg_table;
-typedef struct carg_t     carg_t;
+typedef struct carg     carg;
 
-bool carg_parse(const carg_register_t *defs, const size_t ndefs, const int argc,
+bool carg_parse(const carg_register *defs, const size_t ndefs, const int argc,
                 const char **argv, carg_table *table);
 void carg_destroy(carg_table *table);
 
-carg_t *carg_get(carg_table *table, const char *flag);
+carg *carg_get(carg_table *table, const char *flag);
 
 bool         carg_get_bool(carg_table *t, const char *flag, bool fallback);
 const int   *carg_get_int_array(carg_table *t, const char *flag, size_t *count);
@@ -62,7 +62,7 @@ const char **carg_get_string_array(carg_table *t, const char *flag, size_t *coun
 #include <stdlib.h>
 #include <string.h>
 
-struct carg_t {
+struct carg {
     const char *flag;
     carg_type   type;
     bool        present;
@@ -76,11 +76,11 @@ struct carg_t {
 };
 
 struct carg_table {
-    carg_t *data;
+    carg *data;
     size_t  size;
 };
 
-static void carg_entry_free_value(carg_t *e) {
+static void carg_entry_free_value(carg *e) {
     if (e->type == CARG_BOOL) return;
     switch (e->type) {
         case CARG_INT:
@@ -105,7 +105,7 @@ void carg_destroy(carg_table *table) {
     table->size = 0;
 }
 
-carg_t *carg_get(carg_table *table, const char *flag) {
+carg *carg_get(carg_table *table, const char *flag) {
     if (!table || !table->data || !flag) return NULL;
     for (size_t i = 0; i < table->size; i++) {
         if (strcmp(table->data[i].flag, flag) == 0) return &table->data[i];
@@ -113,7 +113,7 @@ carg_t *carg_get(carg_table *table, const char *flag) {
     return NULL;
 }
 
-static const carg_register_t *carg_find_def(const carg_register_t *defs, size_t ndefs,
+static const carg_register *carg_find_def(const carg_register *defs, size_t ndefs,
                                             const char *flag) {
     for (size_t i = 0; i < ndefs; i++) {
         if (strcmp(defs[i].flag, flag) == 0) return &defs[i];
@@ -161,7 +161,7 @@ static float *carg_parse_floats([[maybe_unused]] const char *flag, const char **
     return vals;
 }
 
-bool carg_parse(const carg_register_t *defs, const size_t ndefs, const int argc,
+bool carg_parse(const carg_register *defs, const size_t ndefs, const int argc,
                 const char **argv, carg_table *table) {
     if (!defs || !table || !argv) return false;
 
@@ -186,12 +186,12 @@ bool carg_parse(const carg_register_t *defs, const size_t ndefs, const int argc,
     // Allocate table.
     //
     {
-        table->data = malloc(ndefs * sizeof(carg_t));
+        table->data = malloc(ndefs * sizeof(carg));
         if (!table->data) return false;
         table->size = ndefs;
 
         for (size_t i = 0; i < ndefs; i++) {
-            table->data[i] = (carg_t){
+            table->data[i] = (carg){
                  .flag    = defs[i].flag,
                  .type    = defs[i].type,
                  .present = false,
@@ -203,7 +203,7 @@ bool carg_parse(const carg_register_t *defs, const size_t ndefs, const int argc,
 
     // parsing
     for (int a = 1; a < argc; a++) {
-        const carg_register_t *def = carg_find_def(defs, ndefs, argv[a]);
+        const carg_register *def = carg_find_def(defs, ndefs, argv[a]);
         if (!def) {
 #ifdef MODULE_LOG_ENABLED
             fprintf(stderr, "carg.carg_parse: unknown flag %s\n", argv[a]);
@@ -211,7 +211,7 @@ bool carg_parse(const carg_register_t *defs, const size_t ndefs, const int argc,
             carg_destroy(table);
             return false;
         }
-        carg_t *e = carg_get(table, def->flag);
+        carg *e = carg_get(table, def->flag);
 
         if (def->arg_count == 0) {
             e->present = true;
@@ -310,13 +310,13 @@ bool carg_parse(const carg_register_t *defs, const size_t ndefs, const int argc,
 }
 
 bool carg_get_bool(carg_table *t, const char *flag, bool fallback) {
-    carg_t *e = carg_get(t, flag);
+    carg *e = carg_get(t, flag);
     if (!e || e->type != CARG_BOOL || !e->present) return fallback;
     return e->value.b;
 }
 
 const int *carg_get_int_array(carg_table *t, const char *flag, size_t *count) {
-    carg_t *e = carg_get(t, flag);
+    carg *e = carg_get(t, flag);
     if (!e || e->type != CARG_INT || !e->present) {
         if (count) *count = 0;
         return NULL;
@@ -326,7 +326,7 @@ const int *carg_get_int_array(carg_table *t, const char *flag, size_t *count) {
 }
 
 const float *carg_get_float_array(carg_table *t, const char *flag, size_t *count) {
-    carg_t *e = carg_get(t, flag);
+    carg *e = carg_get(t, flag);
     if (!e || e->type != CARG_FLOAT || !e->present) {
         if (count) *count = 0;
         return NULL;
@@ -336,7 +336,7 @@ const float *carg_get_float_array(carg_table *t, const char *flag, size_t *count
 }
 
 const char **carg_get_string_array(carg_table *t, const char *flag, size_t *count) {
-    carg_t *e = carg_get(t, flag);
+    carg *e = carg_get(t, flag);
     if (!e || e->type != CARG_STRING || !e->present) {
         if (count) *count = 0;
         return NULL;

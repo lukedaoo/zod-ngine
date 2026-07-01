@@ -20,13 +20,13 @@ typedef struct {
     bool               hot_reload;
     const cvar_schema *schema;
     bool (*load_config_func)(const char *filepath, cvar_table *cvars);
-} zod_config_setup_t;
+} zod_config_setup;
 
 typedef struct {
     int          argc;
     const char **argv;
 
-    zod_config_setup_t config_setup;
+    zod_config_setup config_setup;
 
     zod_engine_dispatch dispatch;
 

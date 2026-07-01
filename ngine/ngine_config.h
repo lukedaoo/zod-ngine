@@ -38,6 +38,14 @@
 // @default 0xFF141A1A  (~0.08r 0.10g 0.10b 1.0a — dark teal-gray)
 // #define DEFAULT_CONFIG_WINDOW_CLEAR_COLOR 0x141A1AFF
 
+// ------- Render
+// render_internal.h — compile-time backend selection (0 = OpenGL, 1 = Vulkan).
+// Normally set via `./nob run engine --backend=opengl|vulkan`; this override
+// only matters when compiling without going through build.c (e.g. a raw cc
+// invocation or an IDE that doesn't pass -DRENDER_BACKEND).
+// @default 0 (RENDER_BACKEND_OPENGL)
+// #define RENDER_BACKEND 0
+
 // ------- Log
 // config.c — initial log level (0=TRACE 1=DEBUG 2=INFO 3=WARN 4=ERROR 5=FATAL)
 // @default 0

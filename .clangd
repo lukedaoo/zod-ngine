@@ -20,6 +20,7 @@ CompileFlags:
     - -DARRAY_LIST_IMPLEMENTATION
     # ngine implementation
     - -DZOD_NGINE_IMPLEMENTATION
+    - -DRENDER_BACKEND=RENDER_BACKEND_OPENGL
 Index:
   Background: Build
 Diagnostics:
