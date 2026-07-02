@@ -7,11 +7,11 @@
 typedef enum { CVAR_INT, CVAR_FLOAT, CVAR_BOOL, CVAR_STRING } cvar_type;
 
 typedef struct cvar_table cvar_table;
-typedef struct cvar_t     cvar_t;
+typedef struct cvar       cvar;
 
 void cvar_destroy(cvar_table *table);
 
-cvar_t *cvar_get(cvar_table *table, const char *name);
+cvar *cvar_get(cvar_table *table, const char *name);
 
 int         cvar_get_int(cvar_table *t, const char *name, int fallback);
 float       cvar_get_float(cvar_table *t, const char *name, float fallback);
@@ -43,7 +43,7 @@ void cvar_print(const cvar_table *table);
 #define CVAR_NAME_MAX 64
 #endif
 
-struct cvar_t {
+struct cvar {
     char      name[CVAR_NAME_MAX];
     cvar_type type;
     union {
@@ -58,9 +58,9 @@ struct cvar_t {
 };
 
 struct cvar_table {
-    cvar_t *data;
-    size_t  size;
-    size_t  capacity;
+    cvar  *data;
+    size_t size;
+    size_t capacity;
 };
 
 void cvar_destroy(cvar_table *table) {
@@ -74,7 +74,7 @@ void cvar_destroy(cvar_table *table) {
     table->capacity = 0;
 }
 
-cvar_t *cvar_get(cvar_table *table, const char *name) {
+cvar *cvar_get(cvar_table *table, const char *name) {
     if (!table || !table->data || !name) return NULL;
     for (size_t i = 0; i < table->size; i++) {
         if (strcmp(table->data[i].name, name) == 0) return &table->data[i];
@@ -83,7 +83,7 @@ cvar_t *cvar_get(cvar_table *table, const char *name) {
 }
 
 int cvar_get_int(cvar_table *t, const char *name, int fallback) {
-    cvar_t *cv = cvar_get(t, name);
+    cvar *cv = cvar_get(t, name);
     if (!cv || cv->type != CVAR_INT) {
 #ifdef MODULE_LOG_ENABLED
         fprintf(
@@ -97,7 +97,7 @@ int cvar_get_int(cvar_table *t, const char *name, int fallback) {
 }
 
 float cvar_get_float(cvar_table *t, const char *name, float fallback) {
-    cvar_t *cv = cvar_get(t, name);
+    cvar *cv = cvar_get(t, name);
     if (!cv || cv->type != CVAR_FLOAT) {
 #ifdef ODULE_LOG_ENABLED
         fprintf(
@@ -112,7 +112,7 @@ float cvar_get_float(cvar_table *t, const char *name, float fallback) {
 }
 
 bool cvar_get_bool(cvar_table *t, const char *name, bool fallback) {
-    cvar_t *cv = cvar_get(t, name);
+    cvar *cv = cvar_get(t, name);
     if (!cv || cv->type != CVAR_BOOL) {
 #ifdef MODULE_LOG_ENABLED
         fprintf(
@@ -127,7 +127,7 @@ bool cvar_get_bool(cvar_table *t, const char *name, bool fallback) {
 }
 
 const char *cvar_get_string(cvar_table *t, const char *name, const char *fallback) {
-    cvar_t *cv = cvar_get(t, name);
+    cvar *cv = cvar_get(t, name);
     if (!cv || cv->type != CVAR_STRING) {
 #ifdef MODULE_LOG_ENABLED
         fprintf(stderr,
@@ -169,8 +169,8 @@ static bool cvar_set(cvar_table *table, const char *name, cvar_type type,
         return false;
     }
 
-    cvar_t *cv     = cvar_get(table, name);
-    bool    is_new = (cv == NULL);
+    cvar *cv     = cvar_get(table, name);
+    bool  is_new = (cv == NULL);
 
     //
     // If the cvar does not exist (is_new == true), create it
@@ -189,13 +189,13 @@ static bool cvar_set(cvar_table *table, const char *name, cvar_type type,
                 table->capacity =
                      (table->capacity == 0) ? CVAR_DEFAULT_CAPACITY : table->capacity;
 
-                table->data = malloc(table->capacity * sizeof(cvar_t));
+                table->data = malloc(table->capacity * sizeof(cvar));
                 if (!table->data) return false;
             } else if (table->size >= table->capacity) {
                 size_t new_cap =
                      (table->capacity == 0) ? CVAR_DEFAULT_CAPACITY : table->capacity * 2;
 
-                cvar_t *new_data = realloc(table->data, new_cap * sizeof(cvar_t));
+                cvar *new_data = realloc(table->data, new_cap * sizeof(cvar));
                 if (!new_data) return false;
 
                 table->data     = new_data;
@@ -278,7 +278,7 @@ bool cvar_set_string(cvar_table *t, const char *name, const char *val) {
     return cvar_set(t, name, CVAR_STRING, val);
 }
 
-static void single_cvar_print(const cvar_t *cv) {
+static void single_cvar_print(const cvar *cv) {
     switch (cv->type) {
         case CVAR_INT:
             printf("%s = %d\n", cv->name, cv->value.i);

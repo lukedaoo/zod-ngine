@@ -114,7 +114,7 @@ int main(const int argc, const char **argv) {
         fps_frames++;
         fps_accum += zod_clock_delta();
         if (fps_accum >= 1.0f) {
-            log_info("engine.fps: %u", fps_frames);
+            log_info("engine.fps: %u, %u", fps_frames, zod_clock_dt());
             fps_frames = 0;
             fps_accum -= 1.0f;
         }

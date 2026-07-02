@@ -27,17 +27,17 @@ struct Window {
 };
 
 typedef struct {
-    cvar_t *version;
-    cvar_t *name;
-    cvar_t *email;
-    cvar_t *password;
-    cvar_t *float_var;
-    cvar_t *debug_log;
-    cvar_t *screen_width;
-    cvar_t *screen_height;
-    cvar_t *client_name;
-    cvar_t *client_email;
-    cvar_t *client_password;
+    cvar *version;
+    cvar *name;
+    cvar *email;
+    cvar *password;
+    cvar *float_var;
+    cvar *debug_log;
+    cvar *screen_width;
+    cvar *screen_height;
+    cvar *client_name;
+    cvar *client_email;
+    cvar *client_password;
 } configuration;
 
 int main(const int argc, const char *argv[]) {
@@ -74,8 +74,7 @@ int main(const int argc, const char *argv[]) {
     log_debug("Hello World");
     log_debug("Hello World");
 
-    if (!cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf",
-                       NULL, false)) {
+    if (!cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf", NULL, false)) {
         return 1;
     }
 
@@ -138,8 +137,7 @@ int main(const int argc, const char *argv[]) {
         file_status status = file_watcher_check(w);
         if (status == FILE_CHANGED) {
             printf("Configuration changed\n");
-            if (cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf",
-                              NULL, false)) {
+            if (cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf", NULL, false)) {
                 config.version       = cvar_get(&cvars, "protocol.version");
                 config.name          = cvar_get(&cvars, "user.name");
                 config.email         = cvar_get(&cvars, "user.email");

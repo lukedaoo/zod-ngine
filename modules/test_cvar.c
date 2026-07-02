@@ -92,7 +92,7 @@ MU_TEST(test_cvar_get) {
     cvar_set_int(&table, "foo_i", i);
     cvar_set_string(&table, "foo_s", "bar");
 
-    cvar_t *cv = cvar_get(&table, "foo_i");
+    cvar *cv = cvar_get(&table, "foo_i");
     mu_check(cv != NULL);
     mu_check(cv->value.i == 12);
 
@@ -181,9 +181,9 @@ MU_TEST(test_cvar_set_string_reuses_buffer) {
 
     // first set allocates a buffer sized to the long string
     cvar_set_string(&table, "k", "a fairly long string value");
-    cvar_t *cv   = cvar_get(&table, "k");
-    size_t  cap0 = cv->value.str.cap;
-    char   *buf0 = cv->value.str.data;
+    cvar  *cv   = cvar_get(&table, "k");
+    size_t cap0 = cv->value.str.cap;
+    char  *buf0 = cv->value.str.data;
 
     // shorter value fits -> buffer reused, cap and pointer unchanged
     cvar_set_string(&table, "k", "short");

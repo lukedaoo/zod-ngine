@@ -37,10 +37,10 @@ MU_TEST(test_cvar_force_reload_ini_success) {
     write_file(TEST_INI, "[test]\nvalue=2\nname=bob\n");
     mu_check(cvar_load_ini(&table, TEST_INI, NULL, true));
 
-    cvar_t *v = cvar_get(&table, "test.value");
+    cvar *v = cvar_get(&table, "test.value");
     mu_check(v->value.i == 2);
 
-    cvar_t *n = cvar_get(&table, "test.name");
+    cvar *n = cvar_get(&table, "test.name");
     mu_assert_string_eq("bob", n->value.str.data);
 
     cvar_destroy(&table);
@@ -56,10 +56,10 @@ MU_TEST(test_cvar_reload_ini_success) {
     write_file(TEST_INI, "[test]\nvalue=2\nname=bob\n");
     mu_check(cvar_load_ini(&table, TEST_INI, NULL, false));
 
-    cvar_t *v = cvar_get(&table, "test.value");
+    cvar *v = cvar_get(&table, "test.value");
     mu_check(v->value.i == 2);
 
-    cvar_t *n = cvar_get(&table, "test.name");
+    cvar *n = cvar_get(&table, "test.name");
     mu_assert_string_eq("bob", n->value.str.data);
 
     cvar_destroy(&table);
@@ -78,10 +78,10 @@ MU_TEST(test_cvar_reload_ini_failure_keeps_old) {
     write_file(TEST_INI, "[test]\nvalue=99\nname=bob\n");
     mu_check(!cvar_load_ini(&table, TEST_INI, &schema, true));
 
-    cvar_t *v = cvar_get(&table, "test.value");
+    cvar *v = cvar_get(&table, "test.value");
     mu_check(v->value.i == 1);
 
-    cvar_t *n = cvar_get(&table, "test.name");
+    cvar *n = cvar_get(&table, "test.name");
     mu_assert_string_eq("alice", n->value.str.data);
 
     cvar_destroy(&table);
@@ -97,7 +97,7 @@ MU_TEST_SUITE(cvar_reload_suite) {
 static cvar_type infer_value_type(const char *value) {
     cvar_table table = {0};
     cvar_parse_and_set("test", "value", value, &table, NULL);
-    cvar_t   *v    = cvar_get(&table, "test.value");
+    cvar     *v    = cvar_get(&table, "test.value");
     cvar_type type = v->type;
     cvar_destroy(&table);
     return type;
@@ -122,7 +122,7 @@ MU_TEST(test_float_no_suffix_still_float) {
 MU_TEST(test_float_suffix_value_correct) {
     cvar_table table = {0};
     mu_check(cvar_parse_and_set("test", "value", "3.14F", &table, NULL));
-    cvar_t *v = cvar_get(&table, "test.value");
+    cvar *v = cvar_get(&table, "test.value");
     mu_check(v->value.f > 3.13f && v->value.f < 3.15f);
     cvar_destroy(&table);
 }
@@ -151,14 +151,14 @@ MU_TEST_SUITE(cvar_float_suffix_suite) {
     MU_RUN_TEST(test_invalid_bare_suffix_rejected_as_string);
 }
 
-static cvar_t *parse_single(cvar_table *t, const char *value) {
+static cvar *parse_single(cvar_table *t, const char *value) {
     cvar_parse_and_set("s", "k", value, t, NULL);
     return cvar_get(t, "s.k");
 }
 
 MU_TEST(test_int_suffix_upper_l) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "42L");
+    cvar      *v = parse_single(&t, "42L");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(42, v->value.i);
     cvar_destroy(&t);
@@ -166,11 +166,11 @@ MU_TEST(test_int_suffix_upper_l) {
 
 MU_TEST(test_int_suffix_lower_l) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "99l");
+    cvar      *v = parse_single(&t, "99l");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(99, v->value.i);
 
-    cvar_t    *_v = parse_single(&t, "'99l");
+    cvar *_v = parse_single(&t, "'99l");
     mu_check(_v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(99, _v->value.i);
 
@@ -179,11 +179,11 @@ MU_TEST(test_int_suffix_lower_l) {
 
 MU_TEST(test_int_suffix_negative) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "-7L");
+    cvar      *v = parse_single(&t, "-7L");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(-7, v->value.i);
 
-    cvar_t *_v = parse_single(&t, "'-7L");
+    cvar *_v = parse_single(&t, "'-7L");
     mu_check(_v != NULL && _v->type == CVAR_INT);
     mu_assert_int_eq(-7, _v->value.i);
 
@@ -192,21 +192,21 @@ MU_TEST(test_int_suffix_negative) {
 
 MU_TEST(test_int_suffix_bare_l_is_string) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "L");
+    cvar      *v = parse_single(&t, "L");
     mu_check(v != NULL && v->type == CVAR_STRING);
     cvar_destroy(&t);
 }
 
 MU_TEST(test_int_suffix_non_numeric_is_string) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "helloL");
+    cvar      *v = parse_single(&t, "helloL");
     mu_check(v != NULL && v->type == CVAR_STRING);
     cvar_destroy(&t);
 }
 
 MU_TEST(test_quote_strip_leading) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "'hello");
+    cvar      *v = parse_single(&t, "'hello");
     mu_check(v != NULL && v->type == CVAR_STRING);
     mu_assert_string_eq("hello", v->value.str.data);
     cvar_destroy(&t);
@@ -214,7 +214,7 @@ MU_TEST(test_quote_strip_leading) {
 
 MU_TEST(test_quote_strip_does_not_affect_no_quote) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "hello");
+    cvar      *v = parse_single(&t, "hello");
     mu_check(v != NULL && v->type == CVAR_STRING);
     mu_assert_string_eq("hello", v->value.str.data);
     cvar_destroy(&t);
@@ -222,7 +222,7 @@ MU_TEST(test_quote_strip_does_not_affect_no_quote) {
 
 MU_TEST(test_quote_strip_int_still_parsed) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "'42");
+    cvar      *v = parse_single(&t, "'42");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(42, v->value.i);
     cvar_destroy(&t);
@@ -238,7 +238,7 @@ MU_TEST_SUITE(cvar_int_suffix_suite) {
 
 MU_TEST(test_matched_single_quotes_force_string) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "'123123123'");
+    cvar      *v = parse_single(&t, "'123123123'");
     mu_check(v != NULL && v->type == CVAR_STRING);
     mu_assert_string_eq("123123123", v->value.str.data);
     cvar_destroy(&t);
@@ -246,7 +246,7 @@ MU_TEST(test_matched_single_quotes_force_string) {
 
 MU_TEST(test_matched_double_quotes_force_string) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "\"123123123\"");
+    cvar      *v = parse_single(&t, "\"123123123\"");
     mu_check(v != NULL && v->type == CVAR_STRING);
     mu_assert_string_eq("123123123", v->value.str.data);
     cvar_destroy(&t);
@@ -254,7 +254,7 @@ MU_TEST(test_matched_double_quotes_force_string) {
 
 MU_TEST(test_matched_quotes_strip_both) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "'hello world'");
+    cvar      *v = parse_single(&t, "'hello world'");
     mu_check(v != NULL && v->type == CVAR_STRING);
     mu_assert_string_eq("hello world", v->value.str.data);
     cvar_destroy(&t);
@@ -262,7 +262,7 @@ MU_TEST(test_matched_quotes_strip_both) {
 
 MU_TEST(test_unmatched_leading_quote_float_suffix) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "'1.23F");
+    cvar      *v = parse_single(&t, "'1.23F");
     mu_check(v != NULL && v->type == CVAR_FLOAT);
     mu_check(v->value.f > 1.22f && v->value.f < 1.24f);
     cvar_destroy(&t);
@@ -270,7 +270,7 @@ MU_TEST(test_unmatched_leading_quote_float_suffix) {
 
 MU_TEST(test_unmatched_leading_quote_int_suffix) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "'123L");
+    cvar      *v = parse_single(&t, "'123L");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(123, v->value.i);
     cvar_destroy(&t);
@@ -289,7 +289,7 @@ MU_TEST_SUITE(cvar_quote_strip_suite) {
 
 MU_TEST(test_hex_zero) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0x0");
+    cvar      *v = parse_single(&t, "0x0");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(0, v->value.i);
     cvar_destroy(&t);
@@ -297,7 +297,7 @@ MU_TEST(test_hex_zero) {
 
 MU_TEST(test_hex_one) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0x1");
+    cvar      *v = parse_single(&t, "0x1");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(1, v->value.i);
     cvar_destroy(&t);
@@ -305,7 +305,7 @@ MU_TEST(test_hex_one) {
 
 MU_TEST(test_hex_ten) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0x10");
+    cvar      *v = parse_single(&t, "0x10");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(16, v->value.i);
     cvar_destroy(&t);
@@ -313,7 +313,7 @@ MU_TEST(test_hex_ten) {
 
 MU_TEST(test_hex_ff_lower) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0xff");
+    cvar      *v = parse_single(&t, "0xff");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(255, v->value.i);
     cvar_destroy(&t);
@@ -321,7 +321,7 @@ MU_TEST(test_hex_ff_lower) {
 
 MU_TEST(test_hex_ff_upper) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0xFF");
+    cvar      *v = parse_single(&t, "0xFF");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(255, v->value.i);
     cvar_destroy(&t);
@@ -329,7 +329,7 @@ MU_TEST(test_hex_ff_upper) {
 
 MU_TEST(test_hex_uppercase_x_prefix) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0Xff");
+    cvar      *v = parse_single(&t, "0Xff");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(255, v->value.i);
     cvar_destroy(&t);
@@ -337,7 +337,7 @@ MU_TEST(test_hex_uppercase_x_prefix) {
 
 MU_TEST(test_hex_rgb_white) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0xFFFFFF");
+    cvar      *v = parse_single(&t, "0xFFFFFF");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(16777215, v->value.i);
     cvar_destroy(&t);
@@ -345,7 +345,7 @@ MU_TEST(test_hex_rgb_white) {
 
 MU_TEST(test_hex_rgba_all_ones_bit_preserved) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0xFFFFFFFF");
+    cvar      *v = parse_single(&t, "0xFFFFFFFF");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_assert_int_eq(-1, v->value.i);
     cvar_destroy(&t);
@@ -353,28 +353,28 @@ MU_TEST(test_hex_rgba_all_ones_bit_preserved) {
 
 MU_TEST(test_hex_only_prefix_is_string) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0x");
+    cvar      *v = parse_single(&t, "0x");
     mu_check(v != NULL && v->type == CVAR_STRING);
     cvar_destroy(&t);
 }
 
 MU_TEST(test_hex_invalid_digits_is_string) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0xGG");
+    cvar      *v = parse_single(&t, "0xGG");
     mu_check(v != NULL && v->type == CVAR_STRING);
     cvar_destroy(&t);
 }
 
 MU_TEST(test_hex_trailing_invalid_is_string) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0x10g");
+    cvar      *v = parse_single(&t, "0x10g");
     mu_check(v != NULL && v->type == CVAR_STRING);
     cvar_destroy(&t);
 }
 
 MU_TEST(test_hex_no_prefix_is_string) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "ff");
+    cvar      *v = parse_single(&t, "ff");
     mu_check(v != NULL && v->type == CVAR_STRING);
     cvar_destroy(&t);
 }
@@ -384,7 +384,7 @@ MU_TEST(test_hex_no_prefix_is_string) {
 // of CVAR_INT. The is_hex guard in the suffix block fixes this.
 MU_TEST(test_hex_ending_f_not_float_beef) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0xbeef");
+    cvar      *v = parse_single(&t, "0xbeef");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_check(v->type != CVAR_FLOAT);
     mu_assert_int_eq(0xbeef, v->value.i);
@@ -393,7 +393,7 @@ MU_TEST(test_hex_ending_f_not_float_beef) {
 
 MU_TEST(test_hex_ending_F_not_float_BEEF) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0xBEEF");
+    cvar      *v = parse_single(&t, "0xBEEF");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_check(v->type != CVAR_FLOAT);
     mu_assert_int_eq(0xBEEF, v->value.i);
@@ -402,7 +402,7 @@ MU_TEST(test_hex_ending_F_not_float_BEEF) {
 
 MU_TEST(test_hex_ending_f_not_float_deadbeef) {
     cvar_table t = {0};
-    cvar_t    *v = parse_single(&t, "0xdeadbeef");
+    cvar      *v = parse_single(&t, "0xdeadbeef");
     mu_check(v != NULL && v->type == CVAR_INT);
     mu_check(v->type != CVAR_FLOAT);
     mu_assert_int_eq((int)0xdeadbeef, v->value.i);

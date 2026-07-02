@@ -98,7 +98,7 @@ bool g_config_adjust(g_config *cfg) {
         return false;
     }
     {
-        cvar_t *log_level = cvar_get(&cfg->cvars, "log.level");
+        cvar *log_level = cvar_get(&cfg->cvars, "log.level");
         if (log_level && log_level->type == CVAR_STRING) {
             int level_as_int = log_level_from_string(log_level->value.str.data);
             if (level_as_int < 0) {
