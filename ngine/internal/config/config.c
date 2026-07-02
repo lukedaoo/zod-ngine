@@ -9,11 +9,19 @@
 
 #include "../engine_context/engine_context_internal.h"
 
+static int g_min_positive = 1;
+static int g_min_zero     = 0;  // 0 = uncapped fps, negative still rejected
+
 static const cvar_schema_entry g_engine_schema_entries[] = {
-     {"engine.target_fps", CVAR_INT},   {"window.width", CVAR_INT},
-     {"window.height", CVAR_INT},       {"window.title", CVAR_STRING},
-     {"window.vsync", CVAR_BOOL},       {"window.clear_color", CVAR_INT},
-     {"window.transparent", CVAR_BOOL},
+     {.name     = "engine.target_fps",
+      .expected = CVAR_INT,
+      .range    = {.min = &g_min_zero}},
+     {.name = "window.width", .expected = CVAR_INT, .range = {.min = &g_min_positive}},
+     {.name = "window.height", .expected = CVAR_INT, .range = {.min = &g_min_positive}},
+     {.name = "window.title", .expected = CVAR_STRING, .range = {0}},
+     {.name = "window.vsync", .expected = CVAR_BOOL, .range = {0}},
+     {.name = "window.clear_color", .expected = CVAR_INT, .range = {0}},
+     {.name = "window.transparent", .expected = CVAR_BOOL, .range = {0}},
 };
 
 static const cvar_schema g_engine_schema = {
@@ -82,8 +90,14 @@ bool g_config_reload_from_file(g_config *cfg) {
     g_config_seed_preset(&tmp);
     if (!cfg->reload_config_func(cfg->config_file_watcher->path, &tmp.cvars)) {
         cvar_destroy(&tmp.cvars);
-        log_warn("config.reload: failed to reload '%s' — keeping previous config",
-                 cfg->config_file_watcher->path);
+        const char *reason = cvar_load_get_error();
+        if (reason[0]) {
+            log_warn("config.reload: failed to reload '%s': %s — keeping previous config",
+                     cfg->config_file_watcher->path, reason);
+        } else {
+            log_warn("config.reload: failed to reload '%s' — keeping previous config",
+                     cfg->config_file_watcher->path);
+        }
         return false;
     }
 
@@ -111,6 +125,32 @@ bool g_config_adjust(g_config *cfg) {
             cvar_set_int(&cfg->cvars, "log.level", level_as_int);
         }
     }
+    return true;
+}
+
+bool g_config_validate(g_config *cfg) {
+    if (!cfg) {
+        log_error("config.validate: called with NULL cfg — this is a bug");
+        return false;
+    }
+
+    int w = cvar_get_int(&cfg->cvars, "window.width", DEFAULT_CONFIG_WINDOW_WIDTH);
+    int h = cvar_get_int(&cfg->cvars, "window.height", DEFAULT_CONFIG_WINDOW_HEIGHT);
+    int target_fps =
+         cvar_get_int(&cfg->cvars, "engine.target_fps", DEFAULT_CONFIG_TARGET_FPS);
+
+    if (w <= 0 || h <= 0) {
+        log_fatal("config.validate: invalid config — window %dx%d — must be > 0", w, h);
+        return false;
+    }
+    if (target_fps < 0) {
+        log_fatal(
+             "config.validate: invalid config — target_fps %d — must be >= 0 (0 = "
+             "uncapped)",
+             target_fps);
+        return false;
+    }
+
     return true;
 }
 

@@ -36,9 +36,10 @@ static bool call_strict(const char *section, const char *key, const char *value,
 }
 
 MU_TEST(test_typed_handler_accepts_correct_int) {
-    static const cvar_schema_entry entries[] = {{"window.width", CVAR_INT}};
-    static const cvar_schema       schema    = {.entries = entries, .count = 1};
-    cvar_table                     table     = {0};
+    static const cvar_schema_entry entries[] = {
+         {.name = "window.width", .expected = CVAR_INT, .range = {0}}};
+    static const cvar_schema schema = {.entries = entries, .count = 1};
+    cvar_table               table  = {0};
 
     mu_check(call_strict("window", "width", "800", &table, &schema));
     mu_assert_int_eq(800, cvar_get_int(&table, "window.width", -1));
@@ -47,9 +48,10 @@ MU_TEST(test_typed_handler_accepts_correct_int) {
 }
 
 MU_TEST(test_typed_handler_rejects_string_for_int) {
-    static const cvar_schema_entry entries[] = {{"window.width", CVAR_INT}};
-    static const cvar_schema       schema    = {.entries = entries, .count = 1};
-    cvar_table                     table     = {0};
+    static const cvar_schema_entry entries[] = {
+         {.name = "window.width", .expected = CVAR_INT, .range = {0}}};
+    static const cvar_schema schema = {.entries = entries, .count = 1};
+    cvar_table               table  = {0};
 
     mu_check(!call_strict("window", "width", "\"hello\"", &table, &schema));
     mu_assert_int_eq(-1, cvar_get_int(&table, "window.width", -1));
@@ -58,9 +60,10 @@ MU_TEST(test_typed_handler_rejects_string_for_int) {
 }
 
 MU_TEST(test_typed_handler_rejects_float_for_int) {
-    static const cvar_schema_entry entries[] = {{"window.width", CVAR_INT}};
-    static const cvar_schema       schema    = {.entries = entries, .count = 1};
-    cvar_table                     table     = {0};
+    static const cvar_schema_entry entries[] = {
+         {.name = "window.width", .expected = CVAR_INT, .range = {0}}};
+    static const cvar_schema schema = {.entries = entries, .count = 1};
+    cvar_table               table  = {0};
 
     mu_check(!call_strict("window", "width", "3.14", &table, &schema));
     mu_assert_int_eq(-1, cvar_get_int(&table, "window.width", -1));
@@ -69,9 +72,10 @@ MU_TEST(test_typed_handler_rejects_float_for_int) {
 }
 
 MU_TEST(test_typed_handler_accepts_no_schema_entry) {
-    static const cvar_schema_entry entries[] = {{"window.width", CVAR_INT}};
-    static const cvar_schema       schema    = {.entries = entries, .count = 1};
-    cvar_table                     table     = {0};
+    static const cvar_schema_entry entries[] = {
+         {.name = "window.width", .expected = CVAR_INT, .range = {0}}};
+    static const cvar_schema schema = {.entries = entries, .count = 1};
+    cvar_table               table  = {0};
 
     mu_check(call_strict("window", "height", "600", &table, &schema));
     mu_assert_int_eq(600, cvar_get_int(&table, "window.height", -1));
@@ -89,9 +93,10 @@ MU_TEST(test_typed_handler_null_schema_falls_through) {
 }
 
 MU_TEST(test_typed_handler_accepts_correct_bool) {
-    static const cvar_schema_entry entries[] = {{"window.vsync", CVAR_BOOL}};
-    static const cvar_schema       schema    = {.entries = entries, .count = 1};
-    cvar_table                     table     = {0};
+    static const cvar_schema_entry entries[] = {
+         {.name = "window.vsync", .expected = CVAR_BOOL, .range = {0}}};
+    static const cvar_schema schema = {.entries = entries, .count = 1};
+    cvar_table               table  = {0};
 
     mu_check(call_strict("window", "vsync", "true", &table, &schema));
     mu_check(cvar_get_bool(&table, "window.vsync", false) == true);
@@ -100,9 +105,10 @@ MU_TEST(test_typed_handler_accepts_correct_bool) {
 }
 
 MU_TEST(test_typed_handler_rejects_int_for_bool) {
-    static const cvar_schema_entry entries[] = {{"window.vsync", CVAR_BOOL}};
-    static const cvar_schema       schema    = {.entries = entries, .count = 1};
-    cvar_table                     table     = {0};
+    static const cvar_schema_entry entries[] = {
+         {.name = "window.vsync", .expected = CVAR_BOOL, .range = {0}}};
+    static const cvar_schema schema = {.entries = entries, .count = 1};
+    cvar_table               table  = {0};
 
     mu_check(!call_strict("window", "vsync", "1", &table, &schema));
     mu_check(cvar_get_bool(&table, "window.vsync", false) == false);
@@ -112,13 +118,13 @@ MU_TEST(test_typed_handler_rejects_int_for_bool) {
 
 MU_TEST(test_schema_merge_combines_entries) {
     static const cvar_schema_entry a[] = {
-         {"window.width", CVAR_INT},
-         {"window.height", CVAR_INT},
-         {"window.vsync", CVAR_BOOL},
+         {.name = "window.width", .expected = CVAR_INT, .range = {0}},
+         {.name = "window.height", .expected = CVAR_INT, .range = {0}},
+         {.name = "window.vsync", .expected = CVAR_BOOL, .range = {0}},
     };
     static const cvar_schema_entry b[] = {
-         {"game.speed", CVAR_FLOAT},
-         {"game.name", CVAR_STRING},
+         {.name = "game.speed", .expected = CVAR_FLOAT, .range = {0}},
+         {.name = "game.name", .expected = CVAR_STRING, .range = {0}},
     };
     static const cvar_schema sa = {.entries = a, .count = 3};
     static const cvar_schema sb = {.entries = b, .count = 2};
@@ -130,10 +136,12 @@ MU_TEST(test_schema_merge_combines_entries) {
 }
 
 MU_TEST(test_schema_merge_second_overrides_first) {
-    static const cvar_schema_entry a[] = {{"window.width", CVAR_INT}};
-    static const cvar_schema_entry b[] = {{"window.width", CVAR_STRING}};
-    static const cvar_schema       sa  = {.entries = a, .count = 1};
-    static const cvar_schema       sb  = {.entries = b, .count = 1};
+    static const cvar_schema_entry a[] = {
+         {.name = "window.width", .expected = CVAR_INT, .range = {0}}};
+    static const cvar_schema_entry b[] = {
+         {.name = "window.width", .expected = CVAR_STRING, .range = {0}}};
+    static const cvar_schema sa = {.entries = a, .count = 1};
+    static const cvar_schema sb = {.entries = b, .count = 1};
 
     cvar_schema_entry out[4];
     size_t            n = cvar_schema_merge(&sa, &sb, out, 4);
@@ -143,10 +151,11 @@ MU_TEST(test_schema_merge_second_overrides_first) {
 }
 
 MU_TEST(test_typed_scf_force_reload_accepts_correct_types) {
-    static const cvar_schema_entry entries[] = {{"window.width", CVAR_INT},
-                                                {"window.height", CVAR_INT}};
-    static const cvar_schema       schema    = {.entries = entries, .count = 2};
-    cvar_table                     table     = {0};
+    static const cvar_schema_entry entries[] = {
+         {.name = "window.width", .expected = CVAR_INT, .range = {0}},
+         {.name = "window.height", .expected = CVAR_INT, .range = {0}}};
+    static const cvar_schema schema = {.entries = entries, .count = 2};
+    cvar_table               table  = {0};
     cvar_set_int(&table, "window.width", 800);
     cvar_set_int(&table, "window.height", 600);
 
@@ -160,9 +169,10 @@ MU_TEST(test_typed_scf_force_reload_accepts_correct_types) {
 }
 
 MU_TEST(test_typed_scf_force_reload_rejects_type_mismatch) {
-    static const cvar_schema_entry entries[] = {{"window.width", CVAR_INT}};
-    static const cvar_schema       schema    = {.entries = entries, .count = 1};
-    cvar_table                     table     = {0};
+    static const cvar_schema_entry entries[] = {
+         {.name = "window.width", .expected = CVAR_INT, .range = {0}}};
+    static const cvar_schema schema = {.entries = entries, .count = 1};
+    cvar_table               table  = {0};
     cvar_set_int(&table, "window.width", 800);
 
     write_file(TEST_SCF, ":/window\nwidth \"bad\"\n");

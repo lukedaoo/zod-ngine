@@ -6,8 +6,14 @@
 #include "scf.h"
 
 typedef struct {
+    void *min;
+    void *max;
+} cvar_range;
+
+typedef struct {
     const char *name;  // "section.key"
     cvar_type   expected;
+    cvar_range  range;
 } cvar_schema_entry;
 
 typedef struct {
@@ -22,6 +28,10 @@ bool cvar_load_ini(cvar_table *table, const char *path, const cvar_schema *schem
 bool cvar_load_scf(cvar_table *table, const char *path, const cvar_schema *schema,
                    bool force_reload);
 
+// Reason the most recent cvar_load_ini/cvar_load_scf call failed. Empty string if the
+// last call succeeded.
+const char *cvar_load_get_error(void);
+
 // Merges first then second into out_entries[out_cap].
 // Second entries win on name collision. Returns number of entries written.
 size_t cvar_schema_merge(const cvar_schema *first, const cvar_schema *second,
@@ -33,7 +43,6 @@ size_t cvar_schema_merge(const cvar_schema *first, const cvar_schema *second,
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef MODULE_LOG_ENABLED
 static const char *cvar_type_name(cvar_type t) {
     switch (t) {
         case CVAR_INT:
@@ -47,7 +56,12 @@ static const char *cvar_type_name(cvar_type t) {
     }
     return "unknown";
 }
-#endif
+
+static __thread char cvar_load_error_buf[256] = "";
+
+// Reason the most recent cvar_load_ini/cvar_load_scf call failed. Empty string if the
+// last call succeeded.
+const char *cvar_load_get_error(void) { return cvar_load_error_buf; }
 
 // Maps "section.key = value" into a cvar, inferring type in priority order:
 //
@@ -61,27 +75,59 @@ static const char *cvar_type_name(cvar_type t) {
 //   anything else          CVAR_STRING
 //
 // entry == NULL: infer only. entry != NULL: abort if inferred type != entry->expected.
+static inline bool cvar_check_range(const cvar_schema_entry *e, int type, const void *v) {
+    if (!e) return true;
+
+    switch (type) {
+        case CVAR_INT: {
+            int val = *(const int *)v;
+            if (e->range.min && val < *(int *)e->range.min) return false;
+            if (e->range.max && val > *(int *)e->range.max) return false;
+            return true;
+        }
+        case CVAR_FLOAT: {
+            float val = *(const float *)v;
+            if (e->range.min && val < *(float *)e->range.min) return false;
+            if (e->range.max && val > *(float *)e->range.max) return false;
+            return true;
+        }
+        default:
+            return true;
+    }
+}
+
 static bool cvar_parse_and_set(const char *section, const char *key, const char *value,
                                cvar_table *table, const cvar_schema_entry *entry) {
     char name[CVAR_NAME_MAX];
     snprintf(name, sizeof(name), "%s.%s", section, key);
-#ifdef MODULE_LOG_ENABLED
     const char *orig = value;
-#define CHECK_TYPE(got)                                                                \
-    do {                                                                               \
-        if (entry && (got) != entry->expected) {                                       \
-            fprintf(stderr,                                                            \
-                    "cvar.load: '%s' expected %s, got %s ('%s') — aborting load\n",    \
-                    name, cvar_type_name(entry->expected), cvar_type_name(got), orig); \
-            return false;                                                              \
-        }                                                                              \
-    } while (0)
+
+#ifdef MODULE_LOG_ENABLED
+#define CVAR_LOAD_DIAG_PRINT() fprintf(stderr, "cvar.load: %s\n", cvar_load_error_buf)
 #else
-#define CHECK_TYPE(got)                                      \
-    do {                                                     \
-        if (entry && (got) != entry->expected) return false; \
-    } while (0)
+#define CVAR_LOAD_DIAG_PRINT() ((void)0)
 #endif
+
+#define CHECK_TYPE(got)                                                           \
+    do {                                                                          \
+        if (entry && (got) != entry->expected) {                                  \
+            snprintf(cvar_load_error_buf, sizeof(cvar_load_error_buf),            \
+                     "'%s' expected %s, got %s ('%s')", name,                     \
+                     cvar_type_name(entry->expected), cvar_type_name(got), orig); \
+            CVAR_LOAD_DIAG_PRINT();                                               \
+            return false;                                                         \
+        }                                                                         \
+    } while (0)
+
+#define CHECK_RANGE(entry, type, val)                                  \
+    do {                                                               \
+        if (!cvar_check_range((entry), (type), &(val))) {              \
+            snprintf(cvar_load_error_buf, sizeof(cvar_load_error_buf), \
+                     "'%s' value '%s' is out of range", name, value);  \
+            CVAR_LOAD_DIAG_PRINT();                                    \
+            return false;                                              \
+        }                                                              \
+    } while (0)
 
     size_t len = strlen(value);
 
@@ -94,12 +140,9 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
             char   buf[512];
             size_t inner = len - 2;
             if (inner >= sizeof(buf)) {
-#ifdef MODULE_LOG_ENABLED
-                fprintf(stderr,
-                        "cvar.load: value for '%s' exceeds %zu bytes — truncate or "
-                        "shorten the value\n",
-                        name, sizeof(buf) - 1);
-#endif
+                snprintf(cvar_load_error_buf, sizeof(cvar_load_error_buf),
+                         "value for '%s' exceeds %zu bytes", name, sizeof(buf) - 1);
+                CVAR_LOAD_DIAG_PRINT();
                 return false;
             }
             memcpy(buf, value + 1, inner);
@@ -131,6 +174,7 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
                 float f = strtof(buf, &end);
                 if (end != buf && *end == '\0') {
                     CHECK_TYPE(CVAR_FLOAT);
+                    CHECK_RANGE(entry, CVAR_FLOAT, f);
                     return cvar_set_float(table, name, f);
                 }
             }
@@ -145,6 +189,7 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
                 long  v = strtol(buf, &end, 10);
                 if (end != buf && *end == '\0') {
                     CHECK_TYPE(CVAR_INT);
+                    CHECK_RANGE(entry, CVAR_INT, v);
                     return cvar_set_int(table, name, (int)v);
                 }
             }
@@ -184,6 +229,7 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
         long ival = strtol(value, &end, 10);
         if (*value != '\0' && *end == '\0') {
             CHECK_TYPE(CVAR_INT);
+            CHECK_RANGE(entry, CVAR_INT, ival);
             return cvar_set_int(table, name, (int)ival);
         }
     }
@@ -195,6 +241,7 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
         float fval = strtof(value, &end);
         if (end != value && *end == '\0') {
             CHECK_TYPE(CVAR_FLOAT);
+            CHECK_RANGE(entry, CVAR_FLOAT, fval);
             return cvar_set_float(table, name, fval);
         }
     }
@@ -203,6 +250,8 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
     return cvar_set_string(table, name, value);
 
 #undef CHECK_TYPE
+#undef CHECK_RANGE
+#undef CVAR_LOAD_DIAG_PRINT
 }
 
 typedef struct {
@@ -233,6 +282,8 @@ typedef bool (*parse_func)(const char *filepath, void *handler, void *user);
 static bool cvar_load_internal(cvar_table *table, const char *path,
                                const cvar_schema *schema, bool force_reload,
                                parse_func parser) {
+    cvar_load_error_buf[0] = '\0';
+
     if (!force_reload) {
         cvar_load_ctx ctx = {.table = table, .schema = schema};
         return parser(path, cvar_strict_handler, &ctx);

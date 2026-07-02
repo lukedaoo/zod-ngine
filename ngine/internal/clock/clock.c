@@ -9,6 +9,12 @@
 #include "clock_internal.h"
 
 void g_clock_init(uint32_t target_fps) {
+    if ((int32_t)target_fps < 0) {
+        log_error("clock.init: negative target_fps %d rejected — ignoring",
+                  (int32_t)target_fps);
+        return;
+    }
+
     memset(&g_ctx.clock, 0, sizeof(g_ctx.clock));
     g_ctx.clock.freq        = SDL_GetPerformanceFrequency();
     g_ctx.clock.last_tick   = SDL_GetPerformanceCounter();
@@ -19,6 +25,12 @@ void g_clock_init(uint32_t target_fps) {
 }
 
 void g_clock_change_target_fps(uint32_t target_fps) {
+    if ((int32_t)target_fps < 0) {
+        log_error("clock.change_target_fps: negative fps %d rejected — ignoring",
+                  (int32_t)target_fps);
+        return;
+    }
+
     log_debug("clock.change_target_fps: %u", target_fps);
     g_ctx.clock.frame_rate  = target_fps;
     g_ctx.clock.frame_delay = target_fps ? 1.0f / (float)target_fps : 0.0f;

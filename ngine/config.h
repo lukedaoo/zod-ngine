@@ -10,6 +10,9 @@ bool g_config_reload_from_file(g_config *cfg);
 // @info(engine-config): adjust user config to enfore required values
 bool g_config_adjust(g_config *cfg);
 
+// @info(engine-config): reject fatal invariants (window size, target_fps must be > 0)
+bool g_config_validate(g_config *cfg);
+
 // debug
 void g_config_print(g_config *cfg);
 

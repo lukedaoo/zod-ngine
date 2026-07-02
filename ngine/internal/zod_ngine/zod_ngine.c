@@ -37,11 +37,20 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         if (config_setup.load_config_func && config_setup.config_path) {
             if (!config_setup.load_config_func(config_setup.config_path,
                                                &g_ctx.config.cvars)) {
-                log_warn("config.init: failed to load '%s' — using preset defaults",
-                         config_setup.config_path);
-            } else {
-                log_debug("config.init: loaded from '%s'", config_setup.config_path);
+                const char *reason = cvar_load_get_error();
+                if (reason[0]) {
+                    zod_set_error("failed to load config '%s': %s",
+                                  config_setup.config_path, reason);
+                    log_fatal("config.init: failed to load '%s': %s",
+                              config_setup.config_path, reason);
+                } else {
+                    zod_set_error("failed to load config '%s'", config_setup.config_path);
+                    log_fatal("config.init: failed to load '%s'",
+                              config_setup.config_path);
+                }
+                return false;
             }
+            log_debug("config.init: loaded from '%s'", config_setup.config_path);
             if (config_setup.hot_reload) {
                 g_ctx.config.config_file_watcher =
                      file_watcher_watch(config_setup.config_path);
@@ -60,8 +69,14 @@ bool zod_ngine_init(const zod_engine_init_params params) {
                 log_debug("config.init: CLI args applied");
             }
         }
-        g_config_adjust(&g_ctx.config);
     }
+
+    if (!g_config_validate(&g_ctx.config)) {
+        zod_set_error("invalid config — see log for details");
+        return false;
+    }
+
+    g_config_adjust(&g_ctx.config);
 
 #ifdef DEBUG
     g_config_print(&g_ctx.config);
@@ -77,14 +92,17 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         }
     }
     {
-        const char *title =
-             cvar_get_string(&g_ctx.config.cvars, "window.title", "zod-ngine");
+        const char *title = cvar_get_string(&g_ctx.config.cvars, "window.title",
+                                            DEFAULT_CONFIG_WINDOW_TITLE);
 
-        int w = cvar_get_int(&g_ctx.config.cvars, "window.width", 800);
-        int h = cvar_get_int(&g_ctx.config.cvars, "window.height", 600);
+        int w = cvar_get_int(&g_ctx.config.cvars, "window.width",
+                             DEFAULT_CONFIG_WINDOW_WIDTH);
+        int h = cvar_get_int(&g_ctx.config.cvars, "window.height",
+                             DEFAULT_CONFIG_WINDOW_HEIGHT);
 
         uint32_t flags = 0;
-        if (cvar_get_bool(&g_ctx.config.cvars, "window.transparent", false))
+        if (cvar_get_bool(&g_ctx.config.cvars, "window.transparent",
+                          DEFAULT_CONFIG_WINDOW_TRANSPARENT))
             flags |= SDL_WINDOW_TRANSPARENT;
         g_ctx.window = window_create(title, w, h, flags);
         zod_ngine_apply_config(false);
@@ -93,8 +111,9 @@ bool zod_ngine_init(const zod_engine_init_params params) {
 #endif
 
     {
-        const int target_fps = cvar_get_int(&g_ctx.config.cvars, "engine.target_fps", 60);
-        g_clock_init(target_fps);
+        int target_fps = cvar_get_int(&g_ctx.config.cvars, "engine.target_fps",
+                                      DEFAULT_CONFIG_TARGET_FPS);
+        g_clock_init((uint32_t)target_fps);
         log_debug("clock.init: target fps = %d", target_fps);
     }
 
@@ -114,8 +133,11 @@ void zod_ngine_apply_config(bool adjust_config) {
     if (adjust_config) g_config_adjust(&g_ctx.config);
 
     log_set_level(cvar_get_int(&g_ctx.config.cvars, "log.level", LOG_TRACE));
-    g_clock_change_target_fps(cvar_get_int(&g_ctx.config.cvars, "engine.target_fps",
-                                           DEFAULT_CONFIG_TARGET_FPS));
+
+    int target_fps = cvar_get_int(&g_ctx.config.cvars, "engine.target_fps",
+                                  DEFAULT_CONFIG_TARGET_FPS);
+    g_clock_change_target_fps(target_fps >= 0 ? (uint32_t)target_fps
+                                              : DEFAULT_CONFIG_TARGET_FPS);
     window_apply_config(&g_ctx.window);
 }
 

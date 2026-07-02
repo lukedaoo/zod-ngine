@@ -21,6 +21,13 @@
 #endif
 
 window window_create(const char *title, int width, int height, uint32_t flags) {
+    if (width <= 0 || height <= 0) {
+        log_error(
+             "window.create: invalid size %dx%d rejected — width and height must be > 0",
+             width, height);
+        return (window){0};
+    }
+
     window window = {0};
     window.handle = SDL_CreateWindow(title, width, height, flags | WINDOW_SDL_FLAG);
     window.width  = width;
@@ -48,7 +55,7 @@ bool window_apply_config(window *window) {
     //
     {
 #if RENDER_BACKEND == RENDER_BACKEND_OPENGL
-        bool vsync    = cvar_get_bool(&g_ctx.config.cvars, "window.vsync", true);
+        bool vsync    = cvar_get_bool(&g_ctx.config.cvars, "window.vsync", DEFAULT_CONFIG_WINDOW_VSYNC);
         bool vsync_ok = SDL_GL_SetSwapInterval(vsync ? 1 : 0);
         if (!vsync_ok) {
             log_warn(
@@ -63,8 +70,12 @@ bool window_apply_config(window *window) {
     // window size
     //
     {
-        int w = cvar_get_int(&g_ctx.config.cvars, "window.width", 800);
-        int h = cvar_get_int(&g_ctx.config.cvars, "window.height", 600);
+        int w = cvar_get_int(&g_ctx.config.cvars, "window.width",
+                             DEFAULT_CONFIG_WINDOW_WIDTH);
+        int h = cvar_get_int(&g_ctx.config.cvars, "window.height",
+                             DEFAULT_CONFIG_WINDOW_HEIGHT);
+        if (w <= 0) w = DEFAULT_CONFIG_WINDOW_WIDTH;
+        if (h <= 0) h = DEFAULT_CONFIG_WINDOW_HEIGHT;
         if (w != window->width || h != window->height) {
             SDL_SetWindowSize(window->handle, w, h);
             window->width  = w;

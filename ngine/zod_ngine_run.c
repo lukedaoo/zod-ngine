@@ -10,26 +10,6 @@ void before_init(void *user_data) {
     log_debug("engine.before_init: called");
 }
 
-static bool load_config_from_file_custom(const char *filepath, cvar_table *cvars) {
-    const char *ext = strrchr(filepath, '.');
-    if (!ext) {
-        log_warn(
-             "config.load: '%s' has no file extension — cannot determine format, use "
-             ".scf or .ini",
-             filepath);
-        return false;
-    }
-    if (strcmp(ext, ".scf") == 0) {
-        return cvar_load_scf(cvars, filepath, g_ctx.config.user_schema, false);
-    }
-    if (strcmp(ext, ".ini") == 0) {
-        return cvar_load_ini(cvars, filepath, g_ctx.config.user_schema, false);
-    }
-    log_warn("config.load: unsupported extension '%s' in '%s' — use .scf or .ini", ext,
-             filepath);
-    return false;
-}
-
 bool load_args(const int argc, const char **argv, cvar_table *cvars) {
     carg_register defs[] = {
          {.flag = "--log-level", .arg_count = 1, .type = CARG_STRING, .required = false},
@@ -81,14 +61,22 @@ int main(const int argc, const char **argv) {
                                &(cvar_schema){
                                     .entries =
                                          (cvar_schema_entry[]){
-                                              {"window.width", CVAR_INT},
-                                              {"window.height", CVAR_INT},
-                                              {"window.vsync", CVAR_BOOL},
-                                              {"window.title", CVAR_STRING},
+                                              {.name     = "window.width",
+                                               .expected = CVAR_INT,
+                                               .range    = {0}},
+                                              {.name     = "window.height",
+                                               .expected = CVAR_INT,
+                                               .range    = {0}},
+                                              {.name     = "window.vsync",
+                                               .expected = CVAR_BOOL,
+                                               .range    = {0}},
+                                              {.name     = "window.title",
+                                               .expected = CVAR_STRING,
+                                               .range    = {0}},
                                          },
                                     .count = 4,
                                },
-                          .load_config_func = load_config_from_file_custom},
+                          .load_config_func = load_config_from_file_default},
          .dispatch     = dispatch,
     };
 
@@ -114,7 +102,7 @@ int main(const int argc, const char **argv) {
         fps_frames++;
         fps_accum += zod_clock_delta();
         if (fps_accum >= 1.0f) {
-            log_info("engine.fps: %u, %u", fps_frames, zod_clock_dt());
+            log_info("engine.fps: %u, %f", fps_frames, (double)zod_clock_dt());
             fps_frames = 0;
             fps_accum -= 1.0f;
         }

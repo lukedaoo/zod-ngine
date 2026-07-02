@@ -67,9 +67,10 @@ MU_TEST(test_cvar_reload_ini_success) {
 }
 
 MU_TEST(test_cvar_reload_ini_failure_keeps_old) {
-    static const cvar_schema_entry entries[] = {{"test.value", CVAR_BOOL}};
-    static const cvar_schema       schema    = {.entries = entries, .count = 1};
-    cvar_table                     table     = {0};
+    static const cvar_schema_entry entries[] = {
+         {.name = "test.value", .expected = CVAR_BOOL, .range = {0}}};
+    static const cvar_schema schema = {.entries = entries, .count = 1};
+    cvar_table               table  = {0};
 
     write_file(TEST_INI, "[test]\nvalue=1\nname=alice\n");
     mu_check(cvar_load_ini(&table, TEST_INI, NULL, false));
@@ -427,12 +428,238 @@ MU_TEST_SUITE(cvar_hex_suite) {
     MU_RUN_TEST(test_hex_no_prefix_is_string);
 }
 
+static inline cvar *parse_entry(cvar_table *table, const cvar_schema_entry *entry,
+                           const char *section, const char *key, const char *value,
+                           bool *ok_out) {
+    bool ok = cvar_parse_and_set(section, key, value, table, entry);
+    if (ok_out) *ok_out = ok;
+
+    if (entry) return cvar_get(table, entry->name);
+
+    char full[CVAR_NAME_MAX];
+    snprintf(full, sizeof(full), "%s.%s", section, key);
+    return cvar_get(table, full);
+}
+
+static inline cvar_schema_entry entry_int(const char *name, int *min, int *max) {
+    return (cvar_schema_entry){
+         .name     = name,
+         .expected = CVAR_INT,
+         .range    = {.min = min, .max = max},
+    };
+}
+
+static inline cvar_schema_entry entry_float(const char *name, float *min, float *max) {
+    return (cvar_schema_entry){
+         .name     = name,
+         .expected = CVAR_FLOAT,
+         .range    = {.min = min, .max = max},
+    };
+}
+
+static inline cvar_schema_entry entry_bool(const char *name) {
+    return (cvar_schema_entry){
+         .name     = name,
+         .expected = CVAR_BOOL,
+         .range    = {.min = NULL, .max = NULL},
+    };
+}
+
+static inline cvar_schema_entry entry_string(const char *name) {
+    return (cvar_schema_entry){
+         .name     = name,
+         .expected = CVAR_STRING,
+         .range    = {.min = NULL, .max = NULL},
+    };
+}
+
+MU_TEST(test_int_in_range) {
+    static int        min = 0, max = 100;
+    cvar_schema_entry e = entry_int("test.int", &min, &max);
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "int", "42", &ok);
+
+    mu_check(ok);
+    mu_assert_int_eq(42, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_int_below_range) {
+    static int        min = 0, max = 100;
+    cvar_schema_entry e = entry_int("test.int", &min, &max);
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "int", "-12", &ok);
+
+    mu_check(!ok);
+    mu_check(v == NULL);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_int_above_range) {
+    static int        min = 0, max = 100;
+    cvar_schema_entry e = entry_int("test.int", &min, &max);
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "int", "999", &ok);
+
+    mu_check(!ok);
+    mu_check(v == NULL);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_int_suffix_l) {
+    cvar_schema_entry e = entry_int("test.int", NULL, NULL);
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "int", "123l", &ok);
+
+    mu_check(ok);
+    mu_assert_int_eq(123, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_int_hex) {
+    cvar_schema_entry e = entry_int("test.hex", NULL, NULL);
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "hex", "0xFF", &ok);
+
+    mu_check(ok);
+    mu_assert_int_eq(255, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_float_in_range) {
+    static float      min = 0.f, max = 10.f;
+    cvar_schema_entry e = entry_float("test.float", &min, &max);
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "float", "3.14", &ok);
+
+    mu_check(ok);
+    mu_assert_double_eq(3.14f, v->value.f);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_float_suffix_f) {
+    cvar_schema_entry e = entry_float("test.float", NULL, NULL);
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "float", "1.5f", &ok);
+
+    mu_check(ok);
+    mu_assert_double_eq(1.5f, v->value.f);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_float_out_of_range) {
+    static float      min = 0.f, max = 1.f;
+    cvar_schema_entry e = entry_float("test.float", &min, &max);
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "float", "5.0", &ok);
+
+    mu_check(!ok);
+    mu_check(v == NULL);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_bool_true) {
+    cvar_schema_entry e = entry_bool("test.bool");
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "bool", "true", &ok);
+
+    mu_check(ok);
+    mu_check(v->value.b == true);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_bool_false) {
+    cvar_schema_entry e = entry_bool("test.bool");
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "bool", "false", &ok);
+
+    mu_check(ok);
+    mu_check(v->value.b == false);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_string_quoted) {
+    cvar_schema_entry e = entry_string("test.str");
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "str", "\"hello\"", &ok);
+
+    mu_check(ok);
+    mu_assert_string_eq("hello", v->value.str.data);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_string_unquoted) {
+    cvar_schema_entry e = entry_string("test.str");
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "str", "world", &ok);
+
+    mu_check(ok);
+    mu_assert_string_eq("world", v->value.str.data);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_type_mismatch_int_vs_float) {
+    cvar_schema_entry e = entry_float("test.mismatch", NULL, NULL);
+    cvar_table        t = {0};
+    bool              ok;
+    cvar             *v = parse_entry(&t, &e, "test", "mismatch", "123", &ok);
+
+    mu_check(!ok);
+    mu_check(v == NULL);
+    cvar_destroy(&t);
+}
+
+MU_TEST(test_no_schema_allows_anything) {
+    cvar_table t = {0};
+    bool       ok;
+    cvar      *v = parse_entry(&t, NULL, "test", "free", "123", &ok);
+
+    mu_check(ok);
+    mu_assert_int_eq(123, v->value.i);
+    cvar_destroy(&t);
+}
+
+MU_TEST_SUITE(cvar_parse_with_range_suite) {
+    MU_RUN_TEST(test_int_in_range);
+    MU_RUN_TEST(test_int_below_range);
+    MU_RUN_TEST(test_int_above_range);
+    MU_RUN_TEST(test_int_suffix_l);
+    MU_RUN_TEST(test_int_hex);
+
+    MU_RUN_TEST(test_float_in_range);
+    MU_RUN_TEST(test_float_suffix_f);
+    MU_RUN_TEST(test_float_out_of_range);
+
+    MU_RUN_TEST(test_bool_true);
+    MU_RUN_TEST(test_bool_false);
+
+    MU_RUN_TEST(test_string_quoted);
+    MU_RUN_TEST(test_string_unquoted);
+
+    MU_RUN_TEST(test_type_mismatch_int_vs_float);
+
+    MU_RUN_TEST(test_no_schema_allows_anything);
+}
+
 int main(void) {
     MU_RUN_SUITE(cvar_reload_suite);
     MU_RUN_SUITE(cvar_float_suffix_suite);
     MU_RUN_SUITE(cvar_int_suffix_suite);
     MU_RUN_SUITE(cvar_quote_strip_suite);
     MU_RUN_SUITE(cvar_hex_suite);
+    MU_RUN_SUITE(cvar_parse_with_range_suite);
     MU_REPORT();
     return MU_EXIT_CODE;
 }
