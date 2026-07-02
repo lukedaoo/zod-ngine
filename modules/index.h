@@ -10,6 +10,7 @@
 // utils
 #include "log.h"
 #include "string_view.h"
+#include "file_buffer.h"
 #include "types.h"
 
 // config

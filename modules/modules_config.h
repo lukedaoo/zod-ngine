@@ -8,14 +8,15 @@
 // diagnostics for every module at once. Each module also has its own
 // <MODULE>_LOG_ENABLED flag below for turning logging on per-module instead.
 #ifdef ALL_MODULES_LOG_ENABLED
-#define CVAR_LOG_ENABLED          1
-#define CVAR_LOAD_LOG_ENABLED     1
-#define INI_LOG_ENABLED           1
-#define SCF_LOG_ENABLED           1
-#define CARG_LOG_ENABLED          1
-#define CARG_TO_CVAR_LOG_ENABLED  1
-#define FILE_WATCHER_LOG_ENABLED  1
-#define ARRAY_LIST_LOG_ENABLED    1
+#define CVAR_LOG_ENABLED         1
+#define CVAR_LOAD_LOG_ENABLED    1
+#define INI_LOG_ENABLED          1
+#define SCF_LOG_ENABLED          1
+#define CARG_LOG_ENABLED         1
+#define CARG_TO_CVAR_LOG_ENABLED 1
+#define FILE_WATCHER_LOG_ENABLED 1
+#define ARRAY_LIST_LOG_ENABLED   1
+#define FILE_BUFFER_LOG_ENABLED  1
 #endif
 
 // ------- Cvars
@@ -33,17 +34,13 @@
 
 // cvar.h — enable log_* diagnostics for this module.
 // @default 0
-#ifndef CVAR_LOG_ENABLED
-#define CVAR_LOG_ENABLED 0
-#endif
+// #define CVAR_LOG_ENABLED 0
 
 // ------- Cvar Load
 // cvar_load.h — enable log_* diagnostics for this module. Schema type/range
 // violations always log regardless of this flag — see cvar_load.h.
 // @default 0
-#ifndef CVAR_LOAD_LOG_ENABLED
-#define CVAR_LOAD_LOG_ENABLED 0
-#endif
+// #define CVAR_LOAD_LOG_ENABLED 0
 
 // ------- File Watcher
 // file_watcher.h — max watched file path length, including null terminator
@@ -52,9 +49,7 @@
 
 // file_watcher.h — enable log_* diagnostics for this module.
 // @default 0
-#ifndef FILE_WATCHER_LOG_ENABLED
-#define FILE_WATCHER_LOG_ENABLED 0
-#endif
+// #define FILE_WATCHER_LOG_ENABLED 0
 
 // ------- INI
 // ini.h — max length of one line in an ini file
@@ -67,9 +62,7 @@
 
 // ini.h — enable log_* diagnostics for this module.
 // @default 0
-#ifndef INI_LOG_ENABLED
-#define INI_LOG_ENABLED 0
-#endif
+// #define INI_LOG_ENABLED 0
 
 // ------- SCF
 // scf.h — max length of one line in an scf file
@@ -82,23 +75,17 @@
 
 // scf.h — enable log_* diagnostics for this module.
 // @default 0
-#ifndef SCF_LOG_ENABLED
-#define SCF_LOG_ENABLED 0
-#endif
+// #define SCF_LOG_ENABLED 0
 
 // ------- Carg
 // carg.h — enable log_* diagnostics for this module.
 // @default 0
-#ifndef CARG_LOG_ENABLED
-#define CARG_LOG_ENABLED 0
-#endif
+// #define CARG_LOG_ENABLED 0
 
 // ------- Carg To Cvar
 // carg_to_cvar.h — enable log_* diagnostics for this module.
 // @default 0
-#ifndef CARG_TO_CVAR_LOG_ENABLED
-#define CARG_TO_CVAR_LOG_ENABLED 0
-#endif
+// #define CARG_TO_CVAR_LOG_ENABLED 0
 
 // ------ Array List
 // collections/array_list.h - initial capacity before first grow
@@ -115,8 +102,6 @@
 
 // collections/array_list.h — enable log_* diagnostics for this module.
 // @default 0
-#ifndef ARRAY_LIST_LOG_ENABLED
-#define ARRAY_LIST_LOG_ENABLED 0
-#endif
+// #define ARRAY_LIST_LOG_ENABLED 0
 
 #endif

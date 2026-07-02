@@ -373,7 +373,13 @@ static bool cvar_set(cvar_table *table, const char *name, cvar_type type,
 bool cvar_set_int(cvar_table *t, const char *name, int val) {
     const cvar_constraint *c = cvar_find_constraint(t, name);
     if (!cvar_range_ok(c, CVAR_INT, &val)) {
-        log_error("cvar.cvar_set_int: '%s' value %d is out of range", name, val);
+        char min_buf[16], max_buf[16];
+        snprintf(min_buf, sizeof(min_buf), c->range.has_min ? "%d" : "-inf",
+                 c->range.min.i);
+        snprintf(max_buf, sizeof(max_buf), c->range.has_max ? "%d" : "inf",
+                 c->range.max.i);
+        log_error("cvar.cvar_set_int: '%s' value %d is out of range [%s..%s]", name, val,
+                  min_buf, max_buf);
         return false;
     }
     return cvar_set(t, name, CVAR_INT, &val);
@@ -382,8 +388,13 @@ bool cvar_set_int(cvar_table *t, const char *name, int val) {
 bool cvar_set_float(cvar_table *t, const char *name, float val) {
     const cvar_constraint *c = cvar_find_constraint(t, name);
     if (!cvar_range_ok(c, CVAR_FLOAT, &val)) {
-        log_error("cvar.cvar_set_float: '%s' value %f is out of range", name,
-                  (double)val);
+        char min_buf[24], max_buf[24];
+        snprintf(min_buf, sizeof(min_buf), c->range.has_min ? "%g" : "-inf",
+                 (double)c->range.min.f);
+        snprintf(max_buf, sizeof(max_buf), c->range.has_max ? "%g" : "inf",
+                 (double)c->range.max.f);
+        log_error("cvar.cvar_set_float: '%s' value %f is out of range [%s..%s]", name,
+                  (double)val, min_buf, max_buf);
         return false;
     }
     return cvar_set(t, name, CVAR_FLOAT, &val);

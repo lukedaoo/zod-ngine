@@ -56,7 +56,7 @@ int main(const int argc, const char **argv) {
 
     // Stack-local is fine here: zod_ngine_init copies each entry into the engine's
     // own storage synchronously, before this array ever goes out of scope.
-    const cvar_constraint app_constraints[] = {
+    const cvar_constraint app_config_constraints[] = {
          {.name     = "game.difficulty",
           .expected = CVAR_INT,
           .range    = {.has_min = true, .min.i = 1, .has_max = true, .max.i = 5}},
@@ -67,7 +67,7 @@ int main(const int argc, const char **argv) {
          .argv         = argv,
          .config_setup = {.config_path       = CONFIG_PATH,
                           .hot_reload        = true,
-                          .constraints       = app_constraints,
+                          .constraints       = app_config_constraints,
                           .constraints_count = 1,
                           .load_config_func  = load_config_from_file_default},
          .dispatch     = dispatch,
