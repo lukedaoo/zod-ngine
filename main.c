@@ -74,7 +74,7 @@ int main(const int argc, const char *argv[]) {
     log_debug("Hello World");
     log_debug("Hello World");
 
-    if (!cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf", NULL, false)) {
+    if (!cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf", false)) {
         return 1;
     }
 
@@ -137,7 +137,7 @@ int main(const int argc, const char *argv[]) {
         file_status status = file_watcher_check(w);
         if (status == FILE_CHANGED) {
             printf("Configuration changed\n");
-            if (cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf", NULL, false)) {
+            if (cvar_load_scf(&cvars, RUN_TREE_DIR "/data/test.scf", false)) {
                 config.version       = cvar_get(&cvars, "protocol.version");
                 config.name          = cvar_get(&cvars, "user.name");
                 config.email         = cvar_get(&cvars, "user.email");

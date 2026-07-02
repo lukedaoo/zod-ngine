@@ -27,6 +27,36 @@ bool cvar_set_string(cvar_table *t, const char *name, const char *val);
 
 void cvar_print(const cvar_table *table);
 
+typedef struct {
+    bool has_min;
+    bool has_max;
+    union {
+        int   i;
+        float f;
+    } min;
+    union {
+        int   i;
+        float f;
+    } max;
+} cvar_range;
+
+typedef struct {
+    const char *name;
+    cvar_type   expected;
+    cvar_range  range;
+} cvar_constraint;
+
+typedef struct {
+    cvar_constraint *entries;
+    size_t           size;
+} cvar_schema;
+
+bool cvar_add_schema(cvar_table *table, const cvar_constraint *entries, size_t count);
+
+const cvar_constraint *cvar_find_constraint(const cvar_table *table, const char *name);
+
+bool cvar_copy_schema(cvar_table *dest, const cvar_table *src);
+
 #ifdef CVAR_IMPLEMENTATION
 
 #include <stdio.h>
@@ -67,7 +97,78 @@ struct cvar_table {
     cvar  *data;
     size_t size;
     size_t capacity;
+
+    cvar_schema schema;
 };
+
+const cvar_constraint *cvar_find_constraint(const cvar_table *table, const char *name) {
+    if (!table) return NULL;
+    for (size_t i = 0; i < table->schema.size; i++) {
+        if (strcmp(table->schema.entries[i].name, name) == 0)
+            return &table->schema.entries[i];
+    }
+    return NULL;
+}
+
+bool cvar_add_schema(cvar_table *table, const cvar_constraint *entries, size_t count) {
+    if (!table) return false;
+    if (!entries || count == 0) return true;
+
+    size_t           new_size = table->schema.size + count;
+    cvar_constraint *new_data =
+         realloc(table->schema.entries, new_size * sizeof(cvar_constraint));
+    if (!new_data) return false;
+    table->schema.entries = new_data;
+
+    bool ok = true;
+    for (size_t i = 0; i < count; i++) {
+        if (cvar_find_constraint(table, entries[i].name)) {
+            log_error("cvar.add_schema: '%s' already has a constraint — ignoring",
+                      entries[i].name);
+            ok = false;
+            continue;
+        }
+        table->schema.entries[table->schema.size++] = entries[i];
+    }
+    return ok;
+}
+
+bool cvar_copy_schema(cvar_table *dest, const cvar_table *src) {
+    if (!dest || !src) return false;
+    if (src->schema.size == 0) return true;
+
+    free(dest->schema.entries);
+    dest->schema.entries = malloc(src->schema.size * sizeof(cvar_constraint));
+    if (!dest->schema.entries) {
+        dest->schema.size = 0;
+        return false;
+    }
+
+    memcpy(dest->schema.entries, src->schema.entries,
+           src->schema.size * sizeof(cvar_constraint));
+    dest->schema.size = src->schema.size;
+    return true;
+}
+
+static bool cvar_range_ok(const cvar_constraint *c, cvar_type type, const void *value) {
+    if (!c || c->expected != type) return true;
+    switch (type) {
+        case CVAR_INT: {
+            int v = *(const int *)value;
+            if (c->range.has_min && v < c->range.min.i) return false;
+            if (c->range.has_max && v > c->range.max.i) return false;
+            return true;
+        }
+        case CVAR_FLOAT: {
+            float v = *(const float *)value;
+            if (c->range.has_min && v < c->range.min.f) return false;
+            if (c->range.has_max && v > c->range.max.f) return false;
+            return true;
+        }
+        default:
+            return true;
+    }
+}
 
 void cvar_destroy(cvar_table *table) {
     if (!table) return;
@@ -78,6 +179,10 @@ void cvar_destroy(cvar_table *table) {
     table->data     = NULL;
     table->size     = 0;
     table->capacity = 0;
+
+    free(table->schema.entries);
+    table->schema.entries = NULL;
+    table->schema.size    = 0;
 }
 
 cvar *cvar_get(cvar_table *table, const char *name) {
@@ -266,10 +371,21 @@ static bool cvar_set(cvar_table *table, const char *name, cvar_type type,
 }
 
 bool cvar_set_int(cvar_table *t, const char *name, int val) {
+    const cvar_constraint *c = cvar_find_constraint(t, name);
+    if (!cvar_range_ok(c, CVAR_INT, &val)) {
+        log_error("cvar.cvar_set_int: '%s' value %d is out of range", name, val);
+        return false;
+    }
     return cvar_set(t, name, CVAR_INT, &val);
 }
 
 bool cvar_set_float(cvar_table *t, const char *name, float val) {
+    const cvar_constraint *c = cvar_find_constraint(t, name);
+    if (!cvar_range_ok(c, CVAR_FLOAT, &val)) {
+        log_error("cvar.cvar_set_float: '%s' value %f is out of range", name,
+                  (double)val);
+        return false;
+    }
     return cvar_set(t, name, CVAR_FLOAT, &val);
 }
 

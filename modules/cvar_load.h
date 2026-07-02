@@ -6,33 +6,9 @@
 #include "log.h"
 #include "scf.h"
 
-typedef struct {
-    void *min;
-    void *max;
-} cvar_range;
-
-typedef struct {
-    const char *name;  // "section.key"
-    cvar_type   expected;
-    cvar_range  range;
-} cvar_schema_entry;
-
-typedef struct {
-    const cvar_schema_entry *entries;
-    size_t                   count;
-} cvar_schema;
-
-// schema=NULL: infer types only. schema=&s: validate against schema, abort on mismatch.
 // force_reload=true: parse into scratch table, swap only on success.
-bool cvar_load_ini(cvar_table *table, const char *path, const cvar_schema *schema,
-                   bool force_reload);
-bool cvar_load_scf(cvar_table *table, const char *path, const cvar_schema *schema,
-                   bool force_reload);
-
-// Merges first then second into out_entries[out_cap].
-// Second entries win on name collision. Returns number of entries written.
-size_t cvar_schema_merge(const cvar_schema *first, const cvar_schema *second,
-                         cvar_schema_entry *out_entries, size_t out_cap);
+bool cvar_load_ini(cvar_table *table, const char *path, bool force_reload);
+bool cvar_load_scf(cvar_table *table, const char *path, bool force_reload);
 
 #ifdef CVAR_LOAD_IMPLEMENTATION
 
@@ -70,48 +46,25 @@ static const char *cvar_type_name(cvar_type t) {
 //   anything else          CVAR_STRING
 //
 // entry == NULL: infer only. entry != NULL: abort if inferred type != entry->expected.
-static inline bool cvar_check_range(const cvar_schema_entry *e, int type, const void *v) {
-    if (!e) return true;
-
-    switch (type) {
-        case CVAR_INT: {
-            int val = *(const int *)v;
-            if (e->range.min && val < *(int *)e->range.min) return false;
-            if (e->range.max && val > *(int *)e->range.max) return false;
-            return true;
-        }
-        case CVAR_FLOAT: {
-            float val = *(const float *)v;
-            if (e->range.min && val < *(float *)e->range.min) return false;
-            if (e->range.max && val > *(float *)e->range.max) return false;
-            return true;
-        }
-        default:
-            return true;
-    }
-}
-
+// Range enforcement happens inside cvar_set_int/cvar_set_float themselves (via the
+// constraints attached to `table`), not here.
 static bool cvar_parse_and_set(const char *section, const char *key, const char *value,
-                               cvar_table *table, const cvar_schema_entry *entry) {
+                               cvar_table *table, const cvar_constraint *entry) {
     char name[CVAR_NAME_MAX];
-    snprintf(name, sizeof(name), "%s.%s", section, key);
+    int  name_len = snprintf(name, sizeof(name), "%s.%s", section, key);
+    if (name_len < 0 || (size_t)name_len >= sizeof(name)) {
+        log_error("cvar.load: '%s.%s' exceeds %d bytes", section, key, CVAR_NAME_MAX - 1);
+        return false;
+    }
     const char *orig = value;
 
-#define CHECK_TYPE(got)                                                         \
-    do {                                                                        \
-        if (entry && (got) != entry->expected) {                                \
-            log_error("cvar.load: '%s' expected %s, got %s ('%s')", name,       \
-                     cvar_type_name(entry->expected), cvar_type_name(got), orig); \
-            return false;                                                       \
-        }                                                                       \
-    } while (0)
-
-#define CHECK_RANGE(entry, type, val)                                        \
-    do {                                                                     \
-        if (!cvar_check_range((entry), (type), &(val))) {                    \
-            log_error("cvar.load: '%s' value '%s' is out of range", name, value); \
-            return false;                                                    \
-        }                                                                    \
+#define CHECK_TYPE(got)                                                            \
+    do {                                                                           \
+        if (entry && (got) != entry->expected) {                                   \
+            log_error("cvar.load: '%s' expected %s, got %s ('%s')", name,          \
+                      cvar_type_name(entry->expected), cvar_type_name(got), orig); \
+            return false;                                                          \
+        }                                                                          \
     } while (0)
 
     size_t len = strlen(value);
@@ -158,7 +111,6 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
                 float f = strtof(buf, &end);
                 if (end != buf && *end == '\0') {
                     CHECK_TYPE(CVAR_FLOAT);
-                    CHECK_RANGE(entry, CVAR_FLOAT, f);
                     return cvar_set_float(table, name, f);
                 }
             }
@@ -173,7 +125,6 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
                 long  v = strtol(buf, &end, 10);
                 if (end != buf && *end == '\0') {
                     CHECK_TYPE(CVAR_INT);
-                    CHECK_RANGE(entry, CVAR_INT, v);
                     return cvar_set_int(table, name, (int)v);
                 }
             }
@@ -212,7 +163,6 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
         long ival = strtol(value, &end, 10);
         if (*value != '\0' && *end == '\0') {
             CHECK_TYPE(CVAR_INT);
-            CHECK_RANGE(entry, CVAR_INT, ival);
             return cvar_set_int(table, name, (int)ival);
         }
     }
@@ -224,7 +174,6 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
         float fval = strtof(value, &end);
         if (end != value && *end == '\0') {
             CHECK_TYPE(CVAR_FLOAT);
-            CHECK_RANGE(entry, CVAR_FLOAT, fval);
             return cvar_set_float(table, name, fval);
         }
     }
@@ -233,44 +182,33 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
     return cvar_set_string(table, name, value);
 
 #undef CHECK_TYPE
-#undef CHECK_RANGE
 }
 
-typedef struct {
-    cvar_table        *table;
-    const cvar_schema *schema;
-} cvar_load_ctx;
-
-static const cvar_schema_entry *cvar_schema_lookup(const cvar_schema *schema,
-                                                   const char *section, const char *key) {
-    if (!schema) return NULL;
+static const cvar_constraint *cvar_load_lookup(const cvar_table *table,
+                                               const char *section, const char *key) {
     char name[CVAR_NAME_MAX];
-    snprintf(name, sizeof(name), "%s.%s", section, key);
-    for (size_t i = 0; i < schema->count; i++) {
-        if (strcmp(schema->entries[i].name, name) == 0) return &schema->entries[i];
-    }
-    return NULL;
+    int  name_len = snprintf(name, sizeof(name), "%s.%s", section, key);
+    if (name_len < 0 || (size_t)name_len >= sizeof(name)) return NULL;
+    return cvar_find_constraint(table, name);
 }
 
 static bool cvar_strict_handler(const char *section, const char *key, const char *value,
                                 void *user) {
-    cvar_load_ctx           *ctx   = user;
-    const cvar_schema_entry *entry = cvar_schema_lookup(ctx->schema, section, key);
-    return cvar_parse_and_set(section, key, value, ctx->table, entry);
+    cvar_table            *table = user;
+    const cvar_constraint *entry = cvar_load_lookup(table, section, key);
+    return cvar_parse_and_set(section, key, value, table, entry);
 }
 
 typedef bool (*parse_func)(const char *filepath, void *handler, void *user);
 
-static bool cvar_load_internal(cvar_table *table, const char *path,
-                               const cvar_schema *schema, bool force_reload,
+static bool cvar_load_internal(cvar_table *table, const char *path, bool force_reload,
                                parse_func parser) {
     if (!force_reload) {
-        cvar_load_ctx ctx = {.table = table, .schema = schema};
-        return parser(path, cvar_strict_handler, &ctx);
+        return parser(path, cvar_strict_handler, table);
     }
-    cvar_table    next = {0};
-    cvar_load_ctx ctx  = {.table = &next, .schema = schema};
-    if (!parser(path, cvar_strict_handler, &ctx)) {
+    cvar_table next = {0};
+    cvar_copy_schema(&next, table);
+    if (!parser(path, cvar_strict_handler, &next)) {
         cvar_destroy(&next);
         return false;
     }
@@ -279,65 +217,12 @@ static bool cvar_load_internal(cvar_table *table, const char *path,
     return true;
 }
 
-bool cvar_load_ini(cvar_table *table, const char *path, const cvar_schema *schema,
-                   bool force_reload) {
-    return cvar_load_internal(table, path, schema, force_reload, (parse_func)ini_parse);
+bool cvar_load_ini(cvar_table *table, const char *path, bool force_reload) {
+    return cvar_load_internal(table, path, force_reload, (parse_func)ini_parse);
 }
 
-bool cvar_load_scf(cvar_table *table, const char *path, const cvar_schema *schema,
-                   bool force_reload) {
-    return cvar_load_internal(table, path, schema, force_reload, (parse_func)scf_parse);
-}
-
-// @perf(cvar_schema_merge): O(n^2) when the count is small, this is fine.
-// but when the count is large (>200), use hashmap
-size_t cvar_schema_merge(const cvar_schema *first, const cvar_schema *second,
-                         cvar_schema_entry *out, size_t cap) {
-    size_t n = 0;
-
-    if (first) {
-        for (size_t i = 0; i < first->count; i++) {
-            if (n >= cap) {
-#if CVAR_LOAD_LOG_ENABLED
-                log_warn(
-                     "cvar.schema_merge: (first schema) buffer full (%zu), dropping "
-                     "'%s' — increase cap",
-                     cap, first->entries[i].name);
-#endif
-                break;
-            }
-            out[n++] = first->entries[i];
-        }
-    }
-
-    if (second) {
-        for (size_t i = 0; i < second->count; i++) {
-            const char *name  = second->entries[i].name;
-            bool        found = false;
-            // replace
-            for (size_t j = 0; j < n; j++) {
-                if (strcmp(out[j].name, name) == 0) {
-                    out[j] = second->entries[i];
-                    found  = true;
-                    break;
-                }
-            }
-            if (!found) {
-                if (n >= cap) {
-#if CVAR_LOAD_LOG_ENABLED
-                    log_warn(
-                         "cvar.schema_merge: (second schema) buffer full (%zu), "
-                         "dropping '%s' — increase cap",
-                         cap, first->entries[i].name);
-#endif
-                    continue;
-                }
-                out[n++] = second->entries[i];
-            }
-        }
-    }
-
-    return n;
+bool cvar_load_scf(cvar_table *table, const char *path, bool force_reload) {
+    return cvar_load_internal(table, path, force_reload, (parse_func)scf_parse);
 }
 
 #endif

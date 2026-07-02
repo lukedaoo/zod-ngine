@@ -6,8 +6,7 @@
 void engine_context_destroy(void) {
     log_debug("engine context: destroying...");
     window_destroy(&g_ctx.window);
-    cvar_destroy(&g_ctx.config.cvars);
-    file_watcher_close(g_ctx.config.config_file_watcher);
+    g_config_destroy(&g_ctx.config);
 }
 
 engine_context g_ctx = {0};

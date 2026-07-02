@@ -9,27 +9,24 @@
 
 #include "../engine_context/engine_context_internal.h"
 
-static int g_min_positive = 1;
-static int g_min_zero     = 0;  // 0 = uncapped fps, negative still rejected
-
-static const cvar_schema_entry g_engine_schema_entries[] = {
+static const cvar_constraint g_engine_constraints[] = {
      {.name     = "engine.target_fps",
       .expected = CVAR_INT,
-      .range    = {.min = &g_min_zero}},
-     {.name = "window.width", .expected = CVAR_INT, .range = {.min = &g_min_positive}},
-     {.name = "window.height", .expected = CVAR_INT, .range = {.min = &g_min_positive}},
-     {.name = "window.title", .expected = CVAR_STRING, .range = {0}},
-     {.name = "window.vsync", .expected = CVAR_BOOL, .range = {0}},
-     {.name = "window.clear_color", .expected = CVAR_INT, .range = {0}},
-     {.name = "window.transparent", .expected = CVAR_BOOL, .range = {0}},
+      .range    = {.has_min = true, .min.i = 0}},
+
+     {.name     = "window.width",
+      .expected = CVAR_INT,
+      .range    = {.has_min = true, .min.i = 1}},
+     {.name     = "window.height",
+      .expected = CVAR_INT,
+      .range    = {.has_min = true, .min.i = 1}},
+     {.name = "window.title", .expected = CVAR_STRING},
+     {.name = "window.vsync", .expected = CVAR_BOOL},
+     {.name = "window.clear_color", .expected = CVAR_INT},
+     {.name = "window.transparent", .expected = CVAR_BOOL},
 };
 
-static const cvar_schema g_engine_schema = {
-     .entries = g_engine_schema_entries,
-     .count   = 7,
-};
-
-void g_config_seed_preset(g_config *cfg) {
+void config_seed_preset(g_config *cfg) {
     cvar_set_int(&cfg->cvars, "engine.target_fps", DEFAULT_CONFIG_TARGET_FPS);
 
     cvar_set_int(&cfg->cvars, "window.width", DEFAULT_CONFIG_WINDOW_WIDTH);
@@ -42,6 +39,23 @@ void g_config_seed_preset(g_config *cfg) {
     cvar_set_int(&cfg->cvars, "log.level", DEFAULT_CONFIG_LOG_LEVEL);
 }
 
+void g_config_init(g_config *cfg) {
+    log_debug("config.init: seeding defaults");
+    config_seed_preset(cfg);
+    cvar_add_schema(&cfg->cvars, g_engine_constraints, 7);
+}
+
+void g_config_destroy(g_config *cfg) {
+    if (!cfg) return;
+    cvar_destroy(&cfg->cvars);
+    file_watcher_close(cfg->config_file_watcher);
+}
+
+void g_config_add_user_constraints(g_config *cfg, const cvar_constraint *entries,
+                                   size_t count) {
+    cvar_add_schema(&cfg->cvars, entries, count);
+}
+
 static bool load_config_from_file_default(const char *filepath, cvar_table *cvars) {
     const char *ext = strrchr(filepath, '.');
     if (!ext) {
@@ -52,24 +66,15 @@ static bool load_config_from_file_default(const char *filepath, cvar_table *cvar
         return false;
     }
 
-    size_t cap = g_engine_schema.count +
-                 (g_ctx.config.user_schema ? g_ctx.config.user_schema->count : 0);
-    cvar_schema_entry *merged_buf = malloc(cap * sizeof *merged_buf);
-
-    size_t n =
-         cvar_schema_merge(&g_engine_schema, g_ctx.config.user_schema, merged_buf, cap);
-    cvar_schema schema = {.entries = merged_buf, .count = n};
-
     bool ok = false;
     if (strcmp(ext, ".scf") == 0) {
-        ok = cvar_load_scf(cvars, filepath, &schema, false);
+        ok = cvar_load_scf(cvars, filepath, false);
     } else if (strcmp(ext, ".ini") == 0) {
-        ok = cvar_load_ini(cvars, filepath, &schema, false);
+        ok = cvar_load_ini(cvars, filepath, false);
     } else {
         log_warn("config.load: unsupported extension '%s' in '%s' — use .scf or .ini",
                  ext, filepath);
     }
-    free(merged_buf);
     return ok;
 }
 
@@ -87,7 +92,8 @@ bool g_config_reload_from_file(g_config *cfg) {
     }
 
     g_config tmp = {0};
-    g_config_seed_preset(&tmp);
+    config_seed_preset(&tmp);
+    cvar_copy_schema(&tmp.cvars, &cfg->cvars);
     if (!cfg->reload_config_func(cfg->config_file_watcher->path, &tmp.cvars)) {
         cvar_destroy(&tmp.cvars);
         log_warn("config.reload: failed to reload '%s' — keeping previous config",

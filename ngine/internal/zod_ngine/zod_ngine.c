@@ -30,9 +30,9 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     log_info("\nengine.init: starting");
 
     {
-        log_debug("config.init: seeding defaults");
-        g_config_seed_preset(&g_ctx.config);
-        g_ctx.config.user_schema = config_setup.schema;
+        g_config_init(&g_ctx.config);
+        g_config_add_user_constraints(&g_ctx.config, config_setup.constraints,
+                                      config_setup.constraints_count);
 
         if (config_setup.load_config_func && config_setup.config_path) {
             if (!config_setup.load_config_func(config_setup.config_path,
@@ -143,6 +143,11 @@ bool zod_tick_hot_reload(void) {
              g_ctx.config.config_file_watcher->path);
     if (!g_config_reload_from_file(&g_ctx.config)) {
         log_warn("config.watcher: reload failed — keeping previous config");
+        return false;
+    }
+    if (!g_config_validate(&g_ctx.config)) {
+        log_fatal("config.watcher: reloaded config failed validation — exiting");
+        zod_request_exit();
         return false;
     }
     zod_ngine_apply_config(true);

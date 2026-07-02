@@ -1,6 +1,8 @@
 #include "../../lib/minunit.h"
 
 #include <stdbool.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #define NGINE_UNIT_TEST
 #undef ZOD_NGINE_IMPLEMENTATION
@@ -220,6 +222,46 @@ MU_TEST(test_init_hot_reload_on_success_attaches_watcher) {
     mu_check(g_ctx.config.config_file_watcher != NULL);
 }
 
+#ifdef _WIN32
+#define HOT_RELOAD_TEST_FILE "tmp/zod_hot_reload_test.scf"
+#else
+#define HOT_RELOAD_TEST_FILE "/tmp/zod_hot_reload_test.scf"
+#endif
+
+static void touch(const char *path) {
+    FILE *f = fopen(path, "w");
+    fclose(f);
+}
+
+MU_TEST(test_hot_reload_invalid_config_exits) {
+    reset();
+    remove(HOT_RELOAD_TEST_FILE);
+    touch(HOT_RELOAD_TEST_FILE);
+
+    load_config_return_val = true;
+    bool ok                = zod_ngine_init((zod_engine_init_params){
+         .config_setup =
+              {
+                   .load_config_func = stub_load_config,
+                   .config_path      = HOT_RELOAD_TEST_FILE,
+                   .hot_reload       = true,
+              },
+    });
+    mu_check(ok);
+    mu_check(!zod_should_exit());
+
+    g_ctx.config.reload_config_func = stub_load_config_negative_width;
+
+    sleep(1);
+    touch(HOT_RELOAD_TEST_FILE);
+
+    mu_check(zod_tick_hot_reload());
+    mu_check(!zod_should_exit());
+    mu_assert_int_eq(800, zod_config_get_int("window.width", -1));
+
+    remove(HOT_RELOAD_TEST_FILE);
+}
+
 MU_TEST(test_stage2_load_success_returns_true) {
     reset();
     load_config_return_val = true;
@@ -289,37 +331,41 @@ MU_TEST(test_stage2_load_fail_presets_survive) {
     mu_assert_string_eq("zod-ngine", zod_config_get_string("window.title", ""));
 }
 
-MU_TEST(test_init_rejects_negative_width) {
+MU_TEST(test_init_setter_rejects_negative_width) {
     reset();
     bool ok = zod_ngine_init((zod_engine_init_params){
          .config_setup = {.load_config_func = stub_load_config_negative_width,
                           .config_path      = "/dev/null"},
     });
-    mu_check(!ok);
+    mu_check(ok);
+    mu_assert_int_eq(800, zod_config_get_int("window.width", -1));
 }
 
-MU_TEST(test_init_rejects_negative_height) {
+MU_TEST(test_init_setter_rejects_negative_height) {
     reset();
     bool ok = zod_ngine_init((zod_engine_init_params){
          .config_setup = {.load_config_func = stub_load_config_negative_height,
                           .config_path      = "/dev/null"},
     });
-    mu_check(!ok);
+    mu_check(ok);
+    mu_assert_int_eq(600, zod_config_get_int("window.height", -1));
 }
 
-MU_TEST(test_init_rejects_negative_target_fps) {
+MU_TEST(test_init_setter_rejects_negative_target_fps) {
     reset();
     bool ok = zod_ngine_init((zod_engine_init_params){
          .config_setup = {.load_config_func = stub_load_config_negative_fps,
                           .config_path      = "/dev/null"},
     });
-    mu_check(!ok);
+    mu_check(ok);
+    mu_assert_int_eq(60, zod_config_get_int("engine.target_fps", -1));
 }
 
 MU_TEST_SUITE(zod_ngine_init_validation_suite) {
-    MU_RUN_TEST(test_init_rejects_negative_width);
-    MU_RUN_TEST(test_init_rejects_negative_height);
-    MU_RUN_TEST(test_init_rejects_negative_target_fps);
+    MU_RUN_TEST(test_init_setter_rejects_negative_width);
+    MU_RUN_TEST(test_init_setter_rejects_negative_height);
+    MU_RUN_TEST(test_init_setter_rejects_negative_target_fps);
+    MU_RUN_TEST(test_hot_reload_invalid_config_exits);
 }
 
 MU_TEST_SUITE(zod_ngine_stage2_suite) {

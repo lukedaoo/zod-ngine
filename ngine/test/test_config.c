@@ -10,7 +10,7 @@
 static void reset(void) {
     cvar_destroy(&g_ctx.config.cvars);
     g_ctx = (engine_context){0};
-    g_config_seed_preset(&g_ctx.config);
+    config_seed_preset(&g_ctx.config);
 }
 
 MU_TEST(test_preset_int_defaults) {
@@ -92,9 +92,7 @@ MU_TEST(test_adjust_config_all_string_levels) {
     }
 }
 
-MU_TEST(test_adjust_config_null_returns_false) {
-    mu_check(!g_config_adjust(NULL));
-}
+MU_TEST(test_adjust_config_null_returns_false) { mu_check(!g_config_adjust(NULL)); }
 
 static bool reload_succeeds(const char *path, cvar_table *cvars) {
     (void)path;
@@ -123,7 +121,7 @@ MU_TEST(test_reload_no_watcher_returns_false) {
 
 MU_TEST(test_reload_success_updates_config) {
     reset();
-    file_watcher fw = {.path = "fake.scf"};
+    file_watcher fw                  = {.path = "fake.scf"};
     g_ctx.config.config_file_watcher = &fw;
     g_ctx.config.reload_config_func  = reload_succeeds;
 
@@ -139,7 +137,7 @@ MU_TEST(test_reload_fail_preserves_config) {
     reset();
     zod_config_set_int("window.width", 1920);
 
-    file_watcher fw = {.path = "fake.scf"};
+    file_watcher fw                  = {.path = "fake.scf"};
     g_ctx.config.config_file_watcher = &fw;
     g_ctx.config.reload_config_func  = reload_fails;
 
@@ -153,7 +151,7 @@ MU_TEST(test_reload_partial_fail_preserves_config) {
     reset();
     zod_config_set_int("window.width", 1920);
 
-    file_watcher fw = {.path = "fake.scf"};
+    file_watcher fw                  = {.path = "fake.scf"};
     g_ctx.config.config_file_watcher = &fw;
     g_ctx.config.reload_config_func  = reload_partial_then_fail;
 

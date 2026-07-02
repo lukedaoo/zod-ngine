@@ -16,9 +16,10 @@ typedef struct {
 } zod_engine_dispatch;
 
 typedef struct {
-    const char        *config_path;
-    bool               hot_reload;
-    const cvar_schema *schema;
+    const char            *config_path;
+    bool                   hot_reload;
+    const cvar_constraint *constraints;
+    size_t                 constraints_count;
     bool (*load_config_func)(const char *filepath, cvar_table *cvars);
 } zod_config_setup;
 

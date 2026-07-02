@@ -42,6 +42,8 @@ void after_init(void *user_data) {
               zod_config_get_string("window.title", "zod-ngine"),
               zod_config_get_bool("window.vsync", true),
               zod_config_get_int("log.level", 0));
+    log_debug("engine.after_init: game.difficulty=%d",
+              zod_config_get_int("game.difficulty", 1));
 }
 
 int main(const int argc, const char **argv) {
@@ -52,31 +54,22 @@ int main(const int argc, const char **argv) {
          .after_init  = after_init,
     };
 
+    // Stack-local is fine here: zod_ngine_init copies each entry into the engine's
+    // own storage synchronously, before this array ever goes out of scope.
+    const cvar_constraint app_constraints[] = {
+         {.name     = "game.difficulty",
+          .expected = CVAR_INT,
+          .range    = {.has_min = true, .min.i = 1, .has_max = true, .max.i = 5}},
+    };
+
     const zod_engine_init_params params = {
          .argc         = argc,
          .argv         = argv,
-         .config_setup = {.config_path = CONFIG_PATH,
-                          .hot_reload  = true,
-                          .schema =
-                               &(cvar_schema){
-                                    .entries =
-                                         (cvar_schema_entry[]){
-                                              {.name     = "window.width",
-                                               .expected = CVAR_INT,
-                                               .range    = {0}},
-                                              {.name     = "window.height",
-                                               .expected = CVAR_INT,
-                                               .range    = {0}},
-                                              {.name     = "window.vsync",
-                                               .expected = CVAR_BOOL,
-                                               .range    = {0}},
-                                              {.name     = "window.title",
-                                               .expected = CVAR_STRING,
-                                               .range    = {0}},
-                                         },
-                                    .count = 4,
-                               },
-                          .load_config_func = load_config_from_file_default},
+         .config_setup = {.config_path       = CONFIG_PATH,
+                          .hot_reload        = true,
+                          .constraints       = app_constraints,
+                          .constraints_count = 1,
+                          .load_config_func  = load_config_from_file_default},
          .dispatch     = dispatch,
     };
 

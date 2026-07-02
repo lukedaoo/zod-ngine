@@ -1,5 +1,6 @@
 #include "../lib/minunit.h"
 
+#define LOG_IMPLEMENTATION
 #define CVAR_IMPLEMENTATION
 #include "cvar.h"
 
