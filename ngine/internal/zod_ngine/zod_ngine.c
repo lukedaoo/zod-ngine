@@ -37,17 +37,8 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         if (config_setup.load_config_func && config_setup.config_path) {
             if (!config_setup.load_config_func(config_setup.config_path,
                                                &g_ctx.config.cvars)) {
-                const char *reason = cvar_load_get_error();
-                if (reason[0]) {
-                    zod_set_error("failed to load config '%s': %s",
-                                  config_setup.config_path, reason);
-                    log_fatal("config.init: failed to load '%s': %s",
-                              config_setup.config_path, reason);
-                } else {
-                    zod_set_error("failed to load config '%s'", config_setup.config_path);
-                    log_fatal("config.init: failed to load '%s'",
-                              config_setup.config_path);
-                }
+                zod_set_error("failed to load config '%s'", config_setup.config_path);
+                log_fatal("config.init: failed to load '%s'", config_setup.config_path);
                 return false;
             }
             log_debug("config.init: loaded from '%s'", config_setup.config_path);

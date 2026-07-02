@@ -26,6 +26,8 @@
 #ifndef SCF_H
 #define SCF_H
 
+#include "log.h"
+
 typedef bool (*scf_handler)(const char *section, const char *key, const char *value,
                             void *user);
 
@@ -51,6 +53,10 @@ bool scf_parse_string(const char *string, scf_handler handler, void *user);
 
 #ifndef SCF_COMMENT_PREFIXES
 #define SCF_COMMENT_PREFIXES ";"
+#endif
+
+#ifndef SCF_LOG_ENABLED
+#define SCF_LOG_ENABLED 0
 #endif
 
 static bool scf_process_line(char *line, char *section, scf_handler handler, void *user) {
@@ -104,7 +110,9 @@ bool scf_parse(const char *filename, scf_handler handler, void *user) {
     if (!handler) return false;
     FILE *file = fopen(filename, "r");
     if (!file) {
-        fprintf(stderr, "scf.scf_parse: could not open file '%s'\n", filename);
+#if SCF_LOG_ENABLED
+        log_warn("scf.scf_parse: could not open file '%s'", filename);
+#endif
         return false;
     }
 

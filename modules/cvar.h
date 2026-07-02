@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "log.h"
+
 typedef enum { CVAR_INT, CVAR_FLOAT, CVAR_BOOL, CVAR_STRING } cvar_type;
 
 typedef struct cvar_table cvar_table;
@@ -41,6 +43,10 @@ void cvar_print(const cvar_table *table);
 
 #ifndef CVAR_NAME_MAX
 #define CVAR_NAME_MAX 64
+#endif
+
+#ifndef CVAR_LOG_ENABLED
+#define CVAR_LOG_ENABLED 0
 #endif
 
 struct cvar {
@@ -85,10 +91,9 @@ cvar *cvar_get(cvar_table *table, const char *name) {
 int cvar_get_int(cvar_table *t, const char *name, int fallback) {
     cvar *cv = cvar_get(t, name);
     if (!cv || cv->type != CVAR_INT) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(
-             stderr,
-             "cvar.cvar_get_int: %s is not an int or does not exist, using fallback %d\n",
+#if CVAR_LOG_ENABLED
+        log_debug(
+             "cvar.cvar_get_int: %s is not an int or does not exist, using fallback %d",
              name, fallback);
 #endif
         return fallback;
@@ -99,11 +104,10 @@ int cvar_get_int(cvar_table *t, const char *name, int fallback) {
 float cvar_get_float(cvar_table *t, const char *name, float fallback) {
     cvar *cv = cvar_get(t, name);
     if (!cv || cv->type != CVAR_FLOAT) {
-#ifdef ODULE_LOG_ENABLED
-        fprintf(
-             stderr,
+#if CVAR_LOG_ENABLED
+        log_debug(
              "cvar.cvar_get_float: %s is not a float or does not exist, using fallback "
-             "%f\n",
+             "%f",
              name, fallback);
 #endif
         return fallback;
@@ -114,11 +118,10 @@ float cvar_get_float(cvar_table *t, const char *name, float fallback) {
 bool cvar_get_bool(cvar_table *t, const char *name, bool fallback) {
     cvar *cv = cvar_get(t, name);
     if (!cv || cv->type != CVAR_BOOL) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(
-             stderr,
+#if CVAR_LOG_ENABLED
+        log_debug(
              "cvar.cvar_get_bool: %s is not a boolean or does not exist, using fallback "
-             "%d\n",
+             "%d",
              name, fallback);
 #endif
         return fallback;
@@ -129,18 +132,18 @@ bool cvar_get_bool(cvar_table *t, const char *name, bool fallback) {
 const char *cvar_get_string(cvar_table *t, const char *name, const char *fallback) {
     cvar *cv = cvar_get(t, name);
     if (!cv || cv->type != CVAR_STRING) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr,
-                "cvar.cvar_get_string: %s is not a string or does not exist, using "
-                "fallback %s\n",
-                name, fallback);
+#if CVAR_LOG_ENABLED
+        log_debug(
+             "cvar.cvar_get_string: %s is not a string or does not exist, using "
+             "fallback %s",
+             name, fallback);
 #endif
         return fallback;
     }
     return cv->value.str.data;
 }
 
-#ifdef MODULE_LOG_ENABLED
+#if CVAR_LOG_ENABLED
 static const char *cvar_type_to_string(cvar_type type) {
     switch (type) {
         case CVAR_INT:
@@ -163,8 +166,8 @@ static bool cvar_set(cvar_table *table, const char *name, cvar_type type,
 
     size_t name_len = strlen(name);
     if (name_len >= CVAR_NAME_MAX) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr, "cvar.cvar_set: name too long\n");
+#if CVAR_LOG_ENABLED
+        log_error("cvar.cvar_set: name too long");
 #endif
         return false;
     }
@@ -178,9 +181,9 @@ static bool cvar_set(cvar_table *table, const char *name, cvar_type type,
     {
         if (is_new) {
             if (table->size >= CVAR_TABLE_MAX_SIZE) {
-#ifdef MODULE_LOG_ENABLED
-                fprintf(stderr, "cvar.cvar_set: table is full. Max size is %d\n",
-                        CVAR_TABLE_MAX_SIZE);
+#if CVAR_LOG_ENABLED
+                log_error("cvar.cvar_set: table is full. Max size is %d",
+                          CVAR_TABLE_MAX_SIZE);
 #endif
                 return false;
             }
@@ -253,9 +256,9 @@ static bool cvar_set(cvar_table *table, const char *name, cvar_type type,
     if (is_new) {
         memcpy(cv->name, name, name_len + 1);
         table->size++;
-#ifdef MODULE_LOG_ENABLED
-        printf("cvar.cvar_set: registered new cvar %s of type %s\n", name,
-               cvar_type_to_string(type));
+#if CVAR_LOG_ENABLED
+        log_debug("cvar.cvar_set: registered new cvar %s of type %s", name,
+                  cvar_type_to_string(type));
 #endif
     }
 

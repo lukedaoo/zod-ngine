@@ -3,6 +3,7 @@
 
 #include "carg.h"
 #include "cvar.h"
+#include "log.h"
 
 bool carg_entry_to_cvars(const carg *carg, const char **names, const size_t names_count,
                          cvar_table *table);
@@ -11,6 +12,11 @@ bool carg_table_to_cvars(const carg_table *cargs, const char ***names_per_carg,
                          const size_t *names_count_per_carg, cvar_table *table);
 
 #if defined(CVAR_IMPLEMENTATION) && defined(CARG_IMPLEMENTATION)
+
+#ifndef CARG_TO_CVAR_LOG_ENABLED
+#define CARG_TO_CVAR_LOG_ENABLED 0
+#endif
+
 bool carg_entry_to_cvars(const carg *carg, const char **names, const size_t names_count,
                          cvar_table *table) {
     if (!carg || !names || !table) {
@@ -18,19 +24,19 @@ bool carg_entry_to_cvars(const carg *carg, const char **names, const size_t name
     }
 
     if (!carg->present) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr,
-                "cvar.carg_entry_to_cvars: flag '%s' not present, skipping (returning "
-                "true)\n",
-                carg->flag);
+#if CARG_TO_CVAR_LOG_ENABLED
+        log_debug(
+             "cvar.carg_entry_to_cvars: flag '%s' not present, skipping (returning "
+             "true)",
+             carg->flag);
 #endif
         return true;
     }
 
     if (carg->type == CARG_BOOL) {
         if (names_count != 1) {
-#ifdef MODULE_LOG_ENABLED
-            fprintf(stderr, "carg.carg_entry_to_cvars: Expected 1 name for bool flag\n");
+#if CARG_TO_CVAR_LOG_ENABLED
+            log_error("carg.carg_entry_to_cvars: Expected 1 name for bool flag");
 #endif
             return false;
         }
@@ -38,9 +44,8 @@ bool carg_entry_to_cvars(const carg *carg, const char **names, const size_t name
     }
 
     if (names_count != carg->count) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr, "carg.carg_entry_to_cvars: Expected %zu names for flag\n",
-                carg->count);
+#if CARG_TO_CVAR_LOG_ENABLED
+        log_error("carg.carg_entry_to_cvars: Expected %zu names for flag", carg->count);
 #endif
         return false;
     }
@@ -56,10 +61,10 @@ bool carg_entry_to_cvars(const carg *carg, const char **names, const size_t name
         }
 
         if (!ok) return false;
-#ifdef MODULE_LOG_ENABLED
+#if CARG_TO_CVAR_LOG_ENABLED
         if (ok) {
-            fprintf(stderr, "carg.carg_entry_to_cvars: registered %s from %s for %zu\n",
-                    names[i], carg->flag, i);
+            log_debug("carg.carg_entry_to_cvars: registered %s from %s for %zu", names[i],
+                      carg->flag, i);
         }
 #endif
     }

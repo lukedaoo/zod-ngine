@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+#include "log.h"
+
 typedef bool (*ini_handler)(const char *section, const char *key, const char *value,
                             void *user);
 
@@ -29,6 +31,10 @@ bool ini_parse_string(const char *string, ini_handler handler, void *user);
 
 #ifndef INI_COMMENT_PREFIXES
 #define INI_COMMENT_PREFIXES "; #"
+#endif
+
+#ifndef INI_LOG_ENABLED
+#define INI_LOG_ENABLED 0
 #endif
 
 static bool ini_parse_line(char *line, char *section, ini_handler handler, void *user) {
@@ -83,7 +89,9 @@ bool ini_parse(const char *filename, ini_handler handler, void *user) {
     if (!handler) return false;
     FILE *file = fopen(filename, "r");
     if (!file) {
-        fprintf(stderr, "ini.ini_parse: could not open file '%s'\n", filename);
+#if INI_LOG_ENABLED
+        log_warn("ini.ini_parse: could not open file '%s'", filename);
+#endif
         return false;
     }
 

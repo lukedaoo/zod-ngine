@@ -117,9 +117,7 @@ void log_log(int level, const char *source_file, int line, const char *func,
 
 int log_level_from_string(const char *level_string) {
     if (!level_string) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr, "log_level_from_string: level_string is NULL\n");
-#endif
+        log_error("log_level_from_string: level_string is NULL");
         return LOG_FATAL;
     }
 

@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#include "../log.h"
+
 typedef struct array_list        array_list;
 typedef struct array_list_header array_list_header;
 
@@ -58,6 +60,10 @@ void *array_list_get(const array_list *list, const size_t index);
 #define ARRAY_LIST_MAX_CAPACITY 2048
 #endif
 
+#ifndef ARRAY_LIST_LOG_ENABLED
+#define ARRAY_LIST_LOG_ENABLED 0
+#endif
+
 struct array_list_header {
     size_t size;
     size_t capacity;
@@ -75,11 +81,11 @@ bool array_list_init(array_list *list, const size_t initial_capacity,
 
     size_t cap = initial_capacity;
     if (cap > ARRAY_LIST_MAX_CAPACITY) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr,
-                "array_list.array_list_init: capacity overflow, clamped to "
-                "max capacity: %zu.\n",
-                ARRAY_LIST_MAX_CAPACITY);
+#if ARRAY_LIST_LOG_ENABLED
+        log_warn(
+             "array_list.array_list_init: capacity overflow, clamped to "
+             "max capacity: %zu.",
+             ARRAY_LIST_MAX_CAPACITY);
 #endif
         cap = ARRAY_LIST_MAX_CAPACITY;
     }
@@ -109,11 +115,11 @@ bool array_list_reserve(array_list *list, const size_t new_capacity) {
     if (!list || new_capacity <= list->header.capacity) return false;
     size_t cap_to_reserve = new_capacity;
     if (new_capacity > ARRAY_LIST_MAX_CAPACITY) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr,
-                "array_list.array_list_reserve: capacity overflow, reserved with max "
-                "capacity: %zu.\n",
-                ARRAY_LIST_MAX_CAPACITY);
+#if ARRAY_LIST_LOG_ENABLED
+        log_warn(
+             "array_list.array_list_reserve: capacity overflow, reserved with max "
+             "capacity: %zu.",
+             ARRAY_LIST_MAX_CAPACITY);
 #endif
         cap_to_reserve = ARRAY_LIST_MAX_CAPACITY;
     }
@@ -155,11 +161,9 @@ bool array_list_append(array_list *list, const void *element) {
         if (new_capacity <= list->header.capacity)
             new_capacity = list->header.capacity + 1;
         if (new_capacity > ARRAY_LIST_MAX_CAPACITY) {
-#ifdef MODULE_LOG_ENABLED
-            fprintf(
-                 stderr,
-                 "array_list.array_list_append: capacity overflow. Max capacity: %zu. \n",
-                 ARRAY_LIST_MAX_CAPACITY);
+#if ARRAY_LIST_LOG_ENABLED
+            log_warn("array_list.array_list_append: capacity overflow. Max capacity: %zu.",
+                     ARRAY_LIST_MAX_CAPACITY);
 #endif
             new_capacity = ARRAY_LIST_MAX_CAPACITY;
         }

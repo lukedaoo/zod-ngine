@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "log.h"
+
 /*
  * @info(cargs) — command-line argument parser
  *
@@ -13,7 +15,7 @@
  *
  * 2. Call carg_parse(). Returns false on error (unknown flag, wrong type,
  *    too few values, too many values, missing required).
- *    Enable MODULE_LOG_ENABLED for stderr output.
+ *    Enable CARG_LOG_ENABLED (or ALL_MODULES_LOG_ENABLED) for log output.
  *
  * 3. Read values with typed getters. Array getters return NULL when absent.
  *    Bool getter returns fallback when absent.
@@ -61,6 +63,10 @@ const char **carg_get_string_array(carg_table *t, const char *flag, size_t *coun
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef CARG_LOG_ENABLED
+#define CARG_LOG_ENABLED 0
+#endif
 
 struct carg {
     const char *flag;
@@ -130,8 +136,8 @@ static int *carg_parse_ints([[maybe_unused]] const char *flag, const char **argv
         char       *end;
         long        v = strtol(tok, &end, 10);
         if (*end != '\0' || end == tok) {
-#ifdef MODULE_LOG_ENABLED
-            fprintf(stderr, "carg.carg_parse: %s: invalid int value '%s'\n", flag, tok);
+#if CARG_LOG_ENABLED
+            log_error("carg.carg_parse: %s: invalid int value '%s'", flag, tok);
 #endif
             free(vals);
             return NULL;
@@ -150,8 +156,8 @@ static float *carg_parse_floats([[maybe_unused]] const char *flag, const char **
         char       *end;
         float       v = strtof(tok, &end);
         if (*end != '\0' || end == tok) {
-#ifdef MODULE_LOG_ENABLED
-            fprintf(stderr, "carg.carg_parse: %s: invalid float value '%s'\n", flag, tok);
+#if CARG_LOG_ENABLED
+            log_error("carg.carg_parse: %s: invalid float value '%s'", flag, tok);
 #endif
             free(vals);
             return NULL;
@@ -172,10 +178,9 @@ bool carg_parse(const carg_register *defs, const size_t ndefs, const int argc,
         for (size_t i = 0; i < ndefs; i++) {
             const char *flag = defs[i].flag;
             if (!flag || flag[0] != '-' || flag[1] != '-') {
-#ifdef MODULE_LOG_ENABLED
-                fprintf(stderr,
-                        "carg.carg_parse: Flag '%s' must start with `--`; got '%s'.\n",
-                        flag ? flag : "(null)", flag ? flag : "(null)");
+#if CARG_LOG_ENABLED
+                log_error("carg.carg_parse: Flag '%s' must start with `--`; got '%s'.",
+                          flag ? flag : "(null)", flag ? flag : "(null)");
 #endif
                 return false;
             }
@@ -205,8 +210,8 @@ bool carg_parse(const carg_register *defs, const size_t ndefs, const int argc,
     for (int a = 1; a < argc; a++) {
         const carg_register *def = carg_find_def(defs, ndefs, argv[a]);
         if (!def) {
-#ifdef MODULE_LOG_ENABLED
-            fprintf(stderr, "carg.carg_parse: unknown flag %s\n", argv[a]);
+#if CARG_LOG_ENABLED
+            log_error("carg.carg_parse: unknown flag %s", argv[a]);
 #endif
             carg_destroy(table);
             return false;
@@ -221,9 +226,9 @@ bool carg_parse(const carg_register *defs, const size_t ndefs, const int argc,
         }
 
         if ((size_t)(argc - a - 1) < def->arg_count) {
-#ifdef MODULE_LOG_ENABLED
-            fprintf(stderr, "carg.carg_parse: %s requires %zu value(s)\n", def->flag,
-                    def->arg_count);
+#if CARG_LOG_ENABLED
+            log_error("carg.carg_parse: %s requires %zu value(s)", def->flag,
+                      def->arg_count);
 #endif
             carg_destroy(table);
             return false;
@@ -261,9 +266,9 @@ bool carg_parse(const carg_register *defs, const size_t ndefs, const int argc,
             }
             case CARG_BOOL:
             default:
-#ifdef MODULE_LOG_ENABLED
-                fprintf(stderr, "carg.carg_parse: %s: bool flags must have arg_count 0\n",
-                        def->flag);
+#if CARG_LOG_ENABLED
+                log_error("carg.carg_parse: %s: bool flags must have arg_count 0",
+                          def->flag);
 #endif
                 carg_destroy(table);
                 return false;
@@ -283,9 +288,9 @@ bool carg_parse(const carg_register *defs, const size_t ndefs, const int argc,
                 excess++;
             }
             if (excess > 0) {
-#ifdef MODULE_LOG_ENABLED
-                fprintf(stderr, "carg.carg_parse: %s: got %zu value(s), expected %zu\n",
-                        def->flag, def->arg_count + excess, def->arg_count);
+#if CARG_LOG_ENABLED
+                log_error("carg.carg_parse: %s: got %zu value(s), expected %zu",
+                          def->flag, def->arg_count + excess, def->arg_count);
 #endif
                 carg_destroy(table);
                 return false;
@@ -295,15 +300,15 @@ bool carg_parse(const carg_register *defs, const size_t ndefs, const int argc,
 
     for (size_t i = 0; i < ndefs; i++) {
         if (defs[i].required && !table->data[i].present) {
-#ifdef MODULE_LOG_ENABLED
-            fprintf(stderr, "carg.carg_parse: missing required flag %s\n", defs[i].flag);
+#if CARG_LOG_ENABLED
+            log_error("carg.carg_parse: missing required flag %s", defs[i].flag);
 #endif
             carg_destroy(table);
             return false;
         }
 
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr, "carg.carg_parse: parsed arg %s\n", defs[i].flag);
+#if CARG_LOG_ENABLED
+        log_debug("carg.carg_parse: parsed arg %s", defs[i].flag);
 #endif
     }
     return true;

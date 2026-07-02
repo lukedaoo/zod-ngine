@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #if DEBUG
-#define MODULE_LOG_ENABLED
+#define ALL_MODULES_LOG_ENABLED
 #endif
 
 #define CARG_IMPLEMENTATION

@@ -90,14 +90,8 @@ bool g_config_reload_from_file(g_config *cfg) {
     g_config_seed_preset(&tmp);
     if (!cfg->reload_config_func(cfg->config_file_watcher->path, &tmp.cvars)) {
         cvar_destroy(&tmp.cvars);
-        const char *reason = cvar_load_get_error();
-        if (reason[0]) {
-            log_warn("config.reload: failed to reload '%s': %s — keeping previous config",
-                     cfg->config_file_watcher->path, reason);
-        } else {
-            log_warn("config.reload: failed to reload '%s' — keeping previous config",
-                     cfg->config_file_watcher->path);
-        }
+        log_warn("config.reload: failed to reload '%s' — keeping previous config",
+                 cfg->config_file_watcher->path);
         return false;
     }
 

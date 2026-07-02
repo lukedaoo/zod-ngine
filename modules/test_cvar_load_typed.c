@@ -1,5 +1,7 @@
-#define MODULE_LOG_ENABLED
+#define ALL_MODULES_LOG_ENABLED
+#define LOG_IMPLEMENTATION
 #include "../lib/minunit.h"
+#include "modules_config.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define LOG_IMPLEMENTATION
+#include "log.h"
+
 #define CVAR_IMPLEMENTATION
 #include "cvar.h"
 

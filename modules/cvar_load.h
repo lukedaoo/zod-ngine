@@ -3,6 +3,7 @@
 
 #include "cvar.h"
 #include "ini.h"
+#include "log.h"
 #include "scf.h"
 
 typedef struct {
@@ -28,10 +29,6 @@ bool cvar_load_ini(cvar_table *table, const char *path, const cvar_schema *schem
 bool cvar_load_scf(cvar_table *table, const char *path, const cvar_schema *schema,
                    bool force_reload);
 
-// Reason the most recent cvar_load_ini/cvar_load_scf call failed. Empty string if the
-// last call succeeded.
-const char *cvar_load_get_error(void);
-
 // Merges first then second into out_entries[out_cap].
 // Second entries win on name collision. Returns number of entries written.
 size_t cvar_schema_merge(const cvar_schema *first, const cvar_schema *second,
@@ -42,6 +39,10 @@ size_t cvar_schema_merge(const cvar_schema *first, const cvar_schema *second,
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef CVAR_LOAD_LOG_ENABLED
+#define CVAR_LOAD_LOG_ENABLED 0
+#endif
 
 static const char *cvar_type_name(cvar_type t) {
     switch (t) {
@@ -56,12 +57,6 @@ static const char *cvar_type_name(cvar_type t) {
     }
     return "unknown";
 }
-
-static __thread char cvar_load_error_buf[256] = "";
-
-// Reason the most recent cvar_load_ini/cvar_load_scf call failed. Empty string if the
-// last call succeeded.
-const char *cvar_load_get_error(void) { return cvar_load_error_buf; }
 
 // Maps "section.key = value" into a cvar, inferring type in priority order:
 //
@@ -102,31 +97,21 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
     snprintf(name, sizeof(name), "%s.%s", section, key);
     const char *orig = value;
 
-#ifdef MODULE_LOG_ENABLED
-#define CVAR_LOAD_DIAG_PRINT() fprintf(stderr, "cvar.load: %s\n", cvar_load_error_buf)
-#else
-#define CVAR_LOAD_DIAG_PRINT() ((void)0)
-#endif
-
-#define CHECK_TYPE(got)                                                           \
-    do {                                                                          \
-        if (entry && (got) != entry->expected) {                                  \
-            snprintf(cvar_load_error_buf, sizeof(cvar_load_error_buf),            \
-                     "'%s' expected %s, got %s ('%s')", name,                     \
+#define CHECK_TYPE(got)                                                         \
+    do {                                                                        \
+        if (entry && (got) != entry->expected) {                                \
+            log_error("cvar.load: '%s' expected %s, got %s ('%s')", name,       \
                      cvar_type_name(entry->expected), cvar_type_name(got), orig); \
-            CVAR_LOAD_DIAG_PRINT();                                               \
-            return false;                                                         \
-        }                                                                         \
+            return false;                                                       \
+        }                                                                       \
     } while (0)
 
-#define CHECK_RANGE(entry, type, val)                                  \
-    do {                                                               \
-        if (!cvar_check_range((entry), (type), &(val))) {              \
-            snprintf(cvar_load_error_buf, sizeof(cvar_load_error_buf), \
-                     "'%s' value '%s' is out of range", name, value);  \
-            CVAR_LOAD_DIAG_PRINT();                                    \
-            return false;                                              \
-        }                                                              \
+#define CHECK_RANGE(entry, type, val)                                        \
+    do {                                                                     \
+        if (!cvar_check_range((entry), (type), &(val))) {                    \
+            log_error("cvar.load: '%s' value '%s' is out of range", name, value); \
+            return false;                                                    \
+        }                                                                    \
     } while (0)
 
     size_t len = strlen(value);
@@ -140,9 +125,8 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
             char   buf[512];
             size_t inner = len - 2;
             if (inner >= sizeof(buf)) {
-                snprintf(cvar_load_error_buf, sizeof(cvar_load_error_buf),
-                         "value for '%s' exceeds %zu bytes", name, sizeof(buf) - 1);
-                CVAR_LOAD_DIAG_PRINT();
+                log_error("cvar.load: value for '%s' exceeds %zu bytes", name,
+                          sizeof(buf) - 1);
                 return false;
             }
             memcpy(buf, value + 1, inner);
@@ -215,10 +199,9 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
             CHECK_TYPE(CVAR_INT);
             return cvar_set_int(table, name, (int)uval);
         }
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr,
-                "cvar.load: '%s' has malformed hex literal '%s' — treated as string\n",
-                name, orig);
+#if CVAR_LOAD_LOG_ENABLED
+        log_debug("cvar.load: '%s' has malformed hex literal '%s' — treated as string",
+                  name, orig);
 #endif
     }
 
@@ -251,7 +234,6 @@ static bool cvar_parse_and_set(const char *section, const char *key, const char 
 
 #undef CHECK_TYPE
 #undef CHECK_RANGE
-#undef CVAR_LOAD_DIAG_PRINT
 }
 
 typedef struct {
@@ -282,8 +264,6 @@ typedef bool (*parse_func)(const char *filepath, void *handler, void *user);
 static bool cvar_load_internal(cvar_table *table, const char *path,
                                const cvar_schema *schema, bool force_reload,
                                parse_func parser) {
-    cvar_load_error_buf[0] = '\0';
-
     if (!force_reload) {
         cvar_load_ctx ctx = {.table = table, .schema = schema};
         return parser(path, cvar_strict_handler, &ctx);
@@ -318,12 +298,11 @@ size_t cvar_schema_merge(const cvar_schema *first, const cvar_schema *second,
     if (first) {
         for (size_t i = 0; i < first->count; i++) {
             if (n >= cap) {
-#ifdef MODULE_LOG_ENABLED
-                fprintf(stderr,
-                        "cvar.schema_merge: (first schema) buffer full (%zu), dropping "
-                        "'%s' — increase "
-                        "cap\n",
-                        cap, first->entries[i].name);
+#if CVAR_LOAD_LOG_ENABLED
+                log_warn(
+                     "cvar.schema_merge: (first schema) buffer full (%zu), dropping "
+                     "'%s' — increase cap",
+                     cap, first->entries[i].name);
 #endif
                 break;
             }
@@ -345,12 +324,11 @@ size_t cvar_schema_merge(const cvar_schema *first, const cvar_schema *second,
             }
             if (!found) {
                 if (n >= cap) {
-#ifdef MODULE_LOG_ENABLED
-                    fprintf(stderr,
-                            "cvar.schema_merge: (second schema) buffer full (%zu), "
-                            "dropping '%s' — increase "
-                            "cap\n",
-                            cap, first->entries[i].name);
+#if CVAR_LOAD_LOG_ENABLED
+                    log_warn(
+                         "cvar.schema_merge: (second schema) buffer full (%zu), "
+                         "dropping '%s' — increase cap",
+                         cap, first->entries[i].name);
 #endif
                     continue;
                 }

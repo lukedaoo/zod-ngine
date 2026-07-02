@@ -1,6 +1,8 @@
 #ifndef FILE_WATCHER_H
 #define FILE_WATCHER_H
 
+#include "log.h"
+
 typedef enum {
     ERROR,
     FILE_NONE,     // no change since last check
@@ -26,6 +28,10 @@ void          file_watcher_close(file_watcher *w);
 #define FILE_WATCHER_PATH_MAX 256
 #endif
 
+#ifndef FILE_WATCHER_LOG_ENABLED
+#define FILE_WATCHER_LOG_ENABLED 0
+#endif
+
 struct file_watcher {
     char   path[FILE_WATCHER_PATH_MAX];
     time_t mtime;
@@ -45,16 +51,16 @@ static bool file_watcher_stat(const char *path, time_t *mtime) {
 file_watcher *file_watcher_watch(const char *path) {
     size_t len = strlen(path);
     if (len >= FILE_WATCHER_PATH_MAX) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr, "file_watcher.watch: path too long: %s\n", path);
+#if FILE_WATCHER_LOG_ENABLED
+        log_error("file_watcher.watch: path too long: %s", path);
 #endif
         return NULL;
     }
 
     struct stat st;
     if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr, "file_watcher.watch: path is a directory: %s\n", path);
+#if FILE_WATCHER_LOG_ENABLED
+        log_error("file_watcher.watch: path is a directory: %s", path);
 #endif
         return NULL;
     }
@@ -65,8 +71,8 @@ file_watcher *file_watcher_watch(const char *path) {
     memcpy(w->path, path, len + 1);
     w->exists = file_watcher_stat(path, &w->mtime);
     if (!w->exists) {
-#ifdef MODULE_LOG_ENABLED
-        fprintf(stderr, "file_watcher.watch: path does not exist yet: %s\n", path);
+#if FILE_WATCHER_LOG_ENABLED
+        log_debug("file_watcher.watch: path does not exist yet: %s", path);
 #endif
     }
 
