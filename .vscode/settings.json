@@ -1,9 +1,9 @@
 {
-  "clangd.path": "/usr/bin/clangd",
+  "clangd.path": "clangd",
   "clangd.arguments": [
     "--background-index",
     "--clang-tidy",
-"--query-driver=/usr/bin/clang,/usr/bin/clang-*,/usr/bin/gcc,/usr/bin/g++,/usr/bin/cc"
+    "--query-driver=/usr/bin/clang,/usr/bin/clang-*,/usr/bin/gcc,/usr/bin/g++,/usr/bin/cc"
   ],
   "C_Cpp.intelliSenseEngine": "disabled",
   "[c]": {

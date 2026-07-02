@@ -251,13 +251,21 @@ static const char  *COMPDB_DEFINES[] = {"-DCARG_IMPLEMENTATION",
 static const size_t COMPDB_DEFINES_COUNT =
      sizeof(COMPDB_DEFINES) / sizeof(COMPDB_DEFINES[0]);
 
+static const char *json_path(const char *path) {
+    char *out = nob_temp_alloc(strlen(path) + 1);
+    for (size_t i = 0; path[i]; ++i) out[i] = path[i] == '\\' ? '/' : path[i];
+    out[strlen(path)] = '\0';
+    return out;
+}
+
 static void compdb_entry(FILE *f, const char *cwd, const char *filepath, bool is_header,
                          bool *first) {
     if (!*first) fprintf(f, ",\n");
     *first = false;
     fprintf(f, "  {\n");
-    fprintf(f, "    \"directory\": \"%s\",\n", cwd);
-    fprintf(f, "    \"file\": \"%s/%s\",\n", cwd, filepath);
+    const char *json_cwd = json_path(cwd);
+    fprintf(f, "    \"directory\": \"%s\",\n", json_cwd);
+    fprintf(f, "    \"file\": \"%s/%s\",\n", json_cwd, filepath);
     fprintf(f, "    \"arguments\": [\n");
     fprintf(f, "      \"cc\", \"-Wall\", \"-Wextra\", \"-std=c23\", \"-I.\",\n");
 #ifdef __linux__
@@ -269,7 +277,7 @@ static void compdb_entry(FILE *f, const char *cwd, const char *filepath, bool is
     for (size_t i = 0; i < COMPDB_DEFINES_COUNT; ++i)
         fprintf(f, "      \"%s\",\n", COMPDB_DEFINES[i]);
     if (is_header) fprintf(f, "      \"-x\", \"c\",\n");
-    fprintf(f, "      \"%s/%s\"\n", cwd, filepath);
+    fprintf(f, "      \"%s/%s\"\n", json_cwd, filepath);
     fprintf(f, "    ]\n");
     fprintf(f, "  }");
 }
