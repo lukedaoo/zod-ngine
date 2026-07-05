@@ -4,7 +4,7 @@
 #include "index.h"
 
 #define CONFIG_PATH "run-tree/data/engine.scf"
-#define FONT_PATH   "run-tree/data/Yuyu-Regular.ttf"
+// #define FONT_PATH   "run-tree/data/Yuyu-Regular.ttf"
 
 void before_init(void *user_data) {
     (void)user_data;
@@ -95,6 +95,13 @@ int main(const int argc, const char **argv) {
         zod_begin_drawing();
         render_text_draw(16.0f, 24.0f, "Hello, zod-ngine! ", 1.0f,
                          (color4f){1.0f, 0.0f, 0.0f, 1.0f});
+
+        render_text_draw(16.0f, 48.0f, "Hello, zod-ngine! ", 1.0f,
+                         (color4f){1.0f, 0.0f, 0.0f, 1.0f});
+
+        render_text_draw(16.0f, 64.0f, "Hello, zod-ngine! ", 1.0f,
+                         (color4f){1.0f, 0.0f, 0.0f, 1.0f});
+        render_text_flush();
         // zod_console_draw();
 
         fps_frames++;

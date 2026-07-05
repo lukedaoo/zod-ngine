@@ -4,6 +4,8 @@
 
 #if RENDER_BACKEND == RENDER_BACKEND_OPENGL
 
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 #include <glad/gl.h>
@@ -13,42 +15,55 @@
 #include "../../render_text.h"
 #include "../engine_context/engine_context_internal.h"
 
+#ifndef RENDER_TEXT_MAX_QUADS
+#define RENDER_TEXT_MAX_QUADS 4096
+#endif
+
+#define RENDER_TEXT_VERTS_PER_QUAD 6
+
+typedef struct render_text_vertex {
+    float x, y;
+    float u, v;
+    float r, g, b, a;
+} render_text_vertex;
+
 static struct {
     GLuint      shader;
     GLuint      vao;
     GLuint      vbo;
     GLuint      atlas_texture;
-    GLint       u_rect;
     GLint       u_viewport;
-    GLint       u_uv_rect;
-    GLint       u_color;
     simple_font font;
+
+    render_text_vertex vertices[RENDER_TEXT_MAX_QUADS * RENDER_TEXT_VERTS_PER_QUAD];
+    int                quad_count;
 } render_text_state;
 
 static const char *RENDER_TEXT_VERT_SRC =
      "#version 460 core\n"
      "layout(location=0) in vec2 pos;\n"
-     "uniform vec4 rect;\n"
+     "layout(location=1) in vec2 uv;\n"
+     "layout(location=2) in vec4 color;\n"
      "uniform vec2 viewport;\n"
-     "uniform vec4 uv_rect;\n"
      "out vec2 v_uv;\n"
+     "out vec4 v_color;\n"
      "void main() {\n"
-     "    vec2 p   = rect.xy + pos * rect.zw;\n"
-     "    vec2 ndc = (p / viewport) * 2.0 - 1.0;\n"
+     "    vec2 ndc = (pos / viewport) * 2.0 - 1.0;\n"
      "    ndc.y    = -ndc.y;\n"
      "    gl_Position = vec4(ndc, 0.0, 1.0);\n"
-     "    v_uv = uv_rect.xy + pos * uv_rect.zw;\n"
+     "    v_uv    = uv;\n"
+     "    v_color = color;\n"
      "}\n";
 
 static const char *RENDER_TEXT_FRAG_SRC =
      "#version 460 core\n"
      "in vec2 v_uv;\n"
+     "in vec4 v_color;\n"
      "uniform sampler2D atlas;\n"
-     "uniform vec4 color;\n"
      "out vec4 frag_color;\n"
      "void main() {\n"
      "    float a = texture(atlas, v_uv).r;\n"
-     "    frag_color = vec4(color.rgb, color.a * a);\n"
+     "    frag_color = vec4(v_color.rgb, v_color.a * a);\n"
      "}\n";
 
 static GLuint render_text_compile_shader(GLenum type, const char *src) {
@@ -82,37 +97,36 @@ void render_text_init(const simple_font *font) {
     glDeleteShader(vert);
     glDeleteShader(frag);
 
-    render_text_state.u_rect = glGetUniformLocation(render_text_state.shader, "rect");
     render_text_state.u_viewport =
          glGetUniformLocation(render_text_state.shader, "viewport");
-    render_text_state.u_uv_rect =
-         glGetUniformLocation(render_text_state.shader, "uv_rect");
-    render_text_state.u_color = glGetUniformLocation(render_text_state.shader, "color");
 
-    // clang-format off
-    static const float verts[] = {
-         0.0f, 0.0f,
-         1.0f, 0.0f,
-         1.0f, 1.0f,
-
-         0.0f, 0.0f,
-         1.0f, 1.0f,
-         0.0f, 1.0f,
-    };
-    // clang-format on
     glGenVertexArrays(1, &render_text_state.vao);
     glGenBuffers(1, &render_text_state.vbo);
     glBindVertexArray(render_text_state.vao);
     glBindBuffer(GL_ARRAY_BUFFER, render_text_state.vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(render_text_state.vertices), NULL,
+                 GL_DYNAMIC_DRAW);
+
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), NULL);
+    glVertexAttribPointer(
+         0, 2, GL_FLOAT, GL_FALSE, sizeof(render_text_vertex),
+         (const void *)offsetof(render_text_vertex,  // NOLINT(performance-no-int-to-ptr)
+                                x));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(
+         1, 2, GL_FLOAT, GL_FALSE, sizeof(render_text_vertex),
+         (const void *)offsetof(render_text_vertex, // NOLINT(performance-no-int-to-ptr)
+                                u));  
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(
+         2, 4, GL_FLOAT, GL_FALSE, sizeof(render_text_vertex),
+         (const void *)offsetof(render_text_vertex, // NOLINT(performance-no-int-to-ptr)
+                                r));  
     glBindVertexArray(0);
 
-    // @todo:
-    // have global fonts
-    render_text_state.font  = *font;
-    simple_font_atlas atlas = simple_font_get_atlas(&render_text_state.font);
+    render_text_state.font       = *font;
+    render_text_state.quad_count = 0;
+    simple_font_atlas atlas      = simple_font_get_atlas(&render_text_state.font);
 
     glGenTextures(1, &render_text_state.atlas_texture);
     glBindTexture(GL_TEXTURE_2D, render_text_state.atlas_texture);
@@ -136,11 +150,51 @@ void render_text_destroy(void) {
 }
 
 void render_text_draw(float x, float y, const char *str, float scale, color4f color) {
-    float vw = (float)g_ctx.window.width;
-    float vh = (float)g_ctx.window.height;
-
     simple_font_atlas atlas            = simple_font_get_atlas(&render_text_state.font);
     int               fallback_advance = simple_font_get_advance(&render_text_state.font);
+
+    float cursor_x = x;
+    for (const char *p = str; *p; p++) {
+        const simple_font_glyph *g = simple_font_get_glyph(&render_text_state.font, *p);
+        if (g) {
+            if (render_text_state.quad_count < RENDER_TEXT_MAX_QUADS) {
+                float qx0 = cursor_x;
+                float qy0 = y + (float)g->y_offset * scale;
+                float qx1 = qx0 + (float)g->width * scale;
+                float qy1 = qy0 + (float)g->height * scale;
+
+                float u0 = (float)g->x / (float)atlas.width;
+                float v0 = (float)g->y / (float)atlas.height;
+                float u1 = (float)(g->x + g->width) / (float)atlas.width;
+                float v1 = (float)(g->y + g->height) / (float)atlas.height;
+
+                render_text_vertex *v =
+                     &render_text_state.vertices[(ptrdiff_t)render_text_state.quad_count *
+                                                 RENDER_TEXT_VERTS_PER_QUAD];
+
+                // clang-format off
+                v[0] = (render_text_vertex){qx0, qy0, u0, v0, color.r, color.g, color.b, color.a};
+                v[1] = (render_text_vertex){qx1, qy0, u1, v0, color.r, color.g, color.b, color.a};
+                v[2] = (render_text_vertex){qx1, qy1, u1, v1, color.r, color.g, color.b, color.a};
+                v[3] = (render_text_vertex){qx0, qy0, u0, v0, color.r, color.g, color.b, color.a};
+                v[4] = (render_text_vertex){qx1, qy1, u1, v1, color.r, color.g, color.b, color.a};
+                v[5] = (render_text_vertex){qx0, qy1, u0, v1, color.r, color.g, color.b, color.a};
+                // clang-format on
+
+                render_text_state.quad_count++;
+            }
+            cursor_x += (float)g->advance * scale;
+        } else {
+            cursor_x += (float)fallback_advance * scale;
+        }
+    }
+}
+
+void render_text_flush(void) {
+    if (render_text_state.quad_count == 0) return;
+
+    float vw = (float)g_ctx.window.width;
+    float vh = (float)g_ctx.window.height;
 
     GLboolean prev_blend = glIsEnabled(GL_BLEND);
     glEnable(GL_BLEND);
@@ -148,33 +202,24 @@ void render_text_draw(float x, float y, const char *str, float scale, color4f co
 
     glUseProgram(render_text_state.shader);
     glUniform2f(render_text_state.u_viewport, vw, vh);
-    glUniform4f(render_text_state.u_color, color.r, color.g, color.b, color.a);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, render_text_state.atlas_texture);
     glBindVertexArray(render_text_state.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, render_text_state.vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0,
+                    (GLsizeiptr)((size_t)render_text_state.quad_count *
+                                 RENDER_TEXT_VERTS_PER_QUAD * sizeof(render_text_vertex)),
+                    render_text_state.vertices);
 
-    float cursor_x = x;
-    for (const char *p = str; *p; p++) {
-        const simple_font_glyph *g = simple_font_get_glyph(&render_text_state.font, *p);
-        if (g) {
-            glUniform4f(render_text_state.u_rect, cursor_x,
-                        y + (float)g->y_offset * scale, (float)g->width * scale,
-                        (float)g->height * scale);
-            glUniform4f(render_text_state.u_uv_rect, (float)g->x / (float)atlas.width,
-                        (float)g->y / (float)atlas.height,
-                        (float)g->width / (float)atlas.width,
-                        (float)g->height / (float)atlas.height);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-            cursor_x += (float)g->advance * scale;
-        } else {
-            cursor_x += (float)fallback_advance * scale;
-        }
-    }
+    glDrawArrays(GL_TRIANGLES, 0,
+                 render_text_state.quad_count * RENDER_TEXT_VERTS_PER_QUAD);
 
     glBindVertexArray(0);
     glUseProgram(0);
 
     if (!prev_blend) glDisable(GL_BLEND);
+
+    render_text_state.quad_count = 0;
 }
 
 #else  // RENDER_BACKEND != RENDER_BACKEND_OPENGL — render_text not ported to this backend
@@ -191,6 +236,7 @@ void render_text_draw(float x, float y, const char *str, float scale, color4f co
     (void)scale;
     (void)color;
 }
+void render_text_flush(void) {}
 
 #endif
 
