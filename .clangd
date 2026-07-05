@@ -8,6 +8,7 @@ CompileFlags:
     - -I.
     - -I/usr/include/SDL3
     - -Ilib/glad/include
+    - -Ilib/stb_truetype
     # modules implementation
     - -DINI_IMPLEMENTATION
     - -DSCF_IMPLEMENTATION
@@ -21,7 +22,7 @@ CompileFlags:
     - -DIO_IMPLEMENTATION
     # ngine implementation
     - -DZOD_NGINE_IMPLEMENTATION
-    - -DRENDER_BACKEND=RENDER_BACKEND_OPENGL
+    - -DRENDER_BACKEND=0
 Index:
   Background: Build
 Diagnostics:

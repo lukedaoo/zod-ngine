@@ -87,6 +87,14 @@
 // @default 0
 // #define CARG_TO_CVAR_LOG_ENABLED 0
 
+// ------- Simple Font
+// simple_font.h — glyph atlas grid dimensions (cols x rows must hold all
+// SIMPLE_FONT_GLYPH_COUNT glyphs).
+// @default 16
+// #define SIMPLE_FONT_ATLAS_COLS 16
+// @default 6
+// #define SIMPLE_FONT_ATLAS_ROWS 6
+
 // ------ Array List
 // collections/array_list.h - initial capacity before first grow
 // @default 16

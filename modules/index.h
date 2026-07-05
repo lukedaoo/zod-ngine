@@ -24,6 +24,9 @@
 // io
 #include "file_watcher.h"
 
+// graphics
+#include "simple_font.h"
+
 // collections
 #include "collections/array_list.h"
 

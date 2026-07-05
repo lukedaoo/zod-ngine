@@ -5,10 +5,10 @@
 #include "../clock/clock_internal.h"
 #include "../engine_context/engine_context_internal.h"
 
-float    zod_clock_dt(void) { return g_ctx.clock.dt; }
-float    zod_clock_delta(void) { return g_ctx.clock.delta; }
-double   zod_clock_now(void) { return g_ctx.clock.now; }
-float    zod_clock_frame_time(void) { return (float)(g_ctx.clock.now - g_ctx.clock.last); }
+float  zod_clock_dt(void) { return g_ctx.clock.dt; }
+float  zod_clock_delta(void) { return g_ctx.clock.delta; }
+double zod_clock_now(void) { return g_ctx.clock.now; }
+float  zod_clock_frame_time(void) { return (float)(g_ctx.clock.now - g_ctx.clock.last); }
 uint32_t zod_clock_frame(void) { return g_ctx.clock.frame_count; }
 bool     zod_clock_paused(void) { return g_ctx.clock.paused; }
 

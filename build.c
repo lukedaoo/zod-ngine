@@ -30,10 +30,12 @@
 #define SDL_FLAGS    "-I/ucrt64/include/SDL3", "-L/ucrt64/lib", "-lSDL3.dll"
 #define GLAD_FLAGS   "-Ilib/glad/include"
 #define VULKAN_FLAGS "-lvulkan-1"
+#define MATH_FLAGS   "-lm"
 #elif defined(__linux__)
 #define SDL_FLAGS    "-I/usr/include/SDL3", "-lSDL3"
 #define GLAD_FLAGS   "-Ilib/glad/include", "-ldl"
 #define VULKAN_FLAGS "-lvulkan"
+#define MATH_FLAGS   "-lm"
 #endif
 
 #define RENDER_BACKEND_OPENGL_DEFINE "-DRENDER_BACKEND=RENDER_BACKEND_OPENGL"
@@ -53,7 +55,8 @@ int build_test_dir(const char *dir) {
              nob_temp_sprintf("./%.*s.out%s", (int)(strlen(name) - 2), name, EXE_EXT);
 
         Nob_Cmd cmd = {0};
-        nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, C_DEBUG_FLAGS, "-o", bin, src);
+        nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, C_DEBUG_FLAGS, "-o", bin, src,
+                       MATH_FLAGS);
         if (!nob_cmd_run(&cmd)) return 1;
     }
     return 0;
@@ -76,6 +79,7 @@ int run_test_dir(bool asan, const char *dir, int *passed, int *failed) {
         nob_cmd_append(&test_cmd, C_COMPILER, C_FLAGS, "-o", bin, src);
         if (nob_sv_starts_with(nob_sv_from_cstr(dir), nob_sv_from_cstr("ngine")))
             nob_cmd_append(&test_cmd, GLAD_SRC, SDL_FLAGS, GLAD_FLAGS);
+        nob_cmd_append(&test_cmd, MATH_FLAGS);
         if (asan) nob_cmd_append(&test_cmd, C_ASAN_FLAGS);
         if (!nob_cmd_run(&test_cmd)) return 1;
 
@@ -204,6 +208,7 @@ int run_run(bool execute, const char *target, const char *mode, const char *back
     } else {
         nob_cmd_append(&cmd, VULKAN_FLAGS);
     }
+    if (is_engine) nob_cmd_append(&cmd, MATH_FLAGS);
     if (strcmp(mode, "release") == 0) {
         nob_cmd_append(&cmd, C_RELEASE_FLAGS);
     } else {

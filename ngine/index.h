@@ -17,6 +17,7 @@
 #define LOG_USE_SIMPLE
 
 #define FILE_WATCHER_IMPLEMENTATION
+#define SIMPLE_FONT_IMPLEMENTATION
 #include <modules/index.h>
 
 #endif
@@ -34,6 +35,7 @@
 #include "zod_error.h"
 #include "zod_ngine.h"
 #include "console.h"
+#include "render_text.h"
 
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
@@ -55,6 +57,7 @@
 #include "internal/zod_ngine/zod_ngine_config.c"
 #include "internal/zod_ngine/zod_ngine_clock.c"
 #include "internal/console/console.c"
+#include "internal/render/render_text.c"
 #include "internal/error/zod_error.c"
 #include "internal/common/common.c"
 

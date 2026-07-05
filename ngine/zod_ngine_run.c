@@ -4,6 +4,7 @@
 #include "index.h"
 
 #define CONFIG_PATH "run-tree/data/engine.scf"
+#define FONT_PATH   "run-tree/data/Yuyu-Regular.ttf"
 
 void before_init(void *user_data) {
     (void)user_data;
@@ -74,6 +75,8 @@ int main(const int argc, const char **argv) {
     };
 
     if (!zod_ngine_init(params)) return 1;
+    simple_font game_font = simple_font_load(NULL);
+    render_text_init(&game_font);
 
     uint32_t fps_frames = 0;
     float    fps_accum  = 0.0f;
@@ -90,7 +93,9 @@ int main(const int argc, const char **argv) {
         if (zod_key_pressed(SDL_SCANCODE_GRAVE)) zod_console_toggle();
 
         zod_begin_drawing();
-        zod_console_draw();
+        render_text_draw(16.0f, 24.0f, "Hello, zod-ngine! ", 1.0f,
+                         (color4f){1.0f, 0.0f, 0.0f, 1.0f});
+        // zod_console_draw();
 
         fps_frames++;
         fps_accum += zod_clock_delta();
@@ -102,6 +107,7 @@ int main(const int argc, const char **argv) {
         zod_end_drawing();
         zod_clock_sleep_to_target_fps();
     }
+    render_text_destroy();
     zod_ngine_destroy();
     return 0;
 }
