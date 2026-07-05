@@ -5,7 +5,7 @@
 #include "modules/types.h"
 #include "../render/render_internal.h"
 
-struct window {
+struct g_window {
     SDL_Window    *handle;
     render_backend backend;
     int            width;

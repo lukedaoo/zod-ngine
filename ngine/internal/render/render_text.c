@@ -28,12 +28,14 @@ typedef struct render_text_vertex {
 } render_text_vertex;
 
 static struct {
-    GLuint      shader;
-    GLuint      vao;
-    GLuint      vbo;
-    GLuint      atlas_texture;
-    GLint       u_viewport;
-    simple_font font;
+    GLuint shader;
+    GLuint vao;
+    GLuint vbo;
+    GLuint atlas_texture;
+    GLint  u_viewport;
+
+    const simple_font *bound_font;  // identity tag only — not owned, not a copy
+    bool               dirty;
 
     render_text_vertex vertices[RENDER_TEXT_MAX_QUADS * RENDER_TEXT_VERTS_PER_QUAD];
     int                quad_count;
@@ -82,11 +84,21 @@ static GLuint render_text_compile_shader(GLenum type, const char *src) {
     return s;
 }
 
-void render_text_init(const simple_font *font) {
-    if (!font) {
-        log_error("render_text: font is null");
-        return;
-    }
+static void render_text_upload_atlas(const simple_font *font) {
+    simple_font_atlas atlas = simple_font_get_atlas(font);
+
+    glBindTexture(GL_TEXTURE_2D, render_text_state.atlas_texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, atlas.width, atlas.height, 0, GL_RED,
+                 GL_UNSIGNED_BYTE, atlas.pixels);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void render_text_init(void) {
     GLuint vert = render_text_compile_shader(GL_VERTEX_SHADER, RENDER_TEXT_VERT_SRC);
     GLuint frag = render_text_compile_shader(GL_FRAGMENT_SHADER, RENDER_TEXT_FRAG_SRC);
 
@@ -124,20 +136,10 @@ void render_text_init(const simple_font *font) {
                                 r));  
     glBindVertexArray(0);
 
-    render_text_state.font       = *font;
     render_text_state.quad_count = 0;
-    simple_font_atlas atlas      = simple_font_get_atlas(&render_text_state.font);
-
+    render_text_state.bound_font = NULL;
+    render_text_state.dirty      = true;
     glGenTextures(1, &render_text_state.atlas_texture);
-    glBindTexture(GL_TEXTURE_2D, render_text_state.atlas_texture);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, atlas.width, atlas.height, 0, GL_RED,
-                 GL_UNSIGNED_BYTE, atlas.pixels);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
 
     log_debug("render_text.init: ready");
 }
@@ -149,13 +151,22 @@ void render_text_destroy(void) {
     glDeleteTextures(1, &render_text_state.atlas_texture);
 }
 
-void render_text_draw(float x, float y, const char *str, float scale, color4f color) {
-    simple_font_atlas atlas            = simple_font_get_atlas(&render_text_state.font);
-    int               fallback_advance = simple_font_get_advance(&render_text_state.font);
+void render_text_invalidate(void) { render_text_state.dirty = true; }
+
+void render_text_draw(float x, float y, const char *str, float scale, color4f color,
+                      const simple_font *font) {
+    if (font != render_text_state.bound_font || render_text_state.dirty) {
+        render_text_upload_atlas(font);
+        render_text_state.bound_font = font;
+        render_text_state.dirty      = false;
+    }
+
+    simple_font_atlas atlas            = simple_font_get_atlas(font);
+    int               fallback_advance = simple_font_get_advance(font);
 
     float cursor_x = x;
     for (const char *p = str; *p; p++) {
-        const simple_font_glyph *g = simple_font_get_glyph(&render_text_state.font, *p);
+        const simple_font_glyph *g = simple_font_get_glyph(font, *p);
         if (g) {
             if (render_text_state.quad_count < RENDER_TEXT_MAX_QUADS) {
                 float qx0 = cursor_x;
@@ -227,16 +238,19 @@ void render_text_flush(void) {
 
 #include "../../render_text.h"
 
-void render_text_init(const simple_font *font) { (void)font; }
+void render_text_init(void) {}
 void render_text_destroy(void) {}
-void render_text_draw(float x, float y, const char *str, float scale, color4f color) {
+void render_text_draw(float x, float y, const char *str, float scale, color4f color,
+                      const simple_font *font) {
     (void)x;
     (void)y;
     (void)str;
     (void)scale;
     (void)color;
+    (void)font;
 }
 void render_text_flush(void) {}
+void render_text_invalidate(void) {}
 
 #endif
 

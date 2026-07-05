@@ -20,15 +20,15 @@
 #define WINDOW_SDL_FLAG SDL_WINDOW_VULKAN
 #endif
 
-window window_create(const char *title, int width, int height, uint32_t flags) {
+g_window window_create(const char *title, int width, int height, uint32_t flags) {
     if (width <= 0 || height <= 0) {
         log_error(
              "window.create: invalid size %dx%d rejected — width and height must be > 0",
              width, height);
-        return (window){0};
+        return (g_window){0};
     }
 
-    window window = {0};
+    g_window window = {0};
     window.handle = SDL_CreateWindow(title, width, height, flags | WINDOW_SDL_FLAG);
     window.width  = width;
     window.height = height;
@@ -40,13 +40,13 @@ window window_create(const char *title, int width, int height, uint32_t flags) {
     return window;
 }
 
-void window_destroy(window *window) {
+void window_destroy(g_window *window) {
     if (!window) return;
     render_backend_shutdown(window->backend.context);
     SDL_DestroyWindow(window->handle);
 }
 
-bool window_apply_config(window *window) {
+bool window_apply_config(g_window *window) {
     if (!window || !window->backend.context) return false;
 
     bool ok = true;

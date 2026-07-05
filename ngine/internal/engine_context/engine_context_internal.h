@@ -9,13 +9,17 @@
 #include "../clock/clock_internal.h"
 #include "../input/input_internal.h"
 #include "../window/window_internal.h"
+#include "modules/simple_font.h"
 
 struct engine_context {
-    g_config config;
-    g_clock  clock;
-    g_input  input;
-    window   window;
-    bool     should_exit;
+    g_config    config;
+    g_clock     clock;
+    g_input     input;
+    g_window      window;
+
+    simple_font primary_font;
+
+    bool        should_exit;
 };
 
 #endif

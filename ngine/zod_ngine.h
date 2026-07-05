@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <modules/cvar.h>
 #include <modules/cvar_load.h>
+#include <modules/simple_font.h>
+
+#include "input.h"
 
 typedef struct {
     void (*before_init)(void *user_data);
@@ -79,6 +82,22 @@ void     zod_clock_sleep_to_target_fps(void);
 //
 void zod_begin_drawing(void);
 void zod_end_drawing(void);
+
+//
+// Font accessors
+//
+
+// Borrowed pointer into the engine's own primary_font storage — valid for the
+// engine's lifetime, do not free. Reflects whatever was most recently loaded by
+// zod_ngine_apply_config's load_font (initial load or config hot-reload).
+const simple_font *zod_font_primary_get(void);
+
+//
+// Input accessors
+//
+bool zod_input_key_down(zod_key_t key);
+bool zod_input_key_pressed(zod_key_t key);
+bool zod_input_key_released(zod_key_t key);
 
 // Utils
 bool zod_should_exit(void);

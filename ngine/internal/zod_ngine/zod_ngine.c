@@ -10,12 +10,23 @@
 #include "../../config.h"
 #include "../../console.h"
 #include "../../render.h"
+#include "../../render_text.h"
 #include "../../zod_error.h"
 #include "../../zod_ngine.h"
 
 #include "../config/config_internal.h"
 #include "../clock/clock_internal.h"
 #include "../engine_context/engine_context_internal.h"
+
+static void load_font() {
+    cvar *primary_font_cvar = cvar_get(&g_ctx.config.cvars, "asset.font.primary");
+    if (primary_font_cvar) {
+        const char *font_path = primary_font_cvar->value.str.data;
+        log_debug("engine.init: loading font '%s'", font_path);
+        g_ctx.primary_font = simple_font_load(font_path);
+        render_text_invalidate();
+    }
+}
 
 bool zod_ngine_init(const zod_engine_init_params params) {
     const int                 argc         = params.argc;
@@ -68,7 +79,6 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     }
 
     g_config_adjust(&g_ctx.config);
-
 #ifdef DEBUG
     g_config_print(&g_ctx.config);
 #endif
@@ -97,7 +107,6 @@ bool zod_ngine_init(const zod_engine_init_params params) {
             flags |= SDL_WINDOW_TRANSPARENT;
         g_ctx.window = window_create(title, w, h, flags);
         zod_ngine_apply_config(false);
-        zod_console_init();
     }
 #endif
 
@@ -117,7 +126,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
 void zod_ngine_destroy(void) {
     log_debug("engine.destroy: shutting down");
     zod_console_destroy();
-    engine_context_destroy();
+    g_engine_context_destroy();
 }
 
 void zod_ngine_apply_config(bool adjust_config) {
@@ -130,6 +139,8 @@ void zod_ngine_apply_config(bool adjust_config) {
     g_clock_change_target_fps(target_fps >= 0 ? (uint32_t)target_fps
                                               : DEFAULT_CONFIG_TARGET_FPS);
     window_apply_config(&g_ctx.window);
+
+    load_font();
 }
 
 bool zod_should_exit(void) { return g_ctx.should_exit; }
@@ -159,5 +170,7 @@ bool zod_tick_hot_reload(void) {
 
 void zod_begin_drawing(void) { render_begin(); }
 void zod_end_drawing(void) { render_end(); }
+
+const simple_font *zod_font_primary_get(void) { return &g_ctx.primary_font; }
 
 #endif

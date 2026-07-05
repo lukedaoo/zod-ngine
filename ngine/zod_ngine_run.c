@@ -55,8 +55,6 @@ int main(const int argc, const char **argv) {
          .after_init  = after_init,
     };
 
-    // Stack-local is fine here: zod_ngine_init copies each entry into the engine's
-    // own storage synchronously, before this array ever goes out of scope.
     const cvar_constraint app_config_constraints[] = {
          {.name     = "game.difficulty",
           .expected = CVAR_INT,
@@ -75,8 +73,7 @@ int main(const int argc, const char **argv) {
     };
 
     if (!zod_ngine_init(params)) return 1;
-    simple_font game_font = simple_font_load(NULL);
-    render_text_init(&game_font);
+    render_text_init();
 
     uint32_t fps_frames = 0;
     float    fps_accum  = 0.0f;
@@ -87,27 +84,27 @@ int main(const int argc, const char **argv) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) zod_request_exit();
         }
-        zod_input_update();
+        g_input_update();
         zod_tick_hot_reload();
 
-        if (zod_key_pressed(SDL_SCANCODE_GRAVE)) zod_console_toggle();
+        if (g_input_key_pressed(SDL_SCANCODE_GRAVE)) zod_console_toggle();
 
         zod_begin_drawing();
         render_text_draw(16.0f, 24.0f, "Hello, zod-ngine! ", 1.0f,
-                         (color4f){1.0f, 0.0f, 0.0f, 1.0f});
+                         (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
 
         render_text_draw(16.0f, 48.0f, "Hello, zod-ngine! ", 1.0f,
-                         (color4f){1.0f, 0.0f, 0.0f, 1.0f});
+                         (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
 
         render_text_draw(16.0f, 64.0f, "Hello, zod-ngine! ", 1.0f,
-                         (color4f){1.0f, 0.0f, 0.0f, 1.0f});
+                         (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
         render_text_flush();
         // zod_console_draw();
 
         fps_frames++;
         fps_accum += zod_clock_delta();
         if (fps_accum >= 1.0f) {
-            log_info("engine.fps: %u, %f", fps_frames, (double)zod_clock_dt());
+            // log_info("engine.fps: %u, %f", fps_frames, (double)zod_clock_dt());
             fps_frames = 0;
             fps_accum -= 1.0f;
         }
