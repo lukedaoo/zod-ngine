@@ -4,23 +4,23 @@
 #include <modules/cvar.h>
 #include <modules/cvar_load.h>
 
-typedef struct g_config g_config;
+typedef struct config config;
 
-void g_config_init(g_config *cfg);
-void g_config_destroy(g_config *cfg);
+void config_init(config *cfg);
+void config_destroy(config *cfg);
 
-void g_config_add_user_constraints(g_config *cfg, const cvar_constraint *entries,
+void config_add_user_constraints(config *cfg, const cvar_constraint *entries,
                                    size_t count);
 
-bool g_config_reload_from_file(g_config *cfg);
+bool config_reload_from_file(config *cfg);
 
 // @info(engine-config): adjust user config to enfore required values
-bool g_config_adjust(g_config *cfg);
+bool config_adjust(config *cfg);
 
 // @info(engine-config): reject fatal invariants (window size, target_fps must be > 0)
-bool g_config_validate(g_config *cfg);
+bool config_validate(config *cfg);
 
 // debug
-void g_config_print(g_config *cfg);
+void config_print(config *cfg);
 
 #endif

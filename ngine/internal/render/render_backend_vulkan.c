@@ -10,11 +10,11 @@ typedef struct vulkan_backend_context {
     SDL_Window *window;
 } vulkan_backend_context;
 
-static vulkan_backend_context g_vulkan_ctx;
+static vulkan_backend_context vulkan_ctx;
 
 void *render_backend_context_create(SDL_Window *window) {
-    g_vulkan_ctx.window = window;
-    return &g_vulkan_ctx;
+    vulkan_ctx.window = window;
+    return &vulkan_ctx;
 }
 
 void render_backend_init(void *render_context, int width, int height) {

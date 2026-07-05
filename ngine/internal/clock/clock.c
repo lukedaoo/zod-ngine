@@ -8,7 +8,7 @@
 
 #include "clock_internal.h"
 
-void g_clock_init(uint32_t target_fps) {
+void clock_init(uint32_t target_fps) {
     if ((int32_t)target_fps < 0) {
         log_error("clock.init: negative target_fps %d rejected — ignoring",
                   (int32_t)target_fps);
@@ -24,7 +24,7 @@ void g_clock_init(uint32_t target_fps) {
     g_ctx.clock.paused      = false;
 }
 
-void g_clock_change_target_fps(uint32_t target_fps) {
+void clock_change_target_fps(uint32_t target_fps) {
     if ((int32_t)target_fps < 0) {
         log_error("clock.change_target_fps: negative fps %d rejected — ignoring",
                   (int32_t)target_fps);
@@ -36,7 +36,7 @@ void g_clock_change_target_fps(uint32_t target_fps) {
     g_ctx.clock.frame_delay = target_fps ? 1.0f / (float)target_fps : 0.0f;
 }
 
-void g_clock_update(void) {
+void clock_update(void) {
     uint64_t now_tick = SDL_GetPerformanceCounter();
     double raw_dt = (double)(now_tick - g_ctx.clock.last_tick) / (double)g_ctx.clock.freq;
     g_ctx.clock.last_tick = now_tick;
@@ -51,7 +51,7 @@ void g_clock_update(void) {
     g_ctx.clock.frame_count++;
 }
 
-void g_clock_sleep_to_target_fps(void) {
+void clock_sleep_to_target_fps(void) {
     if (g_ctx.clock.frame_delay <= 0.0f) return;
     if (cvar_get_bool(&g_ctx.config.cvars, "window.vsync", true)) return;
 

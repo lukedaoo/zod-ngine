@@ -41,8 +41,8 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     log_info("\nengine.init: starting");
 
     {
-        g_config_init(&g_ctx.config);
-        g_config_add_user_constraints(&g_ctx.config, config_setup.constraints,
+        config_init(&g_ctx.config);
+        config_add_user_constraints(&g_ctx.config, config_setup.constraints,
                                       config_setup.constraints_count);
 
         if (config_setup.load_config_func && config_setup.config_path) {
@@ -73,14 +73,14 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         }
     }
 
-    if (!g_config_validate(&g_ctx.config)) {
+    if (!config_validate(&g_ctx.config)) {
         zod_set_error("invalid config — see log for details");
         return false;
     }
 
-    g_config_adjust(&g_ctx.config);
+    config_adjust(&g_ctx.config);
 #ifdef DEBUG
-    g_config_print(&g_ctx.config);
+    config_print(&g_ctx.config);
 #endif
 
 #ifndef NGINE_UNIT_TEST
@@ -113,7 +113,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     {
         int target_fps = cvar_get_int(&g_ctx.config.cvars, "engine.target_fps",
                                       DEFAULT_CONFIG_TARGET_FPS);
-        g_clock_init((uint32_t)target_fps);
+        clock_init((uint32_t)target_fps);
         log_debug("clock.init: target fps = %d", target_fps);
     }
 
@@ -126,17 +126,17 @@ bool zod_ngine_init(const zod_engine_init_params params) {
 void zod_ngine_destroy(void) {
     log_debug("engine.destroy: shutting down");
     zod_console_destroy();
-    g_engine_context_destroy();
+    engine_context_destroy();
 }
 
 void zod_ngine_apply_config(bool adjust_config) {
-    if (adjust_config) g_config_adjust(&g_ctx.config);
+    if (adjust_config) config_adjust(&g_ctx.config);
 
     log_set_level(cvar_get_int(&g_ctx.config.cvars, "log.level", LOG_TRACE));
 
     int target_fps = cvar_get_int(&g_ctx.config.cvars, "engine.target_fps",
                                   DEFAULT_CONFIG_TARGET_FPS);
-    g_clock_change_target_fps(target_fps >= 0 ? (uint32_t)target_fps
+    clock_change_target_fps(target_fps >= 0 ? (uint32_t)target_fps
                                               : DEFAULT_CONFIG_TARGET_FPS);
     window_apply_config(&g_ctx.window);
 
@@ -152,18 +152,18 @@ bool zod_tick_hot_reload(void) {
         return false;
     log_info("config.watcher: '%s' changed, reloading",
              g_ctx.config.config_file_watcher->path);
-    if (!g_config_reload_from_file(&g_ctx.config)) {
+    if (!config_reload_from_file(&g_ctx.config)) {
         log_warn("config.watcher: reload failed — keeping previous config");
         return false;
     }
-    if (!g_config_validate(&g_ctx.config)) {
+    if (!config_validate(&g_ctx.config)) {
         log_fatal("config.watcher: reloaded config failed validation — exiting");
         zod_request_exit();
         return false;
     }
     zod_ngine_apply_config(true);
 #if DEBUG
-    g_config_print(&g_ctx.config);
+    config_print(&g_ctx.config);
 #endif
     return true;
 }

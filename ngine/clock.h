@@ -3,11 +3,11 @@
 
 #include <stdint.h>
 
-typedef struct g_clock g_clock;
+typedef struct engine_clock engine_clock;
 
-void g_clock_init(uint32_t target_fps);
-void g_clock_change_target_fps(uint32_t target_fps);
-void g_clock_update(void);
-void g_clock_sleep_to_target_fps(void);
+void clock_init(uint32_t target_fps);
+void clock_change_target_fps(uint32_t target_fps);
+void clock_update(void);
+void clock_sleep_to_target_fps(void);
 
 #endif

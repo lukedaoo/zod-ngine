@@ -12,14 +12,13 @@
 #include "modules/simple_font.h"
 
 struct engine_context {
-    g_config    config;
-    g_clock     clock;
-    g_input     input;
-    g_window      window;
-
+    config       config;
+    engine_clock clock;
+    input        input;
+    window       window;
     simple_font primary_font;
 
-    bool        should_exit;
+    bool should_exit;
 };
 
 #endif

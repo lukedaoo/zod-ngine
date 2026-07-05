@@ -12,12 +12,12 @@ typedef struct gl_backend_context {
     SDL_GLContext gl;
 } gl_backend_context;
 
-static gl_backend_context g_gl_ctx;
+static gl_backend_context gl_ctx;
 
 void *render_backend_context_create(SDL_Window *window) {
-    g_gl_ctx.window = window;
-    g_gl_ctx.gl     = NULL;
-    return &g_gl_ctx;
+    gl_ctx.window = window;
+    gl_ctx.gl     = NULL;
+    return &gl_ctx;
 }
 
 void render_backend_init(void *render_context, int width, int height) {

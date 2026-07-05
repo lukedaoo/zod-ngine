@@ -12,8 +12,8 @@ float  zod_clock_frame_time(void) { return (float)(g_ctx.clock.now - g_ctx.clock
 uint32_t zod_clock_frame(void) { return g_ctx.clock.frame_count; }
 bool     zod_clock_paused(void) { return g_ctx.clock.paused; }
 
-void zod_clock_update(void) { g_clock_update(); }
-void zod_clock_sleep_to_target_fps(void) { g_clock_sleep_to_target_fps(); }
+void zod_clock_update(void) { clock_update(); }
+void zod_clock_sleep_to_target_fps(void) { clock_sleep_to_target_fps(); }
 
 void zod_clock_set_time_scale(float scale) { g_ctx.clock.time_scale = scale; }
 void zod_clock_set_paused(bool paused) { g_ctx.clock.paused = paused; }

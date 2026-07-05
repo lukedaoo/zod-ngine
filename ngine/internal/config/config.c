@@ -26,7 +26,7 @@ static const cvar_constraint g_engine_constraints[] = {
      {.name = "window.transparent", .expected = CVAR_BOOL},
 };
 
-void config_seed_preset(g_config *cfg) {
+void config_seed_preset(config *cfg) {
     cvar_set_int(&cfg->cvars, "engine.target_fps", DEFAULT_CONFIG_TARGET_FPS);
 
     cvar_set_int(&cfg->cvars, "window.width", DEFAULT_CONFIG_WINDOW_WIDTH);
@@ -39,19 +39,19 @@ void config_seed_preset(g_config *cfg) {
     cvar_set_int(&cfg->cvars, "log.level", DEFAULT_CONFIG_LOG_LEVEL);
 }
 
-void g_config_init(g_config *cfg) {
+void config_init(config *cfg) {
     log_debug("config.init: seeding defaults");
     config_seed_preset(cfg);
     cvar_add_schema(&cfg->cvars, g_engine_constraints, 7);
 }
 
-void g_config_destroy(g_config *cfg) {
+void config_destroy(config *cfg) {
     if (!cfg) return;
     cvar_destroy(&cfg->cvars);
     file_watcher_close(cfg->config_file_watcher);
 }
 
-void g_config_add_user_constraints(g_config *cfg, const cvar_constraint *entries,
+void config_add_user_constraints(config *cfg, const cvar_constraint *entries,
                                    size_t count) {
     cvar_add_schema(&cfg->cvars, entries, count);
 }
@@ -78,7 +78,7 @@ static bool load_config_from_file_default(const char *filepath, cvar_table *cvar
     return ok;
 }
 
-bool g_config_reload_from_file(g_config *cfg) {
+bool config_reload_from_file(config *cfg) {
     if (!cfg || !cfg->config_file_watcher) {
         log_error(
              "config.reload: called without a file watcher — enable hot_reload=true in "
@@ -91,7 +91,7 @@ bool g_config_reload_from_file(g_config *cfg) {
         cfg->reload_config_func = load_config_from_file_default;
     }
 
-    g_config tmp = {0};
+    config tmp = {0};
     config_seed_preset(&tmp);
     cvar_copy_schema(&tmp.cvars, &cfg->cvars);
     if (!cfg->reload_config_func(cfg->config_file_watcher->path, &tmp.cvars)) {
@@ -106,7 +106,7 @@ bool g_config_reload_from_file(g_config *cfg) {
     return true;
 }
 
-bool g_config_adjust(g_config *cfg) {
+bool config_adjust(config *cfg) {
     if (!cfg) {
         log_error("config.adjust: called with NULL cfg — this is a bug");
         return false;
@@ -128,7 +128,7 @@ bool g_config_adjust(g_config *cfg) {
     return true;
 }
 
-bool g_config_validate(g_config *cfg) {
+bool config_validate(config *cfg) {
     if (!cfg) {
         log_error("config.validate: called with NULL cfg — this is a bug");
         return false;
@@ -154,7 +154,7 @@ bool g_config_validate(g_config *cfg) {
     return true;
 }
 
-void g_config_print(g_config *cfg) {
+void config_print(config *cfg) {
     log_debug("config.print: current values");
     cvar_print(&cfg->cvars);
 }

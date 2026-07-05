@@ -66,13 +66,13 @@ MU_TEST(test_adjust_config_converts_string_debug_to_int) {
     reset();
     cvar_set_string(&g_ctx.config.cvars, "log.level", "debug");
     mu_assert_int_eq(-1, zod_config_get_int("log.level", -1));
-    mu_check(g_config_adjust(&g_ctx.config));
+    mu_check(config_adjust(&g_ctx.config));
     mu_assert_int_eq(LOG_DEBUG, zod_config_get_int("log.level", -1));
 }
 
 MU_TEST(test_adjust_config_leaves_int_unchanged) {
     reset();
-    mu_check(g_config_adjust(&g_ctx.config));
+    mu_check(config_adjust(&g_ctx.config));
     mu_assert_int_eq(LOG_TRACE, zod_config_get_int("log.level", -1));
 }
 
@@ -87,12 +87,12 @@ MU_TEST(test_adjust_config_all_string_levels) {
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         reset();
         cvar_set_string(&g_ctx.config.cvars, "log.level", cases[i].s);
-        mu_check(g_config_adjust(&g_ctx.config));
+        mu_check(config_adjust(&g_ctx.config));
         mu_assert_int_eq(cases[i].v, zod_config_get_int("log.level", -1));
     }
 }
 
-MU_TEST(test_adjust_config_null_returns_false) { mu_check(!g_config_adjust(NULL)); }
+MU_TEST(test_adjust_config_null_returns_false) { mu_check(!config_adjust(NULL)); }
 
 static bool reload_succeeds(const char *path, cvar_table *cvars) {
     (void)path;
@@ -116,7 +116,7 @@ static bool reload_partial_then_fail(const char *path, cvar_table *cvars) {
 MU_TEST(test_reload_no_watcher_returns_false) {
     reset();
     g_ctx.config.config_file_watcher = NULL;
-    mu_check(!g_config_reload_from_file(&g_ctx.config));
+    mu_check(!config_reload_from_file(&g_ctx.config));
 }
 
 MU_TEST(test_reload_success_updates_config) {
@@ -125,7 +125,7 @@ MU_TEST(test_reload_success_updates_config) {
     g_ctx.config.config_file_watcher = &fw;
     g_ctx.config.reload_config_func  = reload_succeeds;
 
-    mu_check(g_config_reload_from_file(&g_ctx.config));
+    mu_check(config_reload_from_file(&g_ctx.config));
     mu_assert_int_eq(1280, zod_config_get_int("window.width", 0));
     mu_assert_int_eq(720, zod_config_get_int("window.height", 0));
     mu_assert_int_eq(60, zod_config_get_int("engine.target_fps", 0));
@@ -141,7 +141,7 @@ MU_TEST(test_reload_fail_preserves_config) {
     g_ctx.config.config_file_watcher = &fw;
     g_ctx.config.reload_config_func  = reload_fails;
 
-    mu_check(!g_config_reload_from_file(&g_ctx.config));
+    mu_check(!config_reload_from_file(&g_ctx.config));
     mu_assert_int_eq(1920, zod_config_get_int("window.width", 0));
 
     g_ctx.config.config_file_watcher = NULL;
@@ -155,7 +155,7 @@ MU_TEST(test_reload_partial_fail_preserves_config) {
     g_ctx.config.config_file_watcher = &fw;
     g_ctx.config.reload_config_func  = reload_partial_then_fail;
 
-    mu_check(!g_config_reload_from_file(&g_ctx.config));
+    mu_check(!config_reload_from_file(&g_ctx.config));
     mu_assert_int_eq(1920, zod_config_get_int("window.width", 0));
 
     g_ctx.config.config_file_watcher = NULL;

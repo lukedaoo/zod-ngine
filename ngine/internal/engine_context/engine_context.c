@@ -3,10 +3,10 @@
 
 #include "engine_context_internal.h"
 
-void g_engine_context_destroy(void) {
+void engine_context_destroy(void) {
     log_debug("engine context: destroying...");
     window_destroy(&g_ctx.window);
-    g_config_destroy(&g_ctx.config);
+    config_destroy(&g_ctx.config);
 }
 
 engine_context g_ctx = {0};

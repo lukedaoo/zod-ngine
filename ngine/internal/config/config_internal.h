@@ -45,12 +45,12 @@
 #define DEFAULT_CONFIG_LOG_LEVEL 0
 #endif
 
-struct g_config {
+struct config {
     cvar_table    cvars;
     file_watcher *config_file_watcher;
     bool (*reload_config_func)(const char *filepath, cvar_table *cvars);
 };
 
-void config_seed_preset(g_config *cfg);
+void config_seed_preset(config *cfg);
 
 #endif

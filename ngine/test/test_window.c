@@ -8,22 +8,22 @@
 #include "../index.h"
 
 MU_TEST(test_window_create_negative_width_rejected) {
-    g_window w = window_create("t", -1, 600, 0);
+    window w = window_create("t", -1, 600, 0);
     mu_check(w.handle == NULL);
 }
 
 MU_TEST(test_window_create_negative_height_rejected) {
-    g_window w = window_create("t", 800, -1, 0);
+    window w = window_create("t", 800, -1, 0);
     mu_check(w.handle == NULL);
 }
 
 MU_TEST(test_window_create_zero_width_rejected) {
-    g_window w = window_create("t", 0, 600, 0);
+    window w = window_create("t", 0, 600, 0);
     mu_check(w.handle == NULL);
 }
 
 MU_TEST(test_window_create_zero_height_rejected) {
-    g_window w = window_create("t", 800, 0, 0);
+    window w = window_create("t", 800, 0, 0);
     mu_check(w.handle == NULL);
 }
 

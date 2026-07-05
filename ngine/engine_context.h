@@ -3,7 +3,7 @@
 
 typedef struct engine_context engine_context;
 
-void g_engine_context_destroy(void);
+void engine_context_destroy(void);
 
 extern engine_context g_ctx;
 

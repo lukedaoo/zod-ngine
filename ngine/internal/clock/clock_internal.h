@@ -9,7 +9,7 @@
 #define DEFAULT_CONFIG_CLOCK_STAMP 0.25F
 #endif
 
-struct g_clock {
+struct engine_clock {
     // --- High precision timing ---
     uint64_t freq;        // perf-counter ticks/sec (cached at init)
     uint64_t last_tick;   // tick timestamp at start of current frame

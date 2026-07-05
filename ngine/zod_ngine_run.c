@@ -84,10 +84,10 @@ int main(const int argc, const char **argv) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) zod_request_exit();
         }
-        g_input_update();
+        input_update();
         zod_tick_hot_reload();
 
-        if (g_input_key_pressed(SDL_SCANCODE_GRAVE)) zod_console_toggle();
+        if (input_key_pressed(SDL_SCANCODE_GRAVE)) zod_console_toggle();
 
         zod_begin_drawing();
         render_text_draw(16.0f, 24.0f, "Hello, zod-ngine! ", 1.0f,
