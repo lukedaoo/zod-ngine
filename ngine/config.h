@@ -2,7 +2,6 @@
 #define ZOD_NGINE_CONFIG_H
 
 #include <modules/cvar.h>
-#include <modules/cvar_load.h>
 
 typedef struct config config;
 

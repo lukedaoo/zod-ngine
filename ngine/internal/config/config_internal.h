@@ -2,7 +2,6 @@
 #define CONFIG_INTERNAL_H
 
 #include <modules/cvar.h>
-#include <modules/cvar_load.h>
 #include <modules/file_watcher.h>
 
 #include "../../config.h"

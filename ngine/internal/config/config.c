@@ -1,7 +1,5 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
-#include <stdlib.h>
-
 #include <modules/log.h>
 #include <modules/cvar_load.h>
 

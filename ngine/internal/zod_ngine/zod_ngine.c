@@ -4,7 +4,6 @@
 
 #include <modules/cvar.h>
 #include <modules/log.h>
-#include <modules/cvar_load.h>
 #include <modules/file_watcher.h>
 
 #include "../../config.h"
@@ -15,7 +14,6 @@
 #include "../../zod_ngine.h"
 
 #include "../config/config_internal.h"
-#include "../clock/clock_internal.h"
 #include "../engine_context/engine_context_internal.h"
 
 static void load_font() {

@@ -2,7 +2,6 @@
 #define WINDOW_INTERNAL_H
 
 #include <SDL3/SDL.h>
-#include "modules/types.h"
 #include "../render/render_internal.h"
 
 struct window {

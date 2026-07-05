@@ -7,6 +7,8 @@ include_directories(lib)
 include_directories(modules)
 include_directories(ngine)
 
+find_package(PkgConfig REQUIRED)
+
 file(GLOB MODULE_HEADERS         CONFIGURE_DEPENDS "modules/*.h")
 file(GLOB MODULE_COLL_HEADERS    CONFIGURE_DEPENDS "modules/collections/*.h")
 file(GLOB NGINE_HEADERS          CONFIGURE_DEPENDS "ngine/*.h")

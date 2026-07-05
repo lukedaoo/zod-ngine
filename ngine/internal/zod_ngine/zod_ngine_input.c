@@ -1,4 +1,4 @@
-#ifdef ZOD_NGINE_IMPLEMENTATIOj
+#ifdef ZOD_NGINE_IMPLEMENTATION
 
 #include "../../zod_ngine.h"
 #include "../../input.h"

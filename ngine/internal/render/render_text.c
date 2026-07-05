@@ -5,8 +5,6 @@
 #if RENDER_BACKEND == RENDER_BACKEND_OPENGL
 
 #include <stddef.h>
-#include <stdint.h>
-#include <string.h>
 
 #include <glad/gl.h>
 #include <modules/log.h>
