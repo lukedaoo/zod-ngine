@@ -16,13 +16,11 @@
 #include "../engine_context/engine_context_internal.h"
 
 static void load_font() {
-    cvar *primary_font_cvar = cvar_get(&g_ctx.config.cvars, "asset.font.primary");
-    if (primary_font_cvar) {
-        const char *font_path = primary_font_cvar->value.str.data;
-        log_debug("engine.init: loading font '%s'", font_path);
-        g_ctx.primary_font = simple_font_load(font_path);
-        render_text_invalidate();
-    }
+    cvar       *primary_font_cvar = cvar_get(&g_ctx.config.cvars, "asset.font.primary");
+    const char *font_path = primary_font_cvar ? primary_font_cvar->value.str.data : NULL;
+    log_debug("engine.init: loading font '%s'", font_path ? font_path : "(none, using built-in ascii font)");
+    g_ctx.primary_font = simple_font_load(font_path);
+    render_text_invalidate();
 }
 
 bool zod_ngine_init(const zod_engine_init_params params) {
