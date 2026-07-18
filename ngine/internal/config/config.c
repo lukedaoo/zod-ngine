@@ -35,6 +35,9 @@ void config_seed_preset(config *cfg) {
     cvar_set_bool(&cfg->cvars, "window.transparent", DEFAULT_CONFIG_WINDOW_TRANSPARENT);
 
     cvar_set_int(&cfg->cvars, "log.level", DEFAULT_CONFIG_LOG_LEVEL);
+
+    cvar_set_int(&cfg->cvars, "console.visible_lines",
+                DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
 }
 
 void config_init(config *cfg) {

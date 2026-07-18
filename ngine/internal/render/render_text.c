@@ -125,13 +125,13 @@ void render_text_init(void) {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(
          1, 2, GL_FLOAT, GL_FALSE, sizeof(render_text_vertex),
-         (const void *)offsetof(render_text_vertex, // NOLINT(performance-no-int-to-ptr)
-                                u));  
+         (const void *)offsetof(render_text_vertex,  // NOLINT(performance-no-int-to-ptr)
+                                u));
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(
          2, 4, GL_FLOAT, GL_FALSE, sizeof(render_text_vertex),
-         (const void *)offsetof(render_text_vertex, // NOLINT(performance-no-int-to-ptr)
-                                r));  
+         (const void *)offsetof(render_text_vertex,  // NOLINT(performance-no-int-to-ptr)
+                                r));
     glBindVertexArray(0);
 
     render_text_state.quad_count = 0;

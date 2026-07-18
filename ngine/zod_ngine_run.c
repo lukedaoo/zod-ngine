@@ -58,8 +58,7 @@ int main(const int argc, const char **argv) {
     const cvar_constraint app_config_constraints[] = {
          {.name     = "game.difficulty",
           .expected = CVAR_INT,
-          .range    = {.has_min = true, .min.i = 1, .has_max = true, .max.i = 5}},
-    };
+          .range    = {.has_min = true, .min.i = 1, .has_max = true, .max.i = 5}}};
 
     const zod_engine_init_params params = {
          .argc         = argc,
@@ -78,33 +77,53 @@ int main(const int argc, const char **argv) {
     uint32_t fps_frames = 0;
     float    fps_accum  = 0.0f;
 
+    // SDL_StartTextInput(g_ctx.window.handle);
     while (!zod_should_exit()) {
         zod_clock_update();
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) zod_request_exit();
+            // if (e.type == SDL_EVENT_TEXT_INPUT) {
+            //     log_debug("SDL_EVENT_TEXT_INPUT: '%s'", e.text.text);
+            //     size_t input_len = strlen(e.text.text);
+            //
+            //     if (len + input_len < sizeof(buf) - 1) {
+            //         strcat(buf, e.text.text);
+            //         len += input_len;
+            //     }
+            //     if (len > 20) {
+            //         strcat(buf, "\n");
+            //     }
+            // } else if (e.type == SDL_EVENT_KEY_DOWN) {
+            //     if (e.key.key == SDLK_BACKSPACE && len > 0) {
+            //         buf[--len] = '\0';  // Remove last character
+            //     }
+            // }
         }
-        input_update();
+        zod_input_update();
         zod_tick_hot_reload();
 
-        if (input_key_pressed(SDL_SCANCODE_GRAVE)) zod_console_toggle();
+        if (zod_input_key_pressed(SDL_SCANCODE_GRAVE)) zod_console_toggle();
 
         zod_begin_drawing();
-        render_text_draw(16.0f, 24.0f, "Hello, zod-ngine! ", 1.0f,
-                         (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
-
-        render_text_draw(16.0f, 48.0f, "Hello, zod-ngine! ", 1.0f,
-                         (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
-
-        render_text_draw(16.0f, 64.0f, "Hello, zod-ngine! ", 1.0f,
-                         (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
+        // render_text_draw(16.0f, 24.0f, "Hello, zod-ngine! ", 1.0f,
+        //                  (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
+        //
+        // render_text_draw(16.0f, 48.0f, "Hello, zod-ngine! ", 1.0f,
+        //                  (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
+        //
+        // log_debug(buf);
+        // render_text_draw(16.0f, 64.0f, buf, 1.0f, (color4f){1.0f, 0.0f, 0.0f, 1.0f},
+        //                  zod_font_primary_get());
+        zod_console_draw();
         render_text_flush();
-        // zod_console_draw();
 
         fps_frames++;
         fps_accum += zod_clock_delta();
         if (fps_accum >= 1.0f) {
-            // log_info("engine.fps: %u, %f", fps_frames, (double)zod_clock_dt());
+            log_info("engine.fps: %u, %f", fps_frames, (double)zod_clock_dt());
+            zod_console_write("fps: %u, frame count: %u", fps_frames,
+                              g_ctx.clock.frame_count);
             fps_frames = 0;
             fps_accum -= 1.0f;
         }

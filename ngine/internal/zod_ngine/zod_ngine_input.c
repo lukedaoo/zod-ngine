@@ -4,6 +4,7 @@
 #include "../../input.h"
 #include "../engine_context/engine_context_internal.h"
 
+void zod_input_update(void) { input_update(); }
 bool zod_input_key_down(zod_key_t key) { return input_key_down(key); }
 bool zod_input_key_pressed(zod_key_t key) { return input_key_pressed(key); }
 bool zod_input_key_released(zod_key_t key) { return input_key_released(key); }

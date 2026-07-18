@@ -7,7 +7,6 @@
 #include <modules/file_watcher.h>
 
 #include "../../config.h"
-#include "../../console.h"
 #include "../../render.h"
 #include "../../render_text.h"
 #include "../../zod_error.h"
@@ -41,7 +40,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     {
         config_init(&g_ctx.config);
         config_add_user_constraints(&g_ctx.config, config_setup.constraints,
-                                      config_setup.constraints_count);
+                                    config_setup.constraints_count);
 
         if (config_setup.load_config_func && config_setup.config_path) {
             if (!config_setup.load_config_func(config_setup.config_path,
@@ -123,7 +122,6 @@ bool zod_ngine_init(const zod_engine_init_params params) {
 
 void zod_ngine_destroy(void) {
     log_debug("engine.destroy: shutting down");
-    zod_console_destroy();
     engine_context_destroy();
 }
 
@@ -135,7 +133,7 @@ void zod_ngine_apply_config(bool adjust_config) {
     int target_fps = cvar_get_int(&g_ctx.config.cvars, "engine.target_fps",
                                   DEFAULT_CONFIG_TARGET_FPS);
     clock_change_target_fps(target_fps >= 0 ? (uint32_t)target_fps
-                                              : DEFAULT_CONFIG_TARGET_FPS);
+                                            : DEFAULT_CONFIG_TARGET_FPS);
     window_apply_config(&g_ctx.window);
 
     load_font();

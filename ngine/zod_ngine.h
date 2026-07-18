@@ -95,9 +95,17 @@ const simple_font *zod_font_primary_get(void);
 //
 // Input accessors
 //
+void zod_input_update(void);
 bool zod_input_key_down(zod_key_t key);
 bool zod_input_key_pressed(zod_key_t key);
 bool zod_input_key_released(zod_key_t key);
+
+//
+// Console accessors
+//
+bool zod_console_toggle(void);
+void zod_console_write(const char *fmt, ...);
+bool zod_console_draw(void);
 
 // Utils
 bool zod_should_exit(void);
