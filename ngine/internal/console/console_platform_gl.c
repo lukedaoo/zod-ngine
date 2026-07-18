@@ -115,27 +115,42 @@ static void console_platform_draw_panel(int width, int height) {
     if (!prev_blend) glDisable(GL_BLEND);
 }
 
-static float console_measure_text_width(const char *str, int n, const simple_font *font) {
+// The ascii bitmap font is drawn top-aligned (glyph->y_offset is always 0), so
+// its vertical padding within a CONSOLE_LINE_HEIGHT row must scale with the
+// glyph height or it overflows the row — most visibly on the input row, which
+// has nothing below it to hide the overflow. The TTF backend instead relies on
+// glyph->y_offset for baseline placement, so it keeps the tuned constant.
+static float console_line_offset(const simple_font *font, float scale) {
+    if (font->backend == SIMPLE_FONT_BACKEND_ASCII) {
+        float glyph_height = (float)simple_font_get_advance(font) * scale;
+        return (CONSOLE_LINE_HEIGHT - glyph_height) * 0.5f;
+    }
+    return 16.0f;
+}
+
+static float console_measure_text_width(const char *str, int n, const simple_font *font,
+                                        float scale) {
     int fallback_advance = simple_font_get_advance(font);
     int width            = 0;
     for (int i = 0; i < n; i++) {
         const simple_font_glyph *g = simple_font_get_glyph(font, str[i]);
         width += g ? g->advance : fallback_advance;
     }
-    return (float)width;
+    return (float)width * scale;
 }
 
 // Smallest start index such that input[start..cursor_pos) fits within
 // available_width — walking back from the cursor so it always stays in
 // view, scrolling older characters off the left as typing overflows.
 static int console_input_scroll_start(const char *input, int cursor_pos,
-                                      float available_width, const simple_font *font) {
+                                      float available_width, const simple_font *font,
+                                      float scale) {
     int   fallback_advance = simple_font_get_advance(font);
     float used             = 0.0f;
     int   start            = cursor_pos;
     while (start > 0) {
         const simple_font_glyph *g   = simple_font_get_glyph(font, input[start - 1]);
-        float                    adv = (float)(g ? g->advance : fallback_advance);
+        float                    adv = (float)(g ? g->advance : fallback_advance) * scale;
         if (used + adv > available_width) break;
         used += adv;
         start--;
@@ -148,28 +163,31 @@ void console_platform_draw(int width, int height) {
 
     console_platform_draw_panel(width, height);
 
-    const color4f      text_color      = {1.0f, 1.0f, 1.0f, 1.0f};
-    const simple_font *font            = zod_font_primary_get();
-    int                lines_fit       = height / CONSOLE_LINE_HEIGHT;
-    int                scrollback_rows = lines_fit > 0 ? lines_fit - 1 : 0;
-    int start = console_visible_line_start(g_console.count, scrollback_rows);
+    const color4f      text_color = {1.0f, 1.0f, 1.0f, 1.0f};
+    const simple_font *font       = zod_font_primary_get();
+    float              scale = font->backend == SIMPLE_FONT_BACKEND_ASCII ? 2.0f : 1.0f;
+    float              line_offset = console_line_offset(font, scale);
+
+    int lines_fit       = height / CONSOLE_LINE_HEIGHT;
+    int scrollback_rows = lines_fit > 0 ? lines_fit - 1 : 0;
+    int start           = console_visible_line_start(g_console.count, scrollback_rows);
     for (int i = start; i < g_console.count; i++) {
-        render_text_draw(4.0f, (float)((i - start) * CONSOLE_LINE_HEIGHT) + 16.0f,
-                         g_console.lines[i], 1.0f, text_color, font);
+        render_text_draw(4.0f, (float)((i - start) * CONSOLE_LINE_HEIGHT) + line_offset,
+                         g_console.lines[i], scale, text_color, font);
     }
 
     if (lines_fit > 0) {
-        float input_y         = (float)(scrollback_rows * CONSOLE_LINE_HEIGHT) + 16.0f;
+        float input_y = (float)(scrollback_rows * CONSOLE_LINE_HEIGHT) + line_offset;
         float available_width = (float)width - 8.0f;
         int   scroll_start    = console_input_scroll_start(
-             g_console.input, g_console.cursor_pos, available_width, font);
+             g_console.input, g_console.cursor_pos, available_width, font, scale);
 
-        render_text_draw(4.0f, input_y, g_console.input + scroll_start, 1.0f, text_color,
+        render_text_draw(4.0f, input_y, g_console.input + scroll_start, scale, text_color,
                          font);
-        float cursor_x =
-             4.0f + console_measure_text_width(g_console.input + scroll_start,
-                                               g_console.cursor_pos - scroll_start, font);
-        render_text_draw(cursor_x, input_y, "|", 1.0f, text_color, font);
+        float cursor_x = 4.0f + console_measure_text_width(
+                                     g_console.input + scroll_start,
+                                     g_console.cursor_pos - scroll_start, font, scale);
+        render_text_draw(cursor_x, input_y, "|", scale, text_color, font);
     }
 
     render_text_flush();
