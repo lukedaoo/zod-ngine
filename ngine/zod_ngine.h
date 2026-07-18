@@ -8,6 +8,7 @@
 #include <modules/simple_font.h>
 
 #include "input.h"
+#include "console.h"
 
 typedef struct {
     void (*before_init)(void *user_data);
@@ -106,6 +107,8 @@ bool zod_input_key_released(zod_key_t key);
 bool zod_console_toggle(void);
 void zod_console_write(const char *fmt, ...);
 bool zod_console_draw(void);
+bool zod_console_visible(void);
+void zod_console_handle_event(console_input_event event);
 
 // Utils
 bool zod_should_exit(void);

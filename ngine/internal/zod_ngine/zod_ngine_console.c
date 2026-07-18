@@ -17,4 +17,8 @@ void zod_console_write(const char *fmt, ...) {
 
 bool zod_console_draw(void) { return console_draw(); }
 
+bool zod_console_visible(void) { return console_visible(); }
+
+void zod_console_handle_event(console_input_event event) { console_handle_event(event); }
+
 #endif

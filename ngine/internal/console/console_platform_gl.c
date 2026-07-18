@@ -6,15 +6,12 @@
 
 #include <glad/gl.h>
 #include <modules/log.h>
+#include <modules/simple_font.h>
 
 #include "../../render_text.h"
 #include "../../zod_ngine.h"
 #include "../engine_context/engine_context_internal.h"
 #include "console_internal.h"
-
-typedef struct console_quad_vertex {
-    float x, y;
-} console_quad_vertex;
 
 static struct {
     GLuint shader;
@@ -78,9 +75,9 @@ static void console_platform_init(void) {
     console_gl_state.u_color = glGetUniformLocation(console_gl_state.shader, "color");
 
     // clang-format off
-    const console_quad_vertex verts[6] = {
-         {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f},
-         {0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f},
+    const float verts[12] = {
+         0.0f, 0.0f,  1.0f, 0.0f,  1.0f, 1.0f,
+         0.0f, 0.0f,  1.0f, 1.0f,  0.0f, 1.0f,
     };
     // clang-format on
 
@@ -90,7 +87,7 @@ static void console_platform_init(void) {
     glBindBuffer(GL_ARRAY_BUFFER, console_gl_state.vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(console_quad_vertex), NULL);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), NULL);
     glBindVertexArray(0);
 
     console_gl_state.ready = true;
@@ -118,19 +115,63 @@ static void console_platform_draw_panel(int width, int height) {
     if (!prev_blend) glDisable(GL_BLEND);
 }
 
+static float console_measure_text_width(const char *str, int n, const simple_font *font) {
+    int fallback_advance = simple_font_get_advance(font);
+    int width            = 0;
+    for (int i = 0; i < n; i++) {
+        const simple_font_glyph *g = simple_font_get_glyph(font, str[i]);
+        width += g ? g->advance : fallback_advance;
+    }
+    return (float)width;
+}
+
+// Smallest start index such that input[start..cursor_pos) fits within
+// available_width — walking back from the cursor so it always stays in
+// view, scrolling older characters off the left as typing overflows.
+static int console_input_scroll_start(const char *input, int cursor_pos,
+                                      float available_width, const simple_font *font) {
+    int   fallback_advance = simple_font_get_advance(font);
+    float used             = 0.0f;
+    int   start            = cursor_pos;
+    while (start > 0) {
+        const simple_font_glyph *g   = simple_font_get_glyph(font, input[start - 1]);
+        float                    adv = (float)(g ? g->advance : fallback_advance);
+        if (used + adv > available_width) break;
+        used += adv;
+        start--;
+    }
+    return start;
+}
+
 void console_platform_draw(int width, int height) {
     if (!console_gl_state.ready) console_platform_init();
 
     console_platform_draw_panel(width, height);
 
-    const color4f      text_color = {1.0f, 1.0f, 1.0f, 1.0f};
-    const simple_font *font       = zod_font_primary_get();
-    int                lines_fit  = height / CONSOLE_LINE_HEIGHT;
-    int                start = console_visible_line_start(g_console.count, lines_fit);
+    const color4f      text_color      = {1.0f, 1.0f, 1.0f, 1.0f};
+    const simple_font *font            = zod_font_primary_get();
+    int                lines_fit       = height / CONSOLE_LINE_HEIGHT;
+    int                scrollback_rows = lines_fit > 0 ? lines_fit - 1 : 0;
+    int start = console_visible_line_start(g_console.count, scrollback_rows);
     for (int i = start; i < g_console.count; i++) {
         render_text_draw(4.0f, (float)((i - start) * CONSOLE_LINE_HEIGHT) + 16.0f,
                          g_console.lines[i], 1.0f, text_color, font);
     }
+
+    if (lines_fit > 0) {
+        float input_y         = (float)(scrollback_rows * CONSOLE_LINE_HEIGHT) + 16.0f;
+        float available_width = (float)width - 8.0f;
+        int   scroll_start    = console_input_scroll_start(
+             g_console.input, g_console.cursor_pos, available_width, font);
+
+        render_text_draw(4.0f, input_y, g_console.input + scroll_start, 1.0f, text_color,
+                         font);
+        float cursor_x =
+             4.0f + console_measure_text_width(g_console.input + scroll_start,
+                                               g_console.cursor_pos - scroll_start, font);
+        render_text_draw(cursor_x, input_y, "|", 1.0f, text_color, font);
+    }
+
     render_text_flush();
 }
 

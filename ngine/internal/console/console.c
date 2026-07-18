@@ -4,12 +4,48 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <SDL3/SDL.h>
+
 #include "../engine_context/engine_context_internal.h"
+#include "../../console.h"
 #include "console_internal.h"
 
 bool console_toggle(void) {
     g_console.visible = !g_console.visible;
+
+    if (g_ctx.window.handle) {
+        if (g_console.visible) {
+            SDL_StartTextInput(g_ctx.window.handle);
+        } else {
+            SDL_StopTextInput(g_ctx.window.handle);
+        }
+    }
+
     return g_console.visible;
+}
+
+bool console_visible(void) { return g_console.visible; }
+
+void console_handle_event(console_input_event event) {
+    if (!g_console.visible) return;
+
+    switch (event.kind) {
+        case CONSOLE_INPUT_TEXT:
+            for (const char *p = event.text; p && *p; p++) console_input_append(*p);
+            break;
+        case CONSOLE_INPUT_BACKSPACE:
+            console_input_backspace();
+            break;
+        case CONSOLE_INPUT_SUBMIT:
+            console_input_submit();
+            break;
+        case CONSOLE_INPUT_LEFT:
+            console_input_move_left();
+            break;
+        case CONSOLE_INPUT_RIGHT:
+            console_input_move_right();
+            break;
+    }
 }
 
 void console_write_v(const char *fmt, va_list args) {
@@ -38,6 +74,41 @@ int console_panel_height(int window_height, int visible_lines) {
 int console_visible_line_start(int count, int lines_that_fit) {
     int start = count - lines_that_fit;
     return start > 0 ? start : 0;
+}
+
+void console_input_append(char c) {
+    if (g_console.input_len >= CONSOLE_INPUT_MAX_LEN - 1) return;
+    memmove(&g_console.input[g_console.cursor_pos + 1],
+            &g_console.input[g_console.cursor_pos],
+            (size_t)(g_console.input_len - g_console.cursor_pos) + 1);
+    g_console.input[g_console.cursor_pos] = c;
+    g_console.input_len++;
+    g_console.cursor_pos++;
+}
+
+void console_input_backspace(void) {
+    if (g_console.cursor_pos == 0) return;
+    memmove(&g_console.input[g_console.cursor_pos - 1],
+            &g_console.input[g_console.cursor_pos],
+            (size_t)(g_console.input_len - g_console.cursor_pos) + 1);
+    g_console.input_len--;
+    g_console.cursor_pos--;
+}
+
+void console_input_move_left(void) {
+    if (g_console.cursor_pos > 0) g_console.cursor_pos--;
+}
+
+void console_input_move_right(void) {
+    if (g_console.cursor_pos < g_console.input_len) g_console.cursor_pos++;
+}
+
+void console_input_submit(void) {
+    if (g_console.input_len == 0) return;
+    console_write("%s", g_console.input);
+    g_console.input[0]   = '\0';
+    g_console.input_len  = 0;
+    g_console.cursor_pos = 0;
 }
 
 int console_resolve_visible_lines(void) {

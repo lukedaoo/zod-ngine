@@ -4,7 +4,6 @@
 #include "index.h"
 
 #define CONFIG_PATH "run-tree/data/engine.scf"
-// #define FONT_PATH   "run-tree/data/Yuyu-Regular.ttf"
 
 void before_init(void *user_data) {
     (void)user_data;
@@ -77,28 +76,30 @@ int main(const int argc, const char **argv) {
     uint32_t fps_frames = 0;
     float    fps_accum  = 0.0f;
 
-    // SDL_StartTextInput(g_ctx.window.handle);
     while (!zod_should_exit()) {
         zod_clock_update();
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) zod_request_exit();
-            // if (e.type == SDL_EVENT_TEXT_INPUT) {
-            //     log_debug("SDL_EVENT_TEXT_INPUT: '%s'", e.text.text);
-            //     size_t input_len = strlen(e.text.text);
-            //
-            //     if (len + input_len < sizeof(buf) - 1) {
-            //         strcat(buf, e.text.text);
-            //         len += input_len;
-            //     }
-            //     if (len > 20) {
-            //         strcat(buf, "\n");
-            //     }
-            // } else if (e.type == SDL_EVENT_KEY_DOWN) {
-            //     if (e.key.key == SDLK_BACKSPACE && len > 0) {
-            //         buf[--len] = '\0';  // Remove last character
-            //     }
-            // }
+            if (e.type == SDL_EVENT_TEXT_INPUT) {
+                if (strcmp(e.text.text, "~") == 0) continue;
+                zod_console_handle_event((console_input_event){.kind = CONSOLE_INPUT_TEXT,
+                                                               .text = e.text.text});
+            } else if (e.type == SDL_EVENT_KEY_DOWN) {
+                if (e.key.key == SDLK_BACKSPACE) {
+                    zod_console_handle_event(
+                         (console_input_event){.kind = CONSOLE_INPUT_BACKSPACE});
+                } else if (e.key.key == SDLK_RETURN || e.key.key == SDLK_KP_ENTER) {
+                    zod_console_handle_event(
+                         (console_input_event){.kind = CONSOLE_INPUT_SUBMIT});
+                } else if (e.key.key == SDLK_LEFT) {
+                    zod_console_handle_event(
+                         (console_input_event){.kind = CONSOLE_INPUT_LEFT});
+                } else if (e.key.key == SDLK_RIGHT) {
+                    zod_console_handle_event(
+                         (console_input_event){.kind = CONSOLE_INPUT_RIGHT});
+                }
+            }
         }
         zod_input_update();
         zod_tick_hot_reload();

@@ -94,6 +94,151 @@ MU_TEST(test_zod_console_write_forwards) {
     mu_assert_string_eq("fps: 60", g_console.lines[0]);
 }
 
+MU_TEST(test_input_append_stores_chars) {
+    reset();
+    console_input_append('h');
+    console_input_append('i');
+    mu_assert_string_eq("hi", g_console.input);
+}
+
+MU_TEST(test_input_append_bounded_when_full) {
+    reset();
+    for (int i = 0; i < CONSOLE_INPUT_MAX_LEN + 10; i++) console_input_append('a');
+    mu_assert_int_eq(CONSOLE_INPUT_MAX_LEN - 1, (int)strlen(g_console.input));
+}
+
+MU_TEST(test_input_backspace_removes_last_char) {
+    reset();
+    console_input_append('h');
+    console_input_append('i');
+    console_input_backspace();
+    mu_assert_string_eq("h", g_console.input);
+}
+
+MU_TEST(test_input_backspace_on_empty_is_noop) {
+    reset();
+    console_input_backspace();
+    mu_assert_string_eq("", g_console.input);
+}
+
+MU_TEST(test_input_submit_echoes_and_clears) {
+    reset();
+    console_input_append('h');
+    console_input_append('i');
+    console_input_submit();
+
+    mu_assert_int_eq(1, g_console.count);
+    mu_assert_string_eq("hi", g_console.lines[0]);
+    mu_assert_int_eq(0, g_console.input_len);
+    mu_assert_string_eq("", g_console.input);
+}
+
+MU_TEST(test_input_submit_on_empty_is_noop) {
+    reset();
+    console_input_submit();
+    mu_assert_int_eq(0, g_console.count);
+}
+
+MU_TEST(test_handle_event_noop_when_hidden) {
+    reset();
+    console_handle_event((console_input_event){.kind = CONSOLE_INPUT_TEXT, .text = "hi"});
+    mu_assert_int_eq(0, g_console.input_len);
+}
+
+MU_TEST(test_handle_event_text_appends_when_visible) {
+    reset();
+    g_console.visible = true;
+    console_handle_event((console_input_event){.kind = CONSOLE_INPUT_TEXT, .text = "hi"});
+    mu_assert_string_eq("hi", g_console.input);
+}
+
+MU_TEST(test_handle_event_backspace_routes_correctly) {
+    reset();
+    g_console.visible = true;
+    console_handle_event((console_input_event){.kind = CONSOLE_INPUT_TEXT, .text = "hi"});
+    console_handle_event((console_input_event){.kind = CONSOLE_INPUT_BACKSPACE});
+    mu_assert_string_eq("h", g_console.input);
+}
+
+MU_TEST(test_handle_event_submit_routes_correctly) {
+    reset();
+    g_console.visible = true;
+    console_handle_event((console_input_event){.kind = CONSOLE_INPUT_TEXT, .text = "hi"});
+    console_handle_event((console_input_event){.kind = CONSOLE_INPUT_SUBMIT});
+    mu_assert_int_eq(1, g_console.count);
+    mu_assert_string_eq("hi", g_console.lines[0]);
+    mu_assert_int_eq(0, g_console.input_len);
+}
+
+MU_TEST(test_zod_console_visible_forwards) {
+    reset();
+    mu_check(zod_console_visible() == false);
+    g_console.visible = true;
+    mu_check(zod_console_visible() == true);
+}
+
+MU_TEST(test_zod_console_handle_event_forwards) {
+    reset();
+    g_console.visible = true;
+    zod_console_handle_event((console_input_event){.kind = CONSOLE_INPUT_TEXT, .text = "hi"});
+    mu_assert_string_eq("hi", g_console.input);
+}
+
+MU_TEST(test_cursor_move_left_clamps_at_zero) {
+    reset();
+    console_input_move_left();
+    mu_assert_int_eq(0, g_console.cursor_pos);
+}
+
+MU_TEST(test_cursor_move_right_clamps_at_input_len) {
+    reset();
+    console_input_append('h');
+    console_input_append('i');
+    console_input_move_right();
+    console_input_move_right();
+    mu_assert_int_eq(2, g_console.cursor_pos);
+}
+
+MU_TEST(test_cursor_moves_left_then_right) {
+    reset();
+    console_input_append('h');
+    console_input_append('i');
+    console_input_move_left();
+    mu_assert_int_eq(1, g_console.cursor_pos);
+    console_input_move_right();
+    mu_assert_int_eq(2, g_console.cursor_pos);
+}
+
+MU_TEST(test_append_inserts_at_cursor_position) {
+    reset();
+    console_input_append('h');
+    console_input_append('i');
+    console_input_move_left();
+    console_input_append('X');
+    mu_assert_string_eq("hXi", g_console.input);
+    mu_assert_int_eq(2, g_console.cursor_pos);
+}
+
+MU_TEST(test_backspace_removes_char_before_cursor) {
+    reset();
+    console_input_append('h');
+    console_input_append('i');
+    console_input_move_left();
+    console_input_backspace();
+    mu_assert_string_eq("i", g_console.input);
+    mu_assert_int_eq(0, g_console.cursor_pos);
+}
+
+MU_TEST(test_handle_event_left_right_route_correctly) {
+    reset();
+    g_console.visible = true;
+    console_handle_event((console_input_event){.kind = CONSOLE_INPUT_TEXT, .text = "hi"});
+    console_handle_event((console_input_event){.kind = CONSOLE_INPUT_LEFT});
+    mu_assert_int_eq(1, g_console.cursor_pos);
+    console_handle_event((console_input_event){.kind = CONSOLE_INPUT_RIGHT});
+    mu_assert_int_eq(2, g_console.cursor_pos);
+}
+
 MU_TEST_SUITE(console_suite) {
     MU_RUN_TEST(test_toggle_flips_visibility);
     MU_RUN_TEST(test_write_stores_plain_string);
@@ -109,6 +254,24 @@ MU_TEST_SUITE(console_suite) {
     MU_RUN_TEST(test_resolve_visible_lines_reads_cvar_override);
     MU_RUN_TEST(test_visible_line_start_when_all_lines_fit);
     MU_RUN_TEST(test_visible_line_start_when_buffer_exceeds_panel);
+    MU_RUN_TEST(test_input_append_stores_chars);
+    MU_RUN_TEST(test_input_append_bounded_when_full);
+    MU_RUN_TEST(test_input_backspace_removes_last_char);
+    MU_RUN_TEST(test_input_backspace_on_empty_is_noop);
+    MU_RUN_TEST(test_input_submit_echoes_and_clears);
+    MU_RUN_TEST(test_input_submit_on_empty_is_noop);
+    MU_RUN_TEST(test_handle_event_noop_when_hidden);
+    MU_RUN_TEST(test_handle_event_text_appends_when_visible);
+    MU_RUN_TEST(test_handle_event_backspace_routes_correctly);
+    MU_RUN_TEST(test_handle_event_submit_routes_correctly);
+    MU_RUN_TEST(test_zod_console_visible_forwards);
+    MU_RUN_TEST(test_zod_console_handle_event_forwards);
+    MU_RUN_TEST(test_cursor_move_left_clamps_at_zero);
+    MU_RUN_TEST(test_cursor_move_right_clamps_at_input_len);
+    MU_RUN_TEST(test_cursor_moves_left_then_right);
+    MU_RUN_TEST(test_append_inserts_at_cursor_position);
+    MU_RUN_TEST(test_backspace_removes_char_before_cursor);
+    MU_RUN_TEST(test_handle_event_left_right_route_correctly);
 }
 
 int main(void) {
