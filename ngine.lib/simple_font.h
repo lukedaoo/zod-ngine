@@ -27,6 +27,21 @@ static_assert(SIMPLE_FONT_ATLAS_COLS * SIMPLE_FONT_ATLAS_ROWS >= SIMPLE_FONT_GLY
 #define SIMPLE_FONT_TTF_PIXEL_SIZE 32
 #endif
 
+// Glyphs are baked as a signed distance field (stbtt_GetCodepointSDF)
+// instead of a plain coverage bitmap — the atlas can then be sampled and
+// thresholded at any draw scale (tiny or 4K) with a scale-aware AA band in
+// the fragment shader, instead of blurring/aliasing past the bake size.
+#ifndef SIMPLE_FONT_SDF_PADDING
+#define SIMPLE_FONT_SDF_PADDING 6
+#endif
+
+#ifndef SIMPLE_FONT_SDF_ONEDGE_VALUE
+#define SIMPLE_FONT_SDF_ONEDGE_VALUE 128
+#endif
+
+#define SIMPLE_FONT_SDF_PIXEL_DIST_SCALE \
+    ((float)SIMPLE_FONT_SDF_ONEDGE_VALUE / (float)SIMPLE_FONT_SDF_PADDING)
+
 #ifndef SIMPLE_FONT_TTF_ATLAS_COLS
 #define SIMPLE_FONT_TTF_ATLAS_COLS 16
 #endif
@@ -300,8 +315,10 @@ static bool simple_font_load_ttf(simple_font_ttf *font, const char *path) {
         int oy = (i / SIMPLE_FONT_TTF_ATLAS_COLS) * SIMPLE_FONT_TTF_PIXEL_SIZE;
 
         int            cw = 0, ch = 0, xoff = 0, yoff = 0;
-        unsigned char *bitmap = stbtt_GetCodepointBitmap(
-             &info, 0, scale, SIMPLE_FONT_FIRST_CHAR + i, &cw, &ch, &xoff, &yoff);
+        unsigned char *bitmap = stbtt_GetCodepointSDF(
+             &info, scale, SIMPLE_FONT_FIRST_CHAR + i, SIMPLE_FONT_SDF_PADDING,
+             SIMPLE_FONT_SDF_ONEDGE_VALUE, SIMPLE_FONT_SDF_PIXEL_DIST_SCALE, &cw, &ch,
+             &xoff, &yoff);
 
         int gw = 0, gh = 0, cell_x = 0, cell_y = 0;
         if (bitmap) {
@@ -325,7 +342,7 @@ static bool simple_font_load_ttf(simple_font_ttf *font, const char *path) {
                                     (ox + cell_x)],
                        &bitmap[py * cw], (size_t)gw);
             }
-            stbtt_FreeBitmap(bitmap, NULL);
+            stbtt_FreeSDF(bitmap, NULL);
         }
 
         int advance_width = 0;

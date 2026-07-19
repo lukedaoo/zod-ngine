@@ -58,6 +58,10 @@ static const char *RENDER_TEXT_VERT_SRC =
      "    v_color = color;\n"
      "}\n";
 
+// atlas stores a signed distance field (0.5 == glyph edge), not plain
+// coverage — fwidth() gives the AA band in SDF units for the *current*
+// screen-space derivative, so the same atlas stays crisp whether the glyph
+// is drawn tiny or blown up to 4K, with no re-bake needed per scale.
 static const char *RENDER_TEXT_FRAG_SRC =
      "#version 460 core\n"
      "in vec2 v_uv;\n"
@@ -65,7 +69,9 @@ static const char *RENDER_TEXT_FRAG_SRC =
      "uniform sampler2D atlas;\n"
      "out vec4 frag_color;\n"
      "void main() {\n"
-     "    float a = texture(atlas, v_uv).r;\n"
+     "    float dist = texture(atlas, v_uv).r;\n"
+     "    float aa   = max(fwidth(dist) * 0.75, 1e-4);\n"
+     "    float a    = smoothstep(0.5 - aa, 0.5 + aa, dist);\n"
      "    frag_color = vec4(v_color.rgb, v_color.a * a);\n"
      "}\n";
 
