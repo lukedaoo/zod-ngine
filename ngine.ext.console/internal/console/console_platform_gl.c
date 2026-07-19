@@ -241,15 +241,15 @@ void console_platform_draw(int width, int height) {
     }
 }
 
-#endif  
+#endif
 
-#else  
+#else
 
 void console_platform_draw(int width, int height) {
     (void)width;
     (void)height;
 }
 
-#endif  
+#endif
 
 #endif  // ZOD_NGINE_IMPLEMENTATION
