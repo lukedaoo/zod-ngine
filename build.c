@@ -1,5 +1,5 @@
 #define NOB_IMPLEMENTATION
-#include "lib/nob.h"
+#include "thirdparty/nob.h"
 
 #define C_COMPILER      "cc"
 #define C_FLAGS         "-Wall", "-Wextra", "-std=c23", "-I."
@@ -8,32 +8,49 @@
 #define C_RELEASE_FLAGS "-O3", "-DNDEBUG", "-DZOD_CONSOLE_ENABLE=0"
 
 #ifdef _WIN32
-
-#define EXE_EXT       ".exe"
-#define C_TARGET      "main"
-#define ENGINE_TARGET "engine_run"
-
+#define EXE_EXT    ".exe"
+#define BIN_PREFIX ""
 #else
-
-#define EXE_EXT       ""
-#define C_TARGET      "./main"
-#define ENGINE_TARGET "./engine_run"
-
+#define EXE_EXT    ""
+#define BIN_PREFIX "./"
 #endif
 
-#define C_ENTRY      "main.c"
-#define ENGINE_ENTRY "ngine/zod_ngine_run.c"
+#define C_ENTRY "main.c"
 
-#define GLAD_SRC "lib/glad/src/gl.c"
+typedef struct {
+    const char *name;        // CLI target name
+    const char *entry;       // source file compiled as the single TU
+    const char *output;      // bare binary name, no "./" prefix, no EXE_EXT
+    bool        needs_math;  // -lm
+} build_target;
+
+static const build_target BUILD_TARGETS[] = {
+     {"main", "main.c", "main", false},
+     {"engine", "ngine.example/engine_run_example.c", "engine_run", true},
+};
+static const size_t BUILD_TARGETS_COUNT =
+     sizeof(BUILD_TARGETS) / sizeof(BUILD_TARGETS[0]);
+
+static const build_target *find_target(const char *name) {
+    for (size_t i = 0; i < BUILD_TARGETS_COUNT; ++i)
+        if (strcmp(BUILD_TARGETS[i].name, name) == 0) return &BUILD_TARGETS[i];
+    return NULL;
+}
+
+static const char *target_bin_path(const build_target *t) {
+    return nob_temp_sprintf("%s%s%s", BIN_PREFIX, t->output, EXE_EXT);
+}
+
+#define GLAD_SRC "thirdparty/glad/src/gl.c"
 
 #ifdef _WIN32
 #define SDL_FLAGS    "-I/ucrt64/include/SDL3", "-L/ucrt64/lib", "-lSDL3.dll"
-#define GLAD_FLAGS   "-Ilib/glad/include"
+#define GLAD_FLAGS   "-Ithirdparty/glad/include"
 #define VULKAN_FLAGS "-lvulkan-1"
 #define MATH_FLAGS   "-lm"
 #elif defined(__linux__)
 #define SDL_FLAGS    "-I/usr/include/SDL3", "-lSDL3"
-#define GLAD_FLAGS   "-Ilib/glad/include", "-ldl"
+#define GLAD_FLAGS   "-Ithirdparty/glad/include", "-ldl"
 #define VULKAN_FLAGS "-lvulkan"
 #define MATH_FLAGS   "-lm"
 #endif
@@ -62,7 +79,8 @@ int build_test_dir(const char *dir) {
     return 0;
 }
 
-int run_test_dir(bool asan, const char *dir, int *passed, int *failed) {
+int run_test_dir(bool asan, const char *dir, bool needs_gl_sdl, int *passed,
+                 int *failed) {
     Nob_File_Paths files = {0};
     if (!nob_read_entire_dir(dir, &files)) return 1;
 
@@ -77,8 +95,7 @@ int run_test_dir(bool asan, const char *dir, int *passed, int *failed) {
 
         Nob_Cmd test_cmd = {0};
         nob_cmd_append(&test_cmd, C_COMPILER, C_FLAGS, "-o", bin, src);
-        if (nob_sv_starts_with(nob_sv_from_cstr(dir), nob_sv_from_cstr("ngine")))
-            nob_cmd_append(&test_cmd, GLAD_SRC, SDL_FLAGS, GLAD_FLAGS);
+        if (needs_gl_sdl) nob_cmd_append(&test_cmd, GLAD_SRC, SDL_FLAGS, GLAD_FLAGS);
         nob_cmd_append(&test_cmd, MATH_FLAGS);
         if (asan) nob_cmd_append(&test_cmd, C_ASAN_FLAGS);
         if (!nob_cmd_run(&test_cmd)) return 1;
@@ -96,11 +113,21 @@ int run_test_dir(bool asan, const char *dir, int *passed, int *failed) {
     return 0;
 }
 
-static const char  *TEST_DIRS[]     = {"modules", "modules/collections", "ngine/test"};
+typedef struct {
+    const char *dir;
+    bool        needs_gl_sdl;
+} test_dir_entry;
+
+static const test_dir_entry TEST_DIRS[] = {
+     {"ngine.lib", false},
+     {"ngine.lib/collections", false},
+     {"ngine.core/test", true},
+     {"ngine.ext.console/test", true},
+};
 static const size_t TEST_DIRS_COUNT = sizeof(TEST_DIRS) / sizeof(TEST_DIRS[0]);
 
 static int check_modules_separation(void) {
-    static const char *const dirs[] = {"modules", "modules/collections"};
+    static const char *const dirs[] = {"ngine.lib", "ngine.lib/collections"};
     bool                     clean  = true;
 
     for (size_t d = 0; d < sizeof(dirs) / sizeof(*dirs); ++d) {
@@ -142,22 +169,24 @@ int run_tests(bool asan, const char *dir) {
     if (dir) {
         bool found = false;
         for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) {
-            if (strcmp(dir, TEST_DIRS[i]) == 0 ||
-                nob_sv_starts_with(nob_sv_from_cstr(TEST_DIRS[i]),
+            if (strcmp(dir, TEST_DIRS[i].dir) == 0 ||
+                nob_sv_starts_with(nob_sv_from_cstr(TEST_DIRS[i].dir),
                                    nob_sv_from_cstr(dir))) {
-                run_test_dir(asan, TEST_DIRS[i], &passed, &failed);
+                run_test_dir(asan, TEST_DIRS[i].dir, TEST_DIRS[i].needs_gl_sdl, &passed,
+                             &failed);
                 found = true;
             }
         }
         if (!found) {
             nob_log(NOB_ERROR,
-                    "unknown test dir '%s'. use: ./nob test modules | ./nob test ngine",
+                    "unknown test dir '%s'. use: ./nob test ngine.lib | ./nob test ngine",
                     dir);
             return 1;
         }
     } else {
         for (size_t i = 0; i < TEST_DIRS_COUNT; ++i)
-            run_test_dir(asan, TEST_DIRS[i], &passed, &failed);
+            run_test_dir(asan, TEST_DIRS[i].dir, TEST_DIRS[i].needs_gl_sdl, &passed,
+                         &failed);
     }
     nob_log(failed ? NOB_ERROR : NOB_INFO,
             "\n────────────────────────────────────\n"
@@ -170,7 +199,7 @@ int run_tests(bool asan, const char *dir) {
 int run_clean(void) {
     for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) {
         Nob_File_Paths files = {0};
-        if (!nob_read_entire_dir(TEST_DIRS[i], &files)) continue;
+        if (!nob_read_entire_dir(TEST_DIRS[i].dir, &files)) continue;
         for (size_t j = 0; j < files.count; ++j) {
             const char *name = files.items[j];
             if (!nob_sv_starts_with(nob_sv_from_cstr(name), nob_sv_from_cstr("test_")))
@@ -180,12 +209,15 @@ int run_clean(void) {
             if (nob_file_exists(bin) > 0) nob_delete_file(bin);
         }
     }
-    if (nob_file_exists(C_TARGET) > 0) nob_delete_file(C_TARGET);
-    if (nob_file_exists(ENGINE_TARGET) > 0) nob_delete_file(ENGINE_TARGET);
+    for (size_t i = 0; i < BUILD_TARGETS_COUNT; ++i) {
+        const char *bin = target_bin_path(&BUILD_TARGETS[i]);
+        if (nob_file_exists(bin) > 0) nob_delete_file(bin);
+    }
     return 0;
 }
 
-int run_run(bool execute, const char *target, const char *mode, const char *backend) {
+int run_run(bool execute, const char *target_name, const char *mode,
+            const char *backend) {
     if (strcmp(mode, "debug") != 0 && strcmp(mode, "release") != 0) {
         nob_log(NOB_ERROR, "unknown build mode '%s'. use: debug | release", mode);
         return 1;
@@ -194,10 +226,14 @@ int run_run(bool execute, const char *target, const char *mode, const char *back
         nob_log(NOB_ERROR, "unknown render backend '%s'. use: opengl | vulkan", backend);
         return 1;
     }
-    bool        is_engine = strcmp(target, "engine") == 0;
+    const build_target *target = find_target(target_name);
+    if (!target) {
+        nob_log(NOB_ERROR, "unknown target '%s'", target_name);
+        return 1;
+    }
     bool        is_opengl = strcmp(backend, "opengl") == 0;
-    const char *out       = is_engine ? ENGINE_TARGET : C_TARGET;
-    const char *src       = is_engine ? ENGINE_ENTRY : C_ENTRY;
+    const char *out       = target_bin_path(target);
+    const char *src       = target->entry;
     const char *backend_de =
          is_opengl ? RENDER_BACKEND_OPENGL_DEFINE : RENDER_BACKEND_VULKAN_DEFINE;
 
@@ -208,7 +244,7 @@ int run_run(bool execute, const char *target, const char *mode, const char *back
     } else {
         nob_cmd_append(&cmd, VULKAN_FLAGS);
     }
-    if (is_engine) nob_cmd_append(&cmd, MATH_FLAGS);
+    if (target->needs_math) nob_cmd_append(&cmd, MATH_FLAGS);
     if (strcmp(mode, "release") == 0) {
         nob_cmd_append(&cmd, C_RELEASE_FLAGS);
     } else {
@@ -224,19 +260,22 @@ int run_run(bool execute, const char *target, const char *mode, const char *back
 }
 
 static const char *COMPDB_SCAN_DIRS[] = {
-     "modules",
-     "modules/collections",
-     "ngine",
-     "ngine/test",
-     "ngine/internal/clock",
-     "ngine/internal/config",
-     "ngine/internal/engine_context",
-     "ngine/internal/console",
-     "ngine/internal/input",
-     "ngine/internal/window",
-     "ngine/internal/render",
-     "ngine/internal/zod_ngine",
-     "ngine/internal/error",
+     "ngine.lib",
+     "ngine.lib/collections",
+     "ngine.core",
+     "ngine.core/test",
+     "ngine.core/internal/clock",
+     "ngine.core/internal/config",
+     "ngine.core/internal/engine_context",
+     "ngine.core/internal/input",
+     "ngine.core/internal/window",
+     "ngine.core/internal/render",
+     "ngine.core/internal/zod_ngine",
+     "ngine.ext.console",
+     "ngine.ext.console/internal/console",
+     "ngine.ext.console/test",
+     "ngine.core/internal/error",
+     "ngine.example",
 };
 static const size_t COMPDB_SCAN_DIRS_COUNT =
      sizeof(COMPDB_SCAN_DIRS) / sizeof(COMPDB_SCAN_DIRS[0]);
@@ -251,6 +290,7 @@ static const char  *COMPDB_DEFINES[] = {"-DCARG_IMPLEMENTATION",
                                         "-DFILE_WATCHER_IMPLEMENTATION",
                                         "-DSTRING_VIEW_IMPLEMENTATION",
                                         "-DARRAY_LIST_IMPLEMENTATION",
+                                        "-DTYPES_IMPLEMENTATION",
                                         "-DZOD_NGINE_IMPLEMENTATION",
                                         "-DNOB_IMPLEMENTATION"};
 static const size_t COMPDB_DEFINES_COUNT =
@@ -278,7 +318,7 @@ static void compdb_entry(FILE *f, const char *cwd, const char *filepath, bool is
 #elif defined(_WIN32)
     fprintf(f, "      \"-I/ucrt64/include/SDL3\",\n");
 #endif
-    fprintf(f, "      \"-Ilib/glad/include\",\n");
+    fprintf(f, "      \"-Ithirdparty/glad/include\",\n");
     for (size_t i = 0; i < COMPDB_DEFINES_COUNT; ++i)
         fprintf(f, "      \"%s\",\n", COMPDB_DEFINES[i]);
     if (is_header) fprintf(f, "      \"-x\", \"c\",\n");
@@ -345,7 +385,7 @@ int main(int argc, char **argv) {
         nob_log(NOB_INFO, "                                build with debug symbols");
         nob_log(NOB_INFO, "  build-release [engine] [--backend=opengl|vulkan]");
         nob_log(NOB_INFO, "                                build with optimizations");
-        nob_log(NOB_INFO, "  test [dir]                    run tests (modules, ngine)");
+        nob_log(NOB_INFO, "  test [dir]                    run tests (ngine.lib, ngine)");
         nob_log(NOB_INFO, "  test-asan [dir]               run tests with asan");
         nob_log(NOB_INFO, "  clean                         remove build artifacts");
         nob_log(NOB_INFO,
@@ -360,7 +400,7 @@ int main(int argc, char **argv) {
     if (argc > 1 && strcmp(argv[1], "test-build") == 0) {
         const char *dir = argc > 2 ? argv[2] : NULL;
         if (dir) return build_test_dir(dir);
-        for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) build_test_dir(TEST_DIRS[i]);
+        for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) build_test_dir(TEST_DIRS[i].dir);
         return 0;
     }
 

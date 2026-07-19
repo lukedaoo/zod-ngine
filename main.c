@@ -15,7 +15,7 @@
 #define LOG_USE_COLOR
 #define CVAR_LOAD_IMPLEMENTATION
 #define FILE_WATCHER_IMPLEMENTATION
-#include "modules/index.h"
+#include "ngine.lib/index.h"
 
 #define RUN_TREE_DIR "run-tree"
 

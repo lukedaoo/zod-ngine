@@ -7,8 +7,8 @@ CompileFlags:
     # includes
     - -I.
     - -I/usr/include/SDL3
-    - -Ilib/glad/include
-    - -Ilib/stb_truetype
+    - -Ithirdparty/glad/include
+    - -Ithirdparty/stb_truetype
     # modules implementation
     - -DINI_IMPLEMENTATION
     - -DSCF_IMPLEMENTATION
@@ -19,6 +19,7 @@ CompileFlags:
     - -DFILE_WATCHER_IMPLEMENTATION
     - -DSTRING_VIEW_IMPLEMENTATION
     - -DARRAY_LIST_IMPLEMENTATION
+    - -DTYPES_IMPLEMENTATION
     - -DIO_IMPLEMENTATION
     # ngine implementation
     - -DZOD_NGINE_IMPLEMENTATION

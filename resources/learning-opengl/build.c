@@ -1,9 +1,9 @@
 #define NOB_IMPLEMENTATION
-#include "../../lib/nob.h"
+#include "../../thirdparty/nob.h"
 
 #define CC      "cc"
-#define CFLAGS  "-std=c23", "-Wall", "-Wextra", "-I../../lib/glad/include"
-#define GLAD    "../../lib/glad/src/gl.c"
+#define CFLAGS  "-std=c23", "-Wall", "-Wextra", "-I../../thirdparty/glad/include"
+#define GLAD    "../../thirdparty/glad/src/gl.c"
 #define LDFLAGS "-lglfw", "-ldl"
 
 #define SRC_DIR "src"
