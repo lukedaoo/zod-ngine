@@ -15,19 +15,24 @@ vsync           true ; enable vsync
 :/log
 level           "debug"        ; trace, debug, info, warning, error, fatal
 
+:/asset.font
+;primary         "run-tree/data/fonts/Lora-Regular.ttf"
+primary         "run-tree/data/fonts/GeistPixel-Regular-VariableFont_ELSH.ttf"
+
 ; Console configuration
 :/console
 enabled            true       ; enable in-game console (grave key toggle)
-visible_lines      10         ; scrollback rows to show
-text_pad_x         4.0        ; left inset for output/input text
+visible_lines      5         ; scrollback rows to show
+text_pad_x         20.0       ; left inset for output/input text
 top_pad            10.0       ; clearance above the first scrollback row
-input_box_margin   4.0        ; input box inset from left/right panel edges
-input_box_stroke   1.0        ; input box border thickness in px
+input_box_margin   4.0        ; input box inset FRom left/right panel edges
+input_box_stroke   2.0       ; input box border thickness in px
 input_right_pad    8.0        ; right clearance before input text wraps/scrolls
+font_size          24.0       ; console text size in px, like a text editor's font size
+input_gap          8.0        ; vertical gap between last scrollback row and input box
 output_text_color  0xFFFFFFFF ; scrollback line color. Hex format: 0xRRGGBBAA
 input_text_color   0xFFFFFFFF ; input line + cursor color. Hex format: 0xRRGGBBAA
 input_box_color    0xFF223366 ; input box border color. Hex format: 0xRRGGBBAA
+input_box_background_color 0x00000080 ; input box fill color. Hex format: 0xRRGGBBAA
 background_color   0x114455D9 ; panel background color. Hex format: 0xRRGGBBAA
 
-:/asset.font
-primary         "run-tree/data/fonts/Lora-Regular .ttf"

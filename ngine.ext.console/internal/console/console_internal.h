@@ -3,7 +3,6 @@
 
 #include <stdarg.h>
 
-#include <ngine.lib/cvar.h>
 #include <ngine.lib/types.h>
 
 #ifndef ZOD_CONSOLE_ENABLE
@@ -18,8 +17,8 @@
 #define CONSOLE_MAX_LINE_LEN 256
 #endif
 
-#ifndef CONSOLE_LINE_HEIGHT
-#define CONSOLE_LINE_HEIGHT 20
+#ifndef CONSOLE_LINE_HEIGHT_RATIO
+#define CONSOLE_LINE_HEIGHT_RATIO 1.25f
 #endif
 
 #ifndef CONSOLE_INPUT_MAX_LEN
@@ -54,6 +53,14 @@
 #define DEFAULT_CONFIG_CONSOLE_INPUT_RIGHT_PAD 8.0f
 #endif
 
+#ifndef DEFAULT_CONFIG_CONSOLE_INPUT_GAP
+#define DEFAULT_CONFIG_CONSOLE_INPUT_GAP 8.0f
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_FONT_SIZE
+#define DEFAULT_CONFIG_CONSOLE_FONT_SIZE 16.0f
+#endif
+
 #ifndef DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR
 #define DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR 0xFFFFFFFF
 #endif
@@ -70,10 +77,15 @@
 #define DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR 0x000000D9
 #endif
 
+#ifndef DEFAULT_CONFIG_CONSOLE_INPUT_BOX_BACKGROUND_COLOR
+#define DEFAULT_CONFIG_CONSOLE_INPUT_BOX_BACKGROUND_COLOR 0x00000000
+#endif
+
 typedef struct console_state {
     bool enabled;
     bool visible;
     int  count;
+    int  visible_lines;
     char lines[CONSOLE_MAX_LINES][CONSOLE_MAX_LINE_LEN];
     char input[CONSOLE_INPUT_MAX_LEN];
     int  input_len;
@@ -84,9 +96,12 @@ typedef struct console_state {
     float   input_box_margin;
     float   input_box_stroke;
     float   input_right_pad;
+    float   input_gap;
+    float   font_size;
     color4f output_text_color;
     color4f input_text_color;
     color4f input_box_color;
+    color4f input_box_background_color;
     color4f background_color;
 } console_state;
 
@@ -94,45 +109,29 @@ typedef struct console_state {
 static console_state g_console;
 #endif
 
-// Seeds console.* defaults into `cvars` and registers console's own cvar
-// constraints against it — the zod_extension.init_config hook. Runs once at
-// engine init (before the config file loads) and again on every hot-reload
-// (into the temp table being rebuilt), so it must not assume a global.
-void console_init_config(cvar_table *cvars);
-
 // Caches console.enabled from cvars into g_console.enabled — read once here
 // instead of looking the cvar up on every grave-key press. Called at engine
 // init and again on config hot-reload, same as window_apply_config.
 void console_apply_config(void);
 
-int console_panel_height(int window_height, int visible_lines);
-
-// Reads the console.visible_lines cvar (falls back to
-// DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES). Kept separate from console_draw
-// so it's testable without touching GL.
-int console_resolve_visible_lines(void);
+// row_height is the per-line pitch in px (font_size * CONSOLE_LINE_HEIGHT_RATIO).
+// overhead is the fixed chrome outside the row grid (top_pad + input_gap) —
+// must be added here too since console_platform_draw subtracts the same
+// overhead before dividing by row_height, or visible_lines rows wouldn't
+// actually fit in the returned height.
+int console_panel_height(int window_height, int visible_lines, int row_height,
+                         int overhead);
 
 // First index of g_console.lines to draw, given how many lines fit in the
 // panel — clips to the most recent lines_that_fit entries.
 int console_visible_line_start(int count, int lines_that_fit);
 
-// Separated from console_write so a caller already holding a va_list (e.g.
-// its own variadic wrapper) can hand it on without re-packing varargs.
-void console_write_v(const char *fmt, va_list args);
-
-// Typed-input buffer with a movable cursor: characters insert at
-// cursor_pos, backspace removes the character before cursor_pos.
 void console_input_append(char c);
 void console_input_backspace(void);
 void console_input_move_left(void);
 void console_input_move_right(void);
-
-// Echoes the current input buffer as a new output line, then clears it.
-// No-op on an empty buffer.
 void console_input_submit(void);
 
-// Draws the panel background + buffered lines for a panel of the given
-// pixel size. Implemented per-backend (console_platform_gl.c today).
 void console_platform_draw(int width, int height);
 
 #endif

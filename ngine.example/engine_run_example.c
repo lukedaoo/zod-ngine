@@ -1,5 +1,11 @@
 #include <stdbool.h>
 
+// Raise the TTF glyph atlas's native raster size so console.font_size (up to
+// 64px) downscales/1:1-samples instead of upscaling a lower-res atlas —
+// must be defined before ngine.core/index.h pulls in simple_font.h's
+// implementation.
+#define SIMPLE_FONT_TTF_PIXEL_SIZE 64
+
 #define ZOD_NGINE_IMPLEMENTATION
 #include "ngine.core/index.h"
 #include "ngine.ext.console/index.h"

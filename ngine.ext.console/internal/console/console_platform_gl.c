@@ -132,18 +132,22 @@ static void console_platform_draw_input_box(float x, float y, float w, float h) 
     const color4f border = g_console.input_box_color;
     float         s      = g_console.input_box_stroke;
 
+    console_draw_rect(x, y, w, h, g_console.input_box_background_color);
     console_draw_rect(x, y, w, s, border);
     console_draw_rect(x, y + h - s, w, s, border);
     console_draw_rect(x, y, s, h, border);
     console_draw_rect(x + w - s, y, s, h, border);
 }
 
-static float console_line_offset(const simple_font *font, float scale) {
-    if (font->backend == SIMPLE_FONT_BACKEND_ASCII) {
-        float glyph_height = (float)simple_font_get_advance(font) * scale;
-        return (CONSOLE_LINE_HEIGHT - glyph_height) * 0.5f;
-    }
-    return 16.0f;
+// render_text's y param is the visual top for the ascii backend (glyph
+// y_offset is always 0) but the *baseline* for ttf (y_offset is
+// baseline-relative) — so centering the glyph's rendered height (== font_size)
+// within a row of row_height needs converting "desired visual top" into
+// whatever y actually means for this backend, via simple_font_get_baseline.
+static float console_line_offset(const simple_font *font, float scale, float font_size,
+                                 float row_height) {
+    float visual_top = (row_height - font_size) * 0.5f;
+    return visual_top + (float)simple_font_get_baseline(font) * scale;
 }
 
 static float console_measure_text_width(const char *str, int n, const simple_font *font,
@@ -179,43 +183,62 @@ void console_platform_draw(int width, int height) {
     console_platform_draw_panel(width, height);
 
     const simple_font *font  = zod_font_primary_get();
-    float              scale = font->backend == SIMPLE_FONT_BACKEND_ASCII ? 2.0f : 1.0f;
-    float              line_offset = console_line_offset(font, scale) + g_console.top_pad;
+    float              scale = g_console.font_size / (float)simple_font_get_advance(font);
+    float              row_height = g_console.font_size * CONSOLE_LINE_HEIGHT_RATIO;
+    float              line_offset =
+         console_line_offset(font, scale, g_console.font_size, row_height) +
+         g_console.top_pad;
 
-    int lines_fit = (int)(((float)height - g_console.top_pad) / CONSOLE_LINE_HEIGHT);
+    int lines_fit =
+         (int)(((float)height - g_console.top_pad - g_console.input_gap) / row_height);
     int scrollback_rows = lines_fit > 0 ? lines_fit - 1 : 0;
     int start           = console_visible_line_start(g_console.count, scrollback_rows);
     for (int i = start; i < g_console.count; i++) {
-        render_text_draw_padded(0.0f,
-                                (float)((i - start) * CONSOLE_LINE_HEIGHT) + line_offset,
+        render_text_draw_padded(0.0f, (float)(i - start) * row_height + line_offset,
                                 g_console.lines[i], scale, g_console.output_text_color,
                                 font, g_console.text_pad_x, 0.0f);
     }
+    render_text_flush();
 
     if (lines_fit > 0) {
-        float row_top =
-             (float)(scrollback_rows * CONSOLE_LINE_HEIGHT) + g_console.top_pad;
-        console_platform_draw_input_box(g_console.input_box_margin, row_top,
-                                        (float)width - 2.0f * g_console.input_box_margin,
-                                        (float)CONSOLE_LINE_HEIGHT);
+        float row_top = (float)scrollback_rows * row_height + g_console.top_pad +
+                        g_console.input_gap;
+        float box_x   = g_console.input_box_margin;
+        float box_w   = (float)width - 2.0f * g_console.input_box_margin;
+        console_platform_draw_input_box(box_x, row_top, box_w, row_height);
 
-        float input_y = (float)(scrollback_rows * CONSOLE_LINE_HEIGHT) + line_offset;
-        float available_width = (float)width - g_console.input_right_pad;
+        float input_y =
+             (float)scrollback_rows * row_height + line_offset + g_console.input_gap;
+        // Available width is the box's own interior (box_w), not the panel's
+        // full width — text must stay within the box it's visually drawn in.
+        float available_width = box_w - g_console.text_pad_x - g_console.input_right_pad;
         int   scroll_start    = console_input_scroll_start(
              g_console.input, g_console.cursor_pos, available_width, font, scale);
 
-        render_text_draw_padded(0.0f, input_y, g_console.input + scroll_start, scale,
+        render_text_draw_padded(box_x, input_y, g_console.input + scroll_start, scale,
                                 g_console.input_text_color, font, g_console.text_pad_x,
                                 0.0f);
         float cursor_x =
-             g_console.text_pad_x +
+             box_x + g_console.text_pad_x +
              console_measure_text_width(g_console.input + scroll_start,
                                         g_console.cursor_pos - scroll_start, font, scale);
         render_text_draw_basic(cursor_x, input_y, "|", scale, g_console.input_text_color,
                                font);
-    }
 
-    render_text_flush();
+        // scroll_start only guarantees the cursor fits — text past the
+        // cursor (or an unscrolled string longer than the box) still queues
+        // quads beyond the box edges, so clip the flush to the box interior
+        // instead of trying to bound it purely by character counting.
+        float     stroke       = g_console.input_box_stroke;
+        GLboolean prev_scissor = glIsEnabled(GL_SCISSOR_TEST);
+        glEnable(GL_SCISSOR_TEST);
+        glScissor((GLint)(box_x + stroke),
+                  (GLint)((float)g_ctx.window.height - (row_top + row_height - stroke)),
+                  (GLsizei)(box_w - 2.0f * stroke),
+                  (GLsizei)(row_height - 2.0f * stroke));
+        render_text_flush();
+        if (!prev_scissor) glDisable(GL_SCISSOR_TEST);
+    }
 }
 
 #endif  // RENDER_BACKEND == RENDER_BACKEND_OPENGL

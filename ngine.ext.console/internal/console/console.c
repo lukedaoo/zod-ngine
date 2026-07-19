@@ -20,13 +20,20 @@ static const cvar_constraint g_console_constraints[] = {
      {.name = "console.input_box_margin", .expected = CVAR_FLOAT},
      {.name = "console.input_box_stroke", .expected = CVAR_FLOAT},
      {.name = "console.input_right_pad", .expected = CVAR_FLOAT},
+     {.name     = "console.font_size",
+      .expected = CVAR_FLOAT,
+      .range    = {.has_min = true, .min.f = 1.0f}},
+     {.name     = "console.input_gap",
+      .expected = CVAR_FLOAT,
+      .range    = {.has_min = true, .min.f = 0.0f}},
      {.name = "console.output_text_color", .expected = CVAR_INT},
      {.name = "console.input_text_color", .expected = CVAR_INT},
      {.name = "console.input_box_color", .expected = CVAR_INT},
+     {.name = "console.input_box_background_color", .expected = CVAR_INT},
      {.name = "console.background_color", .expected = CVAR_INT},
 };
 
-void console_init_config(cvar_table *cvars) {
+static void console_init_config(cvar_table *cvars) {
     cvar_set_int(cvars, "console.visible_lines", DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
     cvar_set_bool(cvars, "console.enabled", DEFAULT_CONFIG_CONSOLE_ENABLED);
     cvar_set_float(cvars, "console.text_pad_x", DEFAULT_CONFIG_CONSOLE_TEXT_PAD_X);
@@ -37,12 +44,16 @@ void console_init_config(cvar_table *cvars) {
                    DEFAULT_CONFIG_CONSOLE_INPUT_BOX_STROKE);
     cvar_set_float(cvars, "console.input_right_pad",
                    DEFAULT_CONFIG_CONSOLE_INPUT_RIGHT_PAD);
+    cvar_set_float(cvars, "console.font_size", DEFAULT_CONFIG_CONSOLE_FONT_SIZE);
+    cvar_set_float(cvars, "console.input_gap", DEFAULT_CONFIG_CONSOLE_INPUT_GAP);
     cvar_set_int(cvars, "console.output_text_color",
                  DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR);
     cvar_set_int(cvars, "console.input_text_color",
                  DEFAULT_CONFIG_CONSOLE_INPUT_TEXT_COLOR);
     cvar_set_int(cvars, "console.input_box_color",
                  DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR);
+    cvar_set_int(cvars, "console.input_box_background_color",
+                 DEFAULT_CONFIG_CONSOLE_INPUT_BOX_BACKGROUND_COLOR);
     cvar_set_int(cvars, "console.background_color",
                  DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR);
 
@@ -58,8 +69,10 @@ void console_ext_install(void) {
 }
 
 void console_apply_config(void) {
-    g_console.enabled    = cvar_get_bool(&g_ctx.config.cvars, "console.enabled",
-                                         DEFAULT_CONFIG_CONSOLE_ENABLED);
+    g_console.visible_lines = cvar_get_int(&g_ctx.config.cvars, "console.visible_lines",
+                                           DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
+    g_console.enabled       = cvar_get_bool(&g_ctx.config.cvars, "console.enabled",
+                                            DEFAULT_CONFIG_CONSOLE_ENABLED);
     g_console.text_pad_x = cvar_get_float(&g_ctx.config.cvars, "console.text_pad_x",
                                           DEFAULT_CONFIG_CONSOLE_TEXT_PAD_X);
     g_console.top_pad    = cvar_get_float(&g_ctx.config.cvars, "console.top_pad",
@@ -73,6 +86,10 @@ void console_apply_config(void) {
     g_console.input_right_pad =
          cvar_get_float(&g_ctx.config.cvars, "console.input_right_pad",
                         DEFAULT_CONFIG_CONSOLE_INPUT_RIGHT_PAD);
+    g_console.font_size = cvar_get_float(&g_ctx.config.cvars, "console.font_size",
+                                         DEFAULT_CONFIG_CONSOLE_FONT_SIZE);
+    g_console.input_gap = cvar_get_float(&g_ctx.config.cvars, "console.input_gap",
+                                         DEFAULT_CONFIG_CONSOLE_INPUT_GAP);
     g_console.output_text_color = color4f_from_u32(
          (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.output_text_color",
                                 DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR));
@@ -82,6 +99,9 @@ void console_apply_config(void) {
     g_console.input_box_color = color4f_from_u32(
          (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.input_box_color",
                                 DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR));
+    g_console.input_box_background_color = color4f_from_u32((uint32_t)cvar_get_int(
+         &g_ctx.config.cvars, "console.input_box_background_color",
+         DEFAULT_CONFIG_CONSOLE_INPUT_BOX_BACKGROUND_COLOR));
     g_console.background_color = color4f_from_u32(
          (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.background_color",
                                 DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR));
@@ -127,7 +147,7 @@ void console_handle_event(console_input_event event) {
     }
 }
 
-void console_write_v(const char *fmt, va_list args) {
+static void console_write_v(const char *fmt, va_list args) {
     if (g_console.count == CONSOLE_MAX_LINES) {
         memmove(g_console.lines[0], g_console.lines[1],
                 (size_t)(CONSOLE_MAX_LINES - 1) * CONSOLE_MAX_LINE_LEN);
@@ -145,8 +165,9 @@ void console_write(const char *fmt, ...) {
     va_end(args);
 }
 
-int console_panel_height(int window_height, int visible_lines) {
-    int desired = visible_lines * CONSOLE_LINE_HEIGHT;
+int console_panel_height(int window_height, int visible_lines, int row_height,
+                         int overhead) {
+    int desired = visible_lines * row_height + overhead;
     return desired < window_height ? desired : window_height;
 }
 
@@ -190,16 +211,16 @@ void console_input_submit(void) {
     g_console.cursor_pos = 0;
 }
 
-int console_resolve_visible_lines(void) {
-    return cvar_get_int(&g_ctx.config.cvars, "console.visible_lines",
-                        DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
-}
-
 bool console_draw(void) {
     if (!g_console.visible) return true;
 
-    int height =
-         console_panel_height(g_ctx.window.height, console_resolve_visible_lines());
+    int row_height = (int)(g_console.font_size * CONSOLE_LINE_HEIGHT_RATIO);
+    int overhead   = (int)(g_console.top_pad + g_console.input_gap);
+    // +1 reserves a row for the input line so visible_lines rows of
+    // scrollback actually fit — console_platform_draw's lines_fit already
+    // budgets one row for input (scrollback_rows = lines_fit - 1).
+    int height = console_panel_height(g_ctx.window.height, g_console.visible_lines + 1,
+                                      row_height, overhead);
     console_platform_draw(g_ctx.window.width, height);
     return true;
 }
@@ -208,16 +229,11 @@ bool console_destroy(void) { return true; }
 
 #else  // !ZOD_CONSOLE_ENABLE — console compiled out of the shipped binary
 
-void console_init_config(cvar_table *cvars) { (void)cvars; }
 void console_ext_install(void) {}
 void console_apply_config(void) {}
 bool console_toggle(void) { return false; }
 bool console_visible(void) { return false; }
 void console_handle_event(console_input_event event) { (void)event; }
-void console_write_v(const char *fmt, va_list args) {
-    (void)fmt;
-    (void)args;
-}
 void console_write(const char *fmt, ...) { (void)fmt; }
 bool console_draw(void) { return true; }
 bool console_destroy(void) { return true; }

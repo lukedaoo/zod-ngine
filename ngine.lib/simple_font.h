@@ -65,6 +65,10 @@ typedef struct simple_font_ttf {
     int               atlas_width;
     int               atlas_height;
     simple_font_glyph glyphs[SIMPLE_FONT_GLYPH_COUNT];
+    int               baseline;  // px above the top of a SIMPLE_FONT_TTF_PIXEL_SIZE
+                                  // cell where the font's baseline sits — glyph
+                                  // y_offset is baseline-relative, so callers need
+                                  // this to place text by its visual top instead
 } simple_font_ttf;
 
 typedef enum simple_font_backend {
@@ -90,6 +94,13 @@ simple_font              simple_font_load(const char *path);
 const simple_font_glyph *simple_font_get_glyph(const simple_font *font, char c);
 simple_font_atlas        simple_font_get_atlas(const simple_font *font);
 int                      simple_font_get_advance(const simple_font *font);
+
+// Px above the top of a glyph's cell (at the font's native rasterization
+// size) where the baseline sits. 0 for the ascii backend (its glyph
+// y_offset is always 0, so callers already treat y as the visual top); the
+// ttf backend's y_offset is baseline-relative, so callers need this to
+// convert a desired visual-top y into the baseline y render_text expects.
+int simple_font_get_baseline(const simple_font *font);
 
 #ifdef SIMPLE_FONT_IMPLEMENTATION
 
@@ -336,6 +347,7 @@ static bool simple_font_load_ttf(simple_font_ttf *font, const char *path) {
 
     font->atlas_width  = SIMPLE_FONT_TTF_ATLAS_WIDTH;
     font->atlas_height = SIMPLE_FONT_TTF_ATLAS_HEIGHT;
+    font->baseline     = baseline;
 
     free(data);
     return true;
@@ -379,6 +391,10 @@ simple_font_atlas simple_font_get_atlas(const simple_font *font) {
 int simple_font_get_advance(const simple_font *font) {
     return font->backend == SIMPLE_FONT_BACKEND_TTF ? SIMPLE_FONT_TTF_PIXEL_SIZE
                                                     : SIMPLE_FONT_GLYPH_SIZE;
+}
+
+int simple_font_get_baseline(const simple_font *font) {
+    return font->backend == SIMPLE_FONT_BACKEND_TTF ? font->ttf.baseline : 0;
 }
 
 #endif

@@ -41,6 +41,18 @@
 // @default 8.0
 // #define DEFAULT_CONFIG_CONSOLE_INPUT_RIGHT_PAD 8.0f
 
+// console.c — font size in px (like a text editor's font size setting).
+// Converted to render_text's scale argument as
+// font_size / simple_font_get_advance(font), so it renders at a consistent
+// pixel size regardless of backend (ascii bitmap font's native size is 8px,
+// TTF's is 32px).
+// @default 16.0
+// #define DEFAULT_CONFIG_CONSOLE_FONT_SIZE 16.0f
+
+// console.c — vertical gap between the last scrollback row and the input box
+// @default 8.0
+// #define DEFAULT_CONFIG_CONSOLE_INPUT_GAP 8.0f
+
 // console.c — scrollback line color packed as 0xRRGGBBAA
 // @default 0xFFFFFFFF (opaque white)
 // #define DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR 0xFFFFFFFF
@@ -52,6 +64,12 @@
 // console.c — input box border color packed as 0xRRGGBBAA
 // @default 0xFFFFFF66 (white, ~0.4 alpha)
 // #define DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR 0xFFFFFF66
+
+// console.c — input box fill color packed as 0xRRGGBBAA. Alpha 0 (default)
+// means no fill — the panel background shows through, same as before this
+// existed.
+// @default 0x00000000 (transparent)
+// #define DEFAULT_CONFIG_CONSOLE_INPUT_BOX_BACKGROUND_COLOR 0x00000000
 
 // console.c — panel background color packed as 0xRRGGBBAA
 // @default 0x000000D9 (black, ~0.85 alpha)
@@ -67,11 +85,11 @@
 // @default 256
 // #define CONSOLE_MAX_LINE_LEN 256
 
-// console_internal.h — row height in px used for panel layout and the
-// scrollback/input grid. Not cvar-backed — console_panel_height (tested pure
-// function) bakes this constant into its return value.
-// @default 20
-// #define CONSOLE_LINE_HEIGHT 20
+// console_internal.h — line-spacing ratio: row pitch = console.font_size *
+// this ratio, computed at draw time (not a fixed pixel constant) so rows
+// never overlap regardless of font_size. Not cvar-backed.
+// @default 1.25
+// #define CONSOLE_LINE_HEIGHT_RATIO 1.25f
 
 // console_internal.h — max chars in the input buffer, including the
 // terminator (fixed-size array bound, not cvar-backed)

@@ -20,8 +20,7 @@ typedef struct {
 
 typedef struct {
     void (*init_config)(cvar_table *cvars);
-    void (*apply_config)(void);  
-                                 
+    void (*apply_config)(void);
 } zod_extension;
 
 // Must be called before zod_ngine_init() so init_config runs in time to

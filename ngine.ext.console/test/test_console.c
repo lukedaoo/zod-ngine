@@ -66,11 +66,33 @@ MU_TEST(test_write_truncates_overlong_line) {
 }
 
 MU_TEST(test_panel_height_uses_visible_lines_when_window_tall_enough) {
-    mu_assert_int_eq(10 * CONSOLE_LINE_HEIGHT, console_panel_height(10000, 10));
+    mu_assert_int_eq(200, console_panel_height(10000, 10, 20, 0));
 }
 
 MU_TEST(test_panel_height_clamps_to_window_height) {
-    mu_assert_int_eq(100, console_panel_height(100, 10));
+    mu_assert_int_eq(100, console_panel_height(100, 10, 20, 0));
+}
+
+MU_TEST(test_panel_height_includes_overhead) {
+    // Regression: overhead (top_pad + input_gap) must be added on top of the
+    // row budget, since console_platform_draw subtracts that same overhead
+    // before computing how many rows fit — otherwise visible_lines rows
+    // never actually fit in the returned height.
+    mu_assert_int_eq(210, console_panel_height(10000, 10, 20, 10));
+}
+
+MU_TEST(test_visible_lines_plus_one_yields_exact_scrollback_rows) {
+    // Regression: console_draw must budget visible_lines+1 total rows (the
+    // extra +1 reserves the input row) so scrollback_rows comes out to
+    // exactly visible_lines, not visible_lines-1 — this is the formula
+    // console_draw and console_platform_draw's lines_fit must agree on.
+    int visible_lines = 5;
+    int row_height     = 20;
+    int overhead       = 10;
+    int height = console_panel_height(10000, visible_lines + 1, row_height, overhead);
+    int lines_fit       = (height - overhead) / row_height;
+    int scrollback_rows = lines_fit - 1;
+    mu_assert_int_eq(visible_lines, scrollback_rows);
 }
 
 MU_TEST(test_draw_is_noop_when_hidden) {
@@ -78,16 +100,17 @@ MU_TEST(test_draw_is_noop_when_hidden) {
     mu_check(console_draw() == true);
 }
 
-MU_TEST(test_resolve_visible_lines_defaults) {
+MU_TEST(test_apply_config_defaults_visible_lines) {
     g_ctx = (engine_context){0};
-    mu_assert_int_eq(DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES,
-                     console_resolve_visible_lines());
+    console_apply_config();
+    mu_assert_int_eq(DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES, g_console.visible_lines);
 }
 
-MU_TEST(test_resolve_visible_lines_reads_cvar_override) {
+MU_TEST(test_apply_config_reads_visible_lines_override) {
     g_ctx = (engine_context){0};
     cvar_set_int(&g_ctx.config.cvars, "console.visible_lines", 25);
-    mu_assert_int_eq(25, console_resolve_visible_lines());
+    console_apply_config();
+    mu_assert_int_eq(25, g_console.visible_lines);
 }
 
 MU_TEST(test_visible_line_start_when_all_lines_fit) {
@@ -239,9 +262,11 @@ MU_TEST_SUITE(console_suite) {
     MU_RUN_TEST(test_write_truncates_overlong_line);
     MU_RUN_TEST(test_panel_height_uses_visible_lines_when_window_tall_enough);
     MU_RUN_TEST(test_panel_height_clamps_to_window_height);
+    MU_RUN_TEST(test_panel_height_includes_overhead);
+    MU_RUN_TEST(test_visible_lines_plus_one_yields_exact_scrollback_rows);
     MU_RUN_TEST(test_draw_is_noop_when_hidden);
-    MU_RUN_TEST(test_resolve_visible_lines_defaults);
-    MU_RUN_TEST(test_resolve_visible_lines_reads_cvar_override);
+    MU_RUN_TEST(test_apply_config_defaults_visible_lines);
+    MU_RUN_TEST(test_apply_config_reads_visible_lines_override);
     MU_RUN_TEST(test_visible_line_start_when_all_lines_fit);
     MU_RUN_TEST(test_visible_line_start_when_buffer_exceeds_panel);
     MU_RUN_TEST(test_input_append_stores_chars);
