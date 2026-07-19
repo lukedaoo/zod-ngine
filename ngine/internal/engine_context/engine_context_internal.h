@@ -16,7 +16,7 @@ struct engine_context {
     engine_clock clock;
     input        input;
     window       window;
-    simple_font primary_font;
+    simple_font  primary_font;
 
     bool should_exit;
 };

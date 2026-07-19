@@ -8,12 +8,27 @@
 #define ZOD_NGINE_IMPLEMENTATION
 #include "../index.h"
 
-static void reset(void) { g_console = (console_state){0}; }
+static void reset(void) { g_console = (console_state){.enabled = true}; }
 
 MU_TEST(test_toggle_flips_visibility) {
     reset();
     mu_check(console_toggle() == true);
     mu_check(console_toggle() == false);
+}
+
+MU_TEST(test_toggle_noop_when_disabled) {
+    g_console = (console_state){.enabled = false};
+    mu_check(console_toggle() == false);
+    mu_check(g_console.visible == false);
+}
+
+MU_TEST(test_apply_config_reads_enabled_cvar) {
+    g_ctx = (engine_context){0};
+    cvar_set_bool(&g_ctx.config.cvars, "console.enabled", true);
+    reset();
+    g_console.enabled = false;
+    console_apply_config();
+    mu_check(g_console.enabled == true);
 }
 
 MU_TEST(test_write_stores_plain_string) {
@@ -71,7 +86,8 @@ MU_TEST(test_zod_console_toggle_forwards) {
 
 MU_TEST(test_resolve_visible_lines_defaults) {
     g_ctx = (engine_context){0};
-    mu_assert_int_eq(DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES, console_resolve_visible_lines());
+    mu_assert_int_eq(DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES,
+                     console_resolve_visible_lines());
 }
 
 MU_TEST(test_resolve_visible_lines_reads_cvar_override) {
@@ -180,7 +196,8 @@ MU_TEST(test_zod_console_visible_forwards) {
 MU_TEST(test_zod_console_handle_event_forwards) {
     reset();
     g_console.visible = true;
-    zod_console_handle_event((console_input_event){.kind = CONSOLE_INPUT_TEXT, .text = "hi"});
+    zod_console_handle_event(
+         (console_input_event){.kind = CONSOLE_INPUT_TEXT, .text = "hi"});
     mu_assert_string_eq("hi", g_console.input);
 }
 
@@ -241,6 +258,8 @@ MU_TEST(test_handle_event_left_right_route_correctly) {
 
 MU_TEST_SUITE(console_suite) {
     MU_RUN_TEST(test_toggle_flips_visibility);
+    MU_RUN_TEST(test_toggle_noop_when_disabled);
+    MU_RUN_TEST(test_apply_config_reads_enabled_cvar);
     MU_RUN_TEST(test_write_stores_plain_string);
     MU_RUN_TEST(test_write_formats_args);
     MU_RUN_TEST(test_write_overflow_drops_oldest_line);

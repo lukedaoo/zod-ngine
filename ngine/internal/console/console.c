@@ -10,7 +10,41 @@
 #include "../../console.h"
 #include "console_internal.h"
 
+#if ZOD_CONSOLE_ENABLE
+
+void console_apply_config(void) {
+    g_console.enabled = cvar_get_bool(&g_ctx.config.cvars, "console.enabled",
+                                      DEFAULT_CONFIG_CONSOLE_ENABLED);
+    g_console.text_pad_x = cvar_get_float(&g_ctx.config.cvars, "console.text_pad_x",
+                                          DEFAULT_CONFIG_CONSOLE_TEXT_PAD_X);
+    g_console.top_pad = cvar_get_float(&g_ctx.config.cvars, "console.top_pad",
+                                       DEFAULT_CONFIG_CONSOLE_TOP_PAD);
+    g_console.input_box_margin =
+         cvar_get_float(&g_ctx.config.cvars, "console.input_box_margin",
+                        DEFAULT_CONFIG_CONSOLE_INPUT_BOX_MARGIN);
+    g_console.input_box_stroke =
+         cvar_get_float(&g_ctx.config.cvars, "console.input_box_stroke",
+                        DEFAULT_CONFIG_CONSOLE_INPUT_BOX_STROKE);
+    g_console.input_right_pad =
+         cvar_get_float(&g_ctx.config.cvars, "console.input_right_pad",
+                        DEFAULT_CONFIG_CONSOLE_INPUT_RIGHT_PAD);
+    g_console.output_text_color = color4f_from_u32((uint32_t)cvar_get_int(
+         &g_ctx.config.cvars, "console.output_text_color",
+         DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR));
+    g_console.input_text_color = color4f_from_u32((uint32_t)cvar_get_int(
+         &g_ctx.config.cvars, "console.input_text_color",
+         DEFAULT_CONFIG_CONSOLE_INPUT_TEXT_COLOR));
+    g_console.input_box_color = color4f_from_u32((uint32_t)cvar_get_int(
+         &g_ctx.config.cvars, "console.input_box_color",
+         DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR));
+    g_console.background_color = color4f_from_u32((uint32_t)cvar_get_int(
+         &g_ctx.config.cvars, "console.background_color",
+         DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR));
+}
+
 bool console_toggle(void) {
+    if (!g_console.enabled) return g_console.visible;
+
     g_console.visible = !g_console.visible;
 
     if (g_ctx.window.handle) {
@@ -127,4 +161,20 @@ bool console_draw(void) {
 
 bool console_destroy(void) { return true; }
 
-#endif
+#else  // !ZOD_CONSOLE_ENABLE — console compiled out of the shipped binary
+
+void console_apply_config(void) {}
+bool console_toggle(void) { return false; }
+bool console_visible(void) { return false; }
+void console_handle_event(console_input_event event) { (void)event; }
+void console_write_v(const char *fmt, va_list args) {
+    (void)fmt;
+    (void)args;
+}
+void console_write(const char *fmt, ...) { (void)fmt; }
+bool console_draw(void) { return true; }
+bool console_destroy(void) { return true; }
+
+#endif  // ZOD_CONSOLE_ENABLE
+
+#endif  // ZOD_NGINE_IMPLEMENTATION

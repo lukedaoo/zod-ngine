@@ -9,12 +9,25 @@ width           1600
 height          900
 transparent     false           ; enable alpha channel
 clear_color     0x141A1AFF     ; clear color. Hex format: 0xRRGGBBAA
-vsync           false          ; enable vsync
+vsync           true ; enable vsync
 
 ; Logging configuration
 :/log
 level           "debug"        ; trace, debug, info, warning, error, fatal
 
-; App-owned config — declared by zod_ngine_run.c, not the engine.
-:/game
-difficulty      1
+; Console configuration
+:/console
+enabled            true       ; enable in-game console (grave key toggle)
+visible_lines      10         ; scrollback rows to show
+text_pad_x         4.0        ; left inset for output/input text
+top_pad            10.0       ; clearance above the first scrollback row
+input_box_margin   4.0        ; input box inset from left/right panel edges
+input_box_stroke   1.0        ; input box border thickness in px
+input_right_pad    8.0        ; right clearance before input text wraps/scrolls
+output_text_color  0xFFFFFFFF ; scrollback line color. Hex format: 0xRRGGBBAA
+input_text_color   0xFFFFFFFF ; input line + cursor color. Hex format: 0xRRGGBBAA
+input_box_color    0xFF223366 ; input box border color. Hex format: 0xRRGGBBAA
+background_color   0x114455D9 ; panel background color. Hex format: 0xRRGGBBAA
+
+:/asset.font
+primary         "run-tree/data/fonts/Lora-Regular .ttf"

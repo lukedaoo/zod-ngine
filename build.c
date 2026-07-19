@@ -5,7 +5,7 @@
 #define C_FLAGS         "-Wall", "-Wextra", "-std=c23", "-I."
 #define C_DEBUG_FLAGS   "-g", "-O0", "-DDEBUG"
 #define C_ASAN_FLAGS    "-g", "-O0", "-fsanitize=address"
-#define C_RELEASE_FLAGS "-O3", "-DNDEBUG"
+#define C_RELEASE_FLAGS "-O3", "-DNDEBUG", "-DZOD_CONSOLE_ENABLE=0"
 
 #ifdef _WIN32
 

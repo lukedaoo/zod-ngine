@@ -13,12 +13,14 @@
 #include "../../zod_ngine.h"
 
 #include "../config/config_internal.h"
+#include "../console/console_internal.h"
 #include "../engine_context/engine_context_internal.h"
 
 static void load_font() {
     cvar       *primary_font_cvar = cvar_get(&g_ctx.config.cvars, "asset.font.primary");
     const char *font_path = primary_font_cvar ? primary_font_cvar->value.str.data : NULL;
-    log_debug("engine.init: loading font '%s'", font_path ? font_path : "(none, using built-in ascii font)");
+    log_debug("engine.init: loading font '%s'",
+              font_path ? font_path : "(none, using built-in ascii font)");
     g_ctx.primary_font = simple_font_load(font_path);
     render_text_invalidate();
 }
@@ -80,7 +82,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
 
 #ifndef NGINE_UNIT_TEST
     {
-        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
+        if (!SDL_Init(SDL_INIT_VIDEO)) {
             zod_set_error("SDL_Init failed: %s", SDL_GetError());
             log_fatal("engine.init: SDL_Init failed — %s, check SDL installation",
                       SDL_GetError());
@@ -133,6 +135,7 @@ void zod_ngine_apply_config(bool adjust_config) {
     clock_change_target_fps(target_fps >= 0 ? (uint32_t)target_fps
                                             : DEFAULT_CONFIG_TARGET_FPS);
     window_apply_config(&g_ctx.window);
+    console_apply_config();
 
     load_font();
 }

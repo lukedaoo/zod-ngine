@@ -107,14 +107,15 @@ int main(const int argc, const char **argv) {
         if (zod_input_key_pressed(SDL_SCANCODE_GRAVE)) zod_console_toggle();
 
         zod_begin_drawing();
-        // render_text_draw(16.0f, 24.0f, "Hello, zod-ngine! ", 1.0f,
+        // render_text_draw_basic(16.0f, 24.0f, "Hello, zod-ngine! ", 1.0f,
         //                  (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
         //
-        // render_text_draw(16.0f, 48.0f, "Hello, zod-ngine! ", 1.0f,
+        // render_text_draw_basic(16.0f, 48.0f, "Hello, zod-ngine! ", 1.0f,
         //                  (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
         //
         // log_debug(buf);
-        // render_text_draw(16.0f, 64.0f, buf, 1.0f, (color4f){1.0f, 0.0f, 0.0f, 1.0f},
+        // render_text_draw_basic(16.0f, 64.0f, buf, 1.0f, (color4f){1.0f, 0.0f,
+        // 0.0f, 1.0f},
         //                  zod_font_primary_get());
         zod_console_draw();
         render_text_flush();

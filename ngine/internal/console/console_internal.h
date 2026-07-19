@@ -3,6 +3,12 @@
 
 #include <stdarg.h>
 
+#include "../../common.h"
+
+#ifndef ZOD_CONSOLE_ENABLE
+#define ZOD_CONSOLE_ENABLE 1
+#endif
+
 #ifndef CONSOLE_MAX_LINES
 #define CONSOLE_MAX_LINES 128
 #endif
@@ -20,15 +26,33 @@
 #endif
 
 typedef struct console_state {
+    bool enabled;
     bool visible;
     int  count;
     char lines[CONSOLE_MAX_LINES][CONSOLE_MAX_LINE_LEN];
     char input[CONSOLE_INPUT_MAX_LEN];
     int  input_len;
     int  cursor_pos;
+
+    float   text_pad_x;
+    float   top_pad;
+    float   input_box_margin;
+    float   input_box_stroke;
+    float   input_right_pad;
+    color4f output_text_color;
+    color4f input_text_color;
+    color4f input_box_color;
+    color4f background_color;
 } console_state;
 
+#if ZOD_CONSOLE_ENABLE
 static console_state g_console;
+#endif
+
+// Caches console.enabled from cvars into g_console.enabled — read once here
+// instead of looking the cvar up on every grave-key press. Called at engine
+// init and again on config hot-reload, same as window_apply_config.
+void console_apply_config(void);
 
 int console_panel_height(int window_height, int visible_lines);
 

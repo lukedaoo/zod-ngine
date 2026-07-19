@@ -2,16 +2,19 @@
 
 #include "render_internal.h"
 
+#include <math.h>
+
+#include <modules/simple_font.h>
+
+#include "../../render_text.h"
+#include "../engine_context/engine_context_internal.h"
+
 #if RENDER_BACKEND == RENDER_BACKEND_OPENGL
 
 #include <stddef.h>
 
 #include <glad/gl.h>
 #include <modules/log.h>
-#include <modules/simple_font.h>
-
-#include "../../render_text.h"
-#include "../engine_context/engine_context_internal.h"
 
 #ifndef RENDER_TEXT_MAX_QUADS
 #define RENDER_TEXT_MAX_QUADS 4096
@@ -151,8 +154,8 @@ void render_text_destroy(void) {
 
 void render_text_invalidate(void) { render_text_state.dirty = true; }
 
-void render_text_draw(float x, float y, const char *str, float scale, color4f color,
-                      const simple_font *font) {
+void render_text_draw_basic(float x, float y, const char *str, float scale, color4f color,
+                            const simple_font *font) {
     if (font != render_text_state.bound_font || render_text_state.dirty) {
         render_text_upload_atlas(font);
         render_text_state.bound_font = font;
@@ -234,12 +237,10 @@ void render_text_flush(void) {
 #else  // RENDER_BACKEND != RENDER_BACKEND_OPENGL — render_text not ported to this backend
        // yet
 
-#include "../../render_text.h"
-
 void render_text_init(void) {}
 void render_text_destroy(void) {}
-void render_text_draw(float x, float y, const char *str, float scale, color4f color,
-                      const simple_font *font) {
+void render_text_draw_basic(float x, float y, const char *str, float scale, color4f color,
+                            const simple_font *font) {
     (void)x;
     (void)y;
     (void)str;
@@ -251,5 +252,59 @@ void render_text_flush(void) {}
 void render_text_invalidate(void) {}
 
 #endif
+
+static float render_text_measure_width(const char *str, float scale,
+                                       const simple_font *font) {
+    int   fallback_advance = simple_font_get_advance(font);
+    float width            = 0.0f;
+    for (const char *p = str; *p; p++) {
+        const simple_font_glyph *g = simple_font_get_glyph(font, *p);
+        width += (float)(g ? g->advance : fallback_advance) * scale;
+    }
+    return width;
+}
+
+void render_text_draw_padded(float x, float y, const char *str, float scale,
+                             color4f color, const simple_font *font, float pad_x,
+                             float pad_y) {
+    render_text_draw_basic(x + pad_x, y + pad_y, str, scale, color, font);
+}
+
+void render_text_draw_margined(float x, float y, const char *str, float scale,
+                               color4f color, const simple_font *font, float margin_x,
+                               float margin_y) {
+    float dx = x + margin_x;
+    float dy = y + margin_y;
+
+    float vw = (float)g_ctx.window.width;
+    float vh = (float)g_ctx.window.height;
+    float tw = render_text_measure_width(str, scale, font);
+    float th = (float)SIMPLE_FONT_GLYPH_SIZE * scale;
+
+    dx = fminf(dx, vw - margin_x - tw);
+    dy = fminf(dy, vh - margin_y - th);
+
+    render_text_draw_basic(dx, dy, str, scale, color, font);
+}
+
+void render_text_draw_full(float x, float y, const char *str, float scale, color4f color,
+                           const simple_font *font, float margin_x, float margin_y,
+                           float pad_x, float pad_y, bool is_center) {
+    float tw = render_text_measure_width(str, scale, font);
+    float th = (float)SIMPLE_FONT_GLYPH_SIZE * scale;
+
+    float vw = (float)g_ctx.window.width;
+    float vh = (float)g_ctx.window.height;
+
+    float dx = fminf(x + margin_x, vw - margin_x - tw);
+    float dy = fminf(y + margin_y, vh - margin_y - th);
+
+    dx += pad_x;
+    dy += pad_y;
+
+    if (is_center) dx -= tw / 2.0f;
+
+    render_text_draw_basic(dx, dy, str, scale, color, font);
+}
 
 #endif
