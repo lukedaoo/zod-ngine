@@ -5,7 +5,7 @@
 #define C_FLAGS         "-Wall", "-Wextra", "-std=c23", "-I."
 #define C_DEBUG_FLAGS   "-g", "-O0", "-DDEBUG"
 #define C_ASAN_FLAGS    "-g", "-O0", "-fsanitize=address"
-#define C_RELEASE_FLAGS "-O3", "-DNDEBUG", "-DZOD_CONSOLE_ENABLE=0"
+#define C_RELEASE_FLAGS "-O3", "-DNDEBUG", "-DZOD_CONSOLE_ENABLED=0"
 
 #ifdef _WIN32
 #define EXE_EXT    ".exe"
@@ -15,8 +15,6 @@
 #define BIN_PREFIX "./"
 #endif
 
-#define C_ENTRY "main.c"
-
 typedef struct {
     const char *name;        // CLI target name
     const char *entry;       // source file compiled as the single TU
@@ -25,7 +23,6 @@ typedef struct {
 } build_target;
 
 static const build_target BUILD_TARGETS[] = {
-     {"main", "main.c", "main", false},
      {"engine", "ngine.example/engine_run_example.c", "engine_run", true},
 };
 static const size_t BUILD_TARGETS_COUNT =
@@ -357,8 +354,6 @@ int run_compdb(void) {
         }
     }
 
-    if (nob_file_exists(C_ENTRY) > 0) compdb_entry(f, cwd, C_ENTRY, false, &first);
-
     fprintf(f, "\n]\n");
     fclose(f);
     nob_log(NOB_INFO, "wrote compile_commands.json (%zu dirs scanned)",
@@ -378,14 +373,14 @@ int main(int argc, char **argv) {
 
     if (argc > 1 && strcmp(argv[1], "help") == 0) {
         nob_log(NOB_INFO, "usage: ./nob [command] [options]");
-        nob_log(NOB_INFO, "  (none)                        build main debug");
-        nob_log(NOB_INFO, "  run [engine] [debug|release] [--backend=opengl|vulkan]");
+        nob_log(NOB_INFO, "  (none)                        build engine debug");
+        nob_log(NOB_INFO, "  run [debug|release] [--backend=opengl|vulkan]");
         nob_log(NOB_INFO, "                                build and run");
-        nob_log(NOB_INFO, "  build-debug [engine] [--backend=opengl|vulkan]");
+        nob_log(NOB_INFO, "  build-debug [--backend=opengl|vulkan]");
         nob_log(NOB_INFO, "                                build with debug symbols");
-        nob_log(NOB_INFO, "  build-release [engine] [--backend=opengl|vulkan]");
+        nob_log(NOB_INFO, "  build-release [--backend=opengl|vulkan]");
         nob_log(NOB_INFO, "                                build with optimizations");
-        nob_log(NOB_INFO, "  test [dir]                    run tests (ngine.lib, ngine)");
+        nob_log(NOB_INFO, "  test [dir]                    run tests (ngine.lib, ngine.core)");
         nob_log(NOB_INFO, "  test-asan [dir]               run tests with asan");
         nob_log(NOB_INFO, "  clean                         remove build artifacts");
         nob_log(NOB_INFO,
@@ -416,30 +411,20 @@ int main(int argc, char **argv) {
         return run_clean();
     }
 
-    bool do_run = argc > 1 && strcmp(argv[1], "run") == 0;
-
-    if (do_run) {
-        bool engine = argc > 2 && strcmp(argv[2], "engine") == 0;
-        // clang-format off
-        const char *mode = engine
-            ? (argc > 3 ? argv[3] : "debug")
-            : (argc > 2 ? argv[2] : "debug");
-        // clang-format on
-        return run_run(true, engine ? "engine" : "main", mode,
-                       parse_backend_flag(argc, argv));
+    if (argc > 1 && strcmp(argv[1], "run") == 0) {
+        const char *mode = argc > 2 ? argv[2] : "debug";
+        return run_run(true, "engine", mode, parse_backend_flag(argc, argv));
     }
 
     if (argc > 1 &&
         (strcmp(argv[1], "build-debug") == 0 || strcmp(argv[1], "build-release") == 0)) {
-        bool        engine = argc > 2 && strcmp(argv[2], "engine") == 0;
-        const char *mode   = strcmp(argv[1], "build-release") == 0 ? "release" : "debug";
-        return run_run(false, engine ? "engine" : "main", mode,
-                       parse_backend_flag(argc, argv));
+        const char *mode = strcmp(argv[1], "build-release") == 0 ? "release" : "debug";
+        return run_run(false, "engine", mode, parse_backend_flag(argc, argv));
     }
 
     if (argc > 1) {
         nob_log(NOB_ERROR, "unknown command '%s'. run ./nob help", argv[1]);
         return 1;
     }
-    return run_run(false, "main", "debug", "opengl");
+    return run_run(false, "engine", "debug", "opengl");
 }

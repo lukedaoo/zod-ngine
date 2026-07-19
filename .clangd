@@ -23,6 +23,7 @@ CompileFlags:
     - -DIO_IMPLEMENTATION
     # ngine implementation
     - -DZOD_NGINE_IMPLEMENTATION
+    - -DZOD_CONSOLE_ENABLED
     - -DRENDER_BACKEND=0
 Index:
   Background: Build

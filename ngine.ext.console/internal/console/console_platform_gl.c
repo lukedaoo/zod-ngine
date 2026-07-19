@@ -2,7 +2,7 @@
 
 #include "console_internal.h"
 
-#if ZOD_CONSOLE_ENABLE
+#if ZOD_CONSOLE_ENABLED
 
 #include "ngine.core/internal/render/render_internal.h"
 
@@ -241,15 +241,15 @@ void console_platform_draw(int width, int height) {
     }
 }
 
-#endif  // RENDER_BACKEND == RENDER_BACKEND_OPENGL
+#endif  
 
-#else  // !ZOD_CONSOLE_ENABLE — console compiled out of the shipped binary
+#else  
 
 void console_platform_draw(int width, int height) {
     (void)width;
     (void)height;
 }
 
-#endif  // ZOD_CONSOLE_ENABLE
+#endif  
 
 #endif  // ZOD_NGINE_IMPLEMENTATION

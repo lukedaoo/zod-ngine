@@ -45,8 +45,8 @@ application (not core) wires them in. See `CONTEXT.md` for details.
 ```sh
 cc -o nob build.c && ./nob   # bootstrap + build (debug)
 
-./nob run engine              # build and run engine
-./nob run engine release      # release build
+./nob run                     # build and run engine
+./nob run release             # release build
 ./nob test                    # run all tests
 ./nob test-asan               # tests with address sanitizer
 ./nob help                    # full command reference

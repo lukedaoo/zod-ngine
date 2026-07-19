@@ -5,11 +5,11 @@
 // do not include manually. Uncomment a line to override its default.
 
 // console_internal.h — compile-time inclusion of the console module. Normally
-// set via build.c (release builds pass -DZOD_CONSOLE_ENABLE=0 so console code
+// set via build.c (release builds pass -DZOD_CONSOLE_ENABLED=0 so console code
 // and shader strings never ship in the binary); this override only matters
 // when compiling without going through build.c.
 // @default 1
-// #define ZOD_CONSOLE_ENABLE 1
+// #define ZOD_CONSOLE_ENABLED 1
 
 // console.c — number of buffered lines shown in the console panel
 // @default 10
@@ -17,7 +17,7 @@
 
 // console.c — console starts enabled (grave key toggle armed). Runtime-only
 // gate — set true here or in engine.scf for a dev build, keep false for a
-// shipped build even when ZOD_CONSOLE_ENABLE keeps the code compiled in.
+// shipped build even when ZOD_CONSOLE_ENABLED keeps the code compiled in.
 // @default false
 // #define DEFAULT_CONFIG_CONSOLE_ENABLED false
 

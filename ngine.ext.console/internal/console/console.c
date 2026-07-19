@@ -11,7 +11,7 @@
 #include "ngine.core/zod_ngine.h"
 #include "console_internal.h"
 
-#if ZOD_CONSOLE_ENABLE
+#if ZOD_CONSOLE_ENABLED
 
 static const cvar_constraint g_console_constraints[] = {
      {.name = "console.enabled", .expected = CVAR_BOOL},
@@ -227,7 +227,7 @@ bool console_draw(void) {
 
 bool console_destroy(void) { return true; }
 
-#else  // !ZOD_CONSOLE_ENABLE — console compiled out of the shipped binary
+#else  
 
 void console_ext_install(void) {}
 void console_apply_config(void) {}
@@ -238,6 +238,6 @@ void console_write(const char *fmt, ...) { (void)fmt; }
 bool console_draw(void) { return true; }
 bool console_destroy(void) { return true; }
 
-#endif  // ZOD_CONSOLE_ENABLE
+#endif  
 
 #endif  // ZOD_NGINE_IMPLEMENTATION

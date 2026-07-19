@@ -5,8 +5,8 @@
 
 #include <ngine.lib/types.h>
 
-#ifndef ZOD_CONSOLE_ENABLE
-#define ZOD_CONSOLE_ENABLE 1
+#ifndef ZOD_CONSOLE_ENABLED
+#define ZOD_CONSOLE_ENABLED 1
 #endif
 
 #ifndef CONSOLE_MAX_LINES
@@ -105,7 +105,7 @@ typedef struct console_state {
     color4f background_color;
 } console_state;
 
-#if ZOD_CONSOLE_ENABLE
+#if ZOD_CONSOLE_ENABLED
 static console_state g_console;
 #endif
 

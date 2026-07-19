@@ -27,5 +27,5 @@ add_executable(zod_ngine
     thirdparty/minunit.h
     thirdparty/nob.h
 
-    main.c
+    ngine.example/engine_run_example.c
 )
