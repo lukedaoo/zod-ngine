@@ -73,10 +73,10 @@ void console_apply_config(void) {
                                            DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
     g_console.enabled       = cvar_get_bool(&g_ctx.config.cvars, "console.enabled",
                                             DEFAULT_CONFIG_CONSOLE_ENABLED);
-    g_console.text_pad_x = cvar_get_float(&g_ctx.config.cvars, "console.text_pad_x",
-                                          DEFAULT_CONFIG_CONSOLE_TEXT_PAD_X);
-    g_console.top_pad    = cvar_get_float(&g_ctx.config.cvars, "console.top_pad",
-                                          DEFAULT_CONFIG_CONSOLE_TOP_PAD);
+    g_console.text_pad_x    = cvar_get_float(&g_ctx.config.cvars, "console.text_pad_x",
+                                             DEFAULT_CONFIG_CONSOLE_TEXT_PAD_X);
+    g_console.top_pad       = cvar_get_float(&g_ctx.config.cvars, "console.top_pad",
+                                             DEFAULT_CONFIG_CONSOLE_TOP_PAD);
     g_console.input_box_margin =
          cvar_get_float(&g_ctx.config.cvars, "console.input_box_margin",
                         DEFAULT_CONFIG_CONSOLE_INPUT_BOX_MARGIN);
@@ -86,10 +86,10 @@ void console_apply_config(void) {
     g_console.input_right_pad =
          cvar_get_float(&g_ctx.config.cvars, "console.input_right_pad",
                         DEFAULT_CONFIG_CONSOLE_INPUT_RIGHT_PAD);
-    g_console.font_size = cvar_get_float(&g_ctx.config.cvars, "console.font_size",
-                                         DEFAULT_CONFIG_CONSOLE_FONT_SIZE);
-    g_console.input_gap = cvar_get_float(&g_ctx.config.cvars, "console.input_gap",
-                                         DEFAULT_CONFIG_CONSOLE_INPUT_GAP);
+    g_console.font_size         = cvar_get_float(&g_ctx.config.cvars, "console.font_size",
+                                                 DEFAULT_CONFIG_CONSOLE_FONT_SIZE);
+    g_console.input_gap         = cvar_get_float(&g_ctx.config.cvars, "console.input_gap",
+                                                 DEFAULT_CONFIG_CONSOLE_INPUT_GAP);
     g_console.output_text_color = color4f_from_u32(
          (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.output_text_color",
                                 DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR));
@@ -99,9 +99,9 @@ void console_apply_config(void) {
     g_console.input_box_color = color4f_from_u32(
          (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.input_box_color",
                                 DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR));
-    g_console.input_box_background_color = color4f_from_u32((uint32_t)cvar_get_int(
-         &g_ctx.config.cvars, "console.input_box_background_color",
-         DEFAULT_CONFIG_CONSOLE_INPUT_BOX_BACKGROUND_COLOR));
+    g_console.input_box_background_color = color4f_from_u32(
+         (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.input_box_background_color",
+                                DEFAULT_CONFIG_CONSOLE_INPUT_BOX_BACKGROUND_COLOR));
     g_console.background_color = color4f_from_u32(
          (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.background_color",
                                 DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR));
@@ -227,7 +227,7 @@ bool console_draw(void) {
 
 bool console_destroy(void) { return true; }
 
-#else  
+#else
 
 void console_ext_install(void) {}
 void console_apply_config(void) {}
@@ -238,6 +238,6 @@ void console_write(const char *fmt, ...) { (void)fmt; }
 bool console_draw(void) { return true; }
 bool console_destroy(void) { return true; }
 
-#endif  
+#endif
 
 #endif  // ZOD_NGINE_IMPLEMENTATION
