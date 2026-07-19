@@ -3,6 +3,7 @@
 
 #include "ngine.core/index.h"
 
+#include "console_config.h"
 #include "console.h"
 
 #ifdef ZOD_NGINE_IMPLEMENTATION

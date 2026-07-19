@@ -16,7 +16,7 @@
 #include "../engine_context/engine_context_internal.h"
 
 #ifndef ZOD_MAX_EXTENSIONS
-#define ZOD_MAX_EXTENSIONS 8
+#define ZOD_MAX_EXTENSIONS 2
 #endif
 
 static zod_extension g_extensions[ZOD_MAX_EXTENSIONS];
