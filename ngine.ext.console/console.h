@@ -14,6 +14,8 @@ typedef struct console_input_event {
     const char        *text;  // only valid when kind == CONSOLE_INPUT_TEXT
 } console_input_event;
 
+void console_ext_install(void);
+
 bool console_toggle(void);
 bool console_draw(void);
 bool console_destroy(void);

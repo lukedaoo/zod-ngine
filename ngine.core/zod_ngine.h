@@ -8,7 +8,6 @@
 #include <ngine.lib/simple_font.h>
 
 #include "input.h"
-#include "ngine.ext.console/console.h"
 
 typedef struct {
     void (*before_init)(void *user_data);
@@ -18,6 +17,21 @@ typedef struct {
     void (*before_destroy)(void *user_data);
     void (*after_destroy)(void *user_data);
 } zod_engine_dispatch;
+
+typedef struct {
+    void (*init_config)(cvar_table *cvars);
+    void (*apply_config)(void);  
+                                 
+} zod_extension;
+
+// Must be called before zod_ngine_init() so init_config runs in time to
+// register the extension's constraints before the config file loads.
+void zod_register_extension(zod_extension ext);
+
+// Runs every registered extension's init_config against `cvars`. Called by
+// zod_ngine_init and by config_reload_from_file (config.c) — not meant for
+// application code.
+void zod_run_extension_init_config(cvar_table *cvars);
 
 typedef struct {
     const char            *config_path;
@@ -100,15 +114,6 @@ void zod_input_update(void);
 bool zod_input_key_down(zod_key_t key);
 bool zod_input_key_pressed(zod_key_t key);
 bool zod_input_key_released(zod_key_t key);
-
-//
-// Console accessors
-//
-bool zod_console_toggle(void);
-void zod_console_write(const char *fmt, ...);
-bool zod_console_draw(void);
-bool zod_console_visible(void);
-void zod_console_handle_event(console_input_event event);
 
 // Utils
 bool zod_should_exit(void);

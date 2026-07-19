@@ -6,19 +6,64 @@
 
 #include <SDL3/SDL.h>
 
-#include "ngine.core/internal/engine_context/engine_context_internal.h"
 #include "../../console.h"
+#include "ngine.core/internal/engine_context/engine_context_internal.h"
+#include "ngine.core/zod_ngine.h"
 #include "console_internal.h"
 
 #if ZOD_CONSOLE_ENABLE
 
+static const cvar_constraint g_console_constraints[] = {
+     {.name = "console.enabled", .expected = CVAR_BOOL},
+     {.name = "console.text_pad_x", .expected = CVAR_FLOAT},
+     {.name = "console.top_pad", .expected = CVAR_FLOAT},
+     {.name = "console.input_box_margin", .expected = CVAR_FLOAT},
+     {.name = "console.input_box_stroke", .expected = CVAR_FLOAT},
+     {.name = "console.input_right_pad", .expected = CVAR_FLOAT},
+     {.name = "console.output_text_color", .expected = CVAR_INT},
+     {.name = "console.input_text_color", .expected = CVAR_INT},
+     {.name = "console.input_box_color", .expected = CVAR_INT},
+     {.name = "console.background_color", .expected = CVAR_INT},
+};
+
+void console_init_config(cvar_table *cvars) {
+    cvar_set_int(cvars, "console.visible_lines", DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
+    cvar_set_bool(cvars, "console.enabled", DEFAULT_CONFIG_CONSOLE_ENABLED);
+    cvar_set_float(cvars, "console.text_pad_x", DEFAULT_CONFIG_CONSOLE_TEXT_PAD_X);
+    cvar_set_float(cvars, "console.top_pad", DEFAULT_CONFIG_CONSOLE_TOP_PAD);
+    cvar_set_float(cvars, "console.input_box_margin",
+                   DEFAULT_CONFIG_CONSOLE_INPUT_BOX_MARGIN);
+    cvar_set_float(cvars, "console.input_box_stroke",
+                   DEFAULT_CONFIG_CONSOLE_INPUT_BOX_STROKE);
+    cvar_set_float(cvars, "console.input_right_pad",
+                   DEFAULT_CONFIG_CONSOLE_INPUT_RIGHT_PAD);
+    cvar_set_int(cvars, "console.output_text_color",
+                 DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR);
+    cvar_set_int(cvars, "console.input_text_color",
+                 DEFAULT_CONFIG_CONSOLE_INPUT_TEXT_COLOR);
+    cvar_set_int(cvars, "console.input_box_color",
+                 DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR);
+    cvar_set_int(cvars, "console.background_color",
+                 DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR);
+
+    cvar_add_schema(cvars, g_console_constraints,
+                    sizeof(g_console_constraints) / sizeof(g_console_constraints[0]));
+}
+
+void console_ext_install(void) {
+    zod_register_extension((zod_extension){
+         .init_config  = console_init_config,
+         .apply_config = console_apply_config,
+    });
+}
+
 void console_apply_config(void) {
-    g_console.enabled = cvar_get_bool(&g_ctx.config.cvars, "console.enabled",
-                                      DEFAULT_CONFIG_CONSOLE_ENABLED);
+    g_console.enabled    = cvar_get_bool(&g_ctx.config.cvars, "console.enabled",
+                                         DEFAULT_CONFIG_CONSOLE_ENABLED);
     g_console.text_pad_x = cvar_get_float(&g_ctx.config.cvars, "console.text_pad_x",
                                           DEFAULT_CONFIG_CONSOLE_TEXT_PAD_X);
-    g_console.top_pad = cvar_get_float(&g_ctx.config.cvars, "console.top_pad",
-                                       DEFAULT_CONFIG_CONSOLE_TOP_PAD);
+    g_console.top_pad    = cvar_get_float(&g_ctx.config.cvars, "console.top_pad",
+                                          DEFAULT_CONFIG_CONSOLE_TOP_PAD);
     g_console.input_box_margin =
          cvar_get_float(&g_ctx.config.cvars, "console.input_box_margin",
                         DEFAULT_CONFIG_CONSOLE_INPUT_BOX_MARGIN);
@@ -28,18 +73,18 @@ void console_apply_config(void) {
     g_console.input_right_pad =
          cvar_get_float(&g_ctx.config.cvars, "console.input_right_pad",
                         DEFAULT_CONFIG_CONSOLE_INPUT_RIGHT_PAD);
-    g_console.output_text_color = color4f_from_u32((uint32_t)cvar_get_int(
-         &g_ctx.config.cvars, "console.output_text_color",
-         DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR));
-    g_console.input_text_color = color4f_from_u32((uint32_t)cvar_get_int(
-         &g_ctx.config.cvars, "console.input_text_color",
-         DEFAULT_CONFIG_CONSOLE_INPUT_TEXT_COLOR));
-    g_console.input_box_color = color4f_from_u32((uint32_t)cvar_get_int(
-         &g_ctx.config.cvars, "console.input_box_color",
-         DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR));
-    g_console.background_color = color4f_from_u32((uint32_t)cvar_get_int(
-         &g_ctx.config.cvars, "console.background_color",
-         DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR));
+    g_console.output_text_color = color4f_from_u32(
+         (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.output_text_color",
+                                DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR));
+    g_console.input_text_color = color4f_from_u32(
+         (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.input_text_color",
+                                DEFAULT_CONFIG_CONSOLE_INPUT_TEXT_COLOR));
+    g_console.input_box_color = color4f_from_u32(
+         (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.input_box_color",
+                                DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR));
+    g_console.background_color = color4f_from_u32(
+         (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.background_color",
+                                DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR));
 }
 
 bool console_toggle(void) {
@@ -163,6 +208,8 @@ bool console_destroy(void) { return true; }
 
 #else  // !ZOD_CONSOLE_ENABLE — console compiled out of the shipped binary
 
+void console_init_config(cvar_table *cvars) { (void)cvars; }
+void console_ext_install(void) {}
 void console_apply_config(void) {}
 bool console_toggle(void) { return false; }
 bool console_visible(void) { return false; }

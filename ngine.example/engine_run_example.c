@@ -71,6 +71,10 @@ int main(const int argc, const char **argv) {
          .dispatch     = dispatch,
     };
 
+#if ZOD_CONSOLE_ENABLE
+    console_ext_install();
+#endif
+
     if (!zod_ngine_init(params)) return 1;
     render_text_init();
 
@@ -82,30 +86,34 @@ int main(const int argc, const char **argv) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) zod_request_exit();
+#if ZOD_CONSOLE_ENABLE
             if (e.type == SDL_EVENT_TEXT_INPUT) {
                 if (strcmp(e.text.text, "~") == 0) continue;
-                zod_console_handle_event((console_input_event){.kind = CONSOLE_INPUT_TEXT,
-                                                               .text = e.text.text});
+                console_handle_event((console_input_event){.kind = CONSOLE_INPUT_TEXT,
+                                                           .text = e.text.text});
             } else if (e.type == SDL_EVENT_KEY_DOWN) {
                 if (e.key.key == SDLK_BACKSPACE) {
-                    zod_console_handle_event(
+                    console_handle_event(
                          (console_input_event){.kind = CONSOLE_INPUT_BACKSPACE});
                 } else if (e.key.key == SDLK_RETURN || e.key.key == SDLK_KP_ENTER) {
-                    zod_console_handle_event(
+                    console_handle_event(
                          (console_input_event){.kind = CONSOLE_INPUT_SUBMIT});
                 } else if (e.key.key == SDLK_LEFT) {
-                    zod_console_handle_event(
+                    console_handle_event(
                          (console_input_event){.kind = CONSOLE_INPUT_LEFT});
                 } else if (e.key.key == SDLK_RIGHT) {
-                    zod_console_handle_event(
+                    console_handle_event(
                          (console_input_event){.kind = CONSOLE_INPUT_RIGHT});
                 }
             }
+#endif
         }
         zod_input_update();
         zod_tick_hot_reload();
 
-        if (zod_input_key_pressed(SDL_SCANCODE_GRAVE)) zod_console_toggle();
+#if ZOD_CONSOLE_ENABLE
+        if (zod_input_key_pressed(SDL_SCANCODE_GRAVE)) console_toggle();
+#endif
 
         zod_begin_drawing();
         // render_text_draw_basic(16.0f, 24.0f, "Hello, zod-ngine! ", 1.0f,
@@ -118,15 +126,19 @@ int main(const int argc, const char **argv) {
         // render_text_draw_basic(16.0f, 64.0f, buf, 1.0f, (color4f){1.0f, 0.0f,
         // 0.0f, 1.0f},
         //                  zod_font_primary_get());
-        zod_console_draw();
+#if ZOD_CONSOLE_ENABLE
+        console_draw();
+#endif
         render_text_flush();
 
         fps_frames++;
         fps_accum += zod_clock_delta();
         if (fps_accum >= 1.0f) {
             log_info("engine.fps: %u, %f", fps_frames, (double)zod_clock_dt());
-            zod_console_write("fps: %u, frame count: %u", fps_frames,
-                              g_ctx.clock.frame_count);
+#if ZOD_CONSOLE_ENABLE
+            console_write("fps: %u, frame count: %u", fps_frames,
+                          g_ctx.clock.frame_count);
+#endif
             fps_frames = 0;
             fps_accum -= 1.0f;
         }

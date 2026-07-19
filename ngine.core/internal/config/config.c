@@ -5,7 +5,7 @@
 
 #include "config_internal.h"
 
-#include "ngine.ext.console/internal/console/console_internal.h"
+#include "../../zod_ngine.h"
 #include "../engine_context/engine_context_internal.h"
 
 static const cvar_constraint g_engine_constraints[] = {
@@ -23,25 +23,9 @@ static const cvar_constraint g_engine_constraints[] = {
      {.name = "window.vsync", .expected = CVAR_BOOL},
      {.name = "window.clear_color", .expected = CVAR_INT},
      {.name = "window.transparent", .expected = CVAR_BOOL},
-#if ZOD_CONSOLE_ENABLE
-     {.name = "console.enabled", .expected = CVAR_BOOL},
-     {.name = "console.text_pad_x", .expected = CVAR_FLOAT},
-     {.name = "console.top_pad", .expected = CVAR_FLOAT},
-     {.name = "console.input_box_margin", .expected = CVAR_FLOAT},
-     {.name = "console.input_box_stroke", .expected = CVAR_FLOAT},
-     {.name = "console.input_right_pad", .expected = CVAR_FLOAT},
-     {.name = "console.output_text_color", .expected = CVAR_INT},
-     {.name = "console.input_text_color", .expected = CVAR_INT},
-     {.name = "console.input_box_color", .expected = CVAR_INT},
-     {.name = "console.background_color", .expected = CVAR_INT},
-#endif
 };
 
-#if ZOD_CONSOLE_ENABLE
-#define ENGINE_CONSTRAINTS_COUNT 17
-#else
 #define ENGINE_CONSTRAINTS_COUNT 7
-#endif
 
 void config_seed_preset(config *cfg) {
     cvar_set_int(&cfg->cvars, "engine.target_fps", DEFAULT_CONFIG_TARGET_FPS);
@@ -54,28 +38,6 @@ void config_seed_preset(config *cfg) {
     cvar_set_bool(&cfg->cvars, "window.transparent", DEFAULT_CONFIG_WINDOW_TRANSPARENT);
 
     cvar_set_int(&cfg->cvars, "log.level", DEFAULT_CONFIG_LOG_LEVEL);
-
-#if ZOD_CONSOLE_ENABLE
-    cvar_set_int(&cfg->cvars, "console.visible_lines",
-                 DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
-    cvar_set_bool(&cfg->cvars, "console.enabled", DEFAULT_CONFIG_CONSOLE_ENABLED);
-    cvar_set_float(&cfg->cvars, "console.text_pad_x", DEFAULT_CONFIG_CONSOLE_TEXT_PAD_X);
-    cvar_set_float(&cfg->cvars, "console.top_pad", DEFAULT_CONFIG_CONSOLE_TOP_PAD);
-    cvar_set_float(&cfg->cvars, "console.input_box_margin",
-                   DEFAULT_CONFIG_CONSOLE_INPUT_BOX_MARGIN);
-    cvar_set_float(&cfg->cvars, "console.input_box_stroke",
-                   DEFAULT_CONFIG_CONSOLE_INPUT_BOX_STROKE);
-    cvar_set_float(&cfg->cvars, "console.input_right_pad",
-                   DEFAULT_CONFIG_CONSOLE_INPUT_RIGHT_PAD);
-    cvar_set_int(&cfg->cvars, "console.output_text_color",
-                 DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR);
-    cvar_set_int(&cfg->cvars, "console.input_text_color",
-                 DEFAULT_CONFIG_CONSOLE_INPUT_TEXT_COLOR);
-    cvar_set_int(&cfg->cvars, "console.input_box_color",
-                 DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR);
-    cvar_set_int(&cfg->cvars, "console.background_color",
-                 DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR);
-#endif
 }
 
 void config_init(config *cfg) {
@@ -132,6 +94,7 @@ bool config_reload_from_file(config *cfg) {
 
     config tmp = {0};
     config_seed_preset(&tmp);
+    zod_run_extension_init_config(&tmp.cvars);
     cvar_copy_schema(&tmp.cvars, &cfg->cvars);
     if (!cfg->reload_config_func(cfg->config_file_watcher->path, &tmp.cvars)) {
         cvar_destroy(&tmp.cvars);

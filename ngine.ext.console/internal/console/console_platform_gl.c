@@ -128,9 +128,6 @@ static void console_platform_draw_panel(int width, int height) {
                       g_console.background_color);
 }
 
-// Four thin filled strips instead of a line primitive — reuses the same
-// filled-quad shader/VAO as the panel background rather than adding a
-// second draw path just for outlines.
 static void console_platform_draw_input_box(float x, float y, float w, float h) {
     const color4f border = g_console.input_box_color;
     float         s      = g_console.input_box_stroke;
@@ -141,11 +138,6 @@ static void console_platform_draw_input_box(float x, float y, float w, float h) 
     console_draw_rect(x + w - s, y, s, h, border);
 }
 
-// The ascii bitmap font is drawn top-aligned (glyph->y_offset is always 0), so
-// its vertical padding within a CONSOLE_LINE_HEIGHT row must scale with the
-// glyph height or it overflows the row — most visibly on the input row, which
-// has nothing below it to hide the overflow. The TTF backend instead relies on
-// glyph->y_offset for baseline placement, so it keeps the tuned constant.
 static float console_line_offset(const simple_font *font, float scale) {
     if (font->backend == SIMPLE_FONT_BACKEND_ASCII) {
         float glyph_height = (float)simple_font_get_advance(font) * scale;
@@ -165,9 +157,6 @@ static float console_measure_text_width(const char *str, int n, const simple_fon
     return (float)width * scale;
 }
 
-// Smallest start index such that input[start..cursor_pos) fits within
-// available_width — walking back from the cursor so it always stays in
-// view, scrolling older characters off the left as typing overflows.
 static int console_input_scroll_start(const char *input, int cursor_pos,
                                       float available_width, const simple_font *font,
                                       float scale) {

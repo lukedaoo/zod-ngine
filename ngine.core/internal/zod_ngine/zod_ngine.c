@@ -13,8 +13,28 @@
 #include "../../zod_ngine.h"
 
 #include "../config/config_internal.h"
-#include "ngine.ext.console/internal/console/console_internal.h"
 #include "../engine_context/engine_context_internal.h"
+
+#ifndef ZOD_MAX_EXTENSIONS
+#define ZOD_MAX_EXTENSIONS 8
+#endif
+
+static zod_extension g_extensions[ZOD_MAX_EXTENSIONS];
+static size_t        g_extensions_count = 0;
+
+void zod_register_extension(zod_extension ext) {
+    if (g_extensions_count >= ZOD_MAX_EXTENSIONS) {
+        log_error("engine.register_extension: max %d extensions already registered",
+                  ZOD_MAX_EXTENSIONS);
+        return;
+    }
+    g_extensions[g_extensions_count++] = ext;
+}
+
+void zod_run_extension_init_config(cvar_table *cvars) {
+    for (size_t i = 0; i < g_extensions_count; ++i)
+        if (g_extensions[i].init_config) g_extensions[i].init_config(cvars);
+}
 
 static void load_font() {
     cvar       *primary_font_cvar = cvar_get(&g_ctx.config.cvars, "asset.font.primary");
@@ -39,6 +59,7 @@ bool zod_ngine_init(const zod_engine_init_params params) {
 
     {
         config_init(&g_ctx.config);
+        zod_run_extension_init_config(&g_ctx.config.cvars);
         config_add_user_constraints(&g_ctx.config, config_setup.constraints,
                                     config_setup.constraints_count);
 
@@ -135,11 +156,11 @@ void zod_ngine_apply_config(bool adjust_config) {
     clock_change_target_fps(target_fps >= 0 ? (uint32_t)target_fps
                                             : DEFAULT_CONFIG_TARGET_FPS);
     window_apply_config(&g_ctx.window);
-#ifdef NGINE_EXT_CONSOLE_PRESENT
-    console_apply_config();
-#endif
 
     load_font();
+
+    for (size_t i = 0; i < g_extensions_count; ++i)
+        if (g_extensions[i].apply_config) g_extensions[i].apply_config();
 }
 
 bool zod_should_exit(void) { return g_ctx.should_exit; }

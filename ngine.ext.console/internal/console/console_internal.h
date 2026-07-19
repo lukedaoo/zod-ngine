@@ -3,6 +3,7 @@
 
 #include <stdarg.h>
 
+#include <ngine.lib/cvar.h>
 #include <ngine.lib/types.h>
 
 #ifndef ZOD_CONSOLE_ENABLE
@@ -23,6 +24,50 @@
 
 #ifndef CONSOLE_INPUT_MAX_LEN
 #define CONSOLE_INPUT_MAX_LEN 128
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES
+#define DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES 10
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_ENABLED
+#define DEFAULT_CONFIG_CONSOLE_ENABLED false
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_TEXT_PAD_X
+#define DEFAULT_CONFIG_CONSOLE_TEXT_PAD_X 4.0f
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_TOP_PAD
+#define DEFAULT_CONFIG_CONSOLE_TOP_PAD 10.0f
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_INPUT_BOX_MARGIN
+#define DEFAULT_CONFIG_CONSOLE_INPUT_BOX_MARGIN 4.0f
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_INPUT_BOX_STROKE
+#define DEFAULT_CONFIG_CONSOLE_INPUT_BOX_STROKE 1.0f
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_INPUT_RIGHT_PAD
+#define DEFAULT_CONFIG_CONSOLE_INPUT_RIGHT_PAD 8.0f
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR
+#define DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR 0xFFFFFFFF
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_INPUT_TEXT_COLOR
+#define DEFAULT_CONFIG_CONSOLE_INPUT_TEXT_COLOR 0xFFFFFFFF
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR
+#define DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR 0xFFFFFF66
+#endif
+
+#ifndef DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR
+#define DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR 0x000000D9
 #endif
 
 typedef struct console_state {
@@ -49,6 +94,12 @@ typedef struct console_state {
 static console_state g_console;
 #endif
 
+// Seeds console.* defaults into `cvars` and registers console's own cvar
+// constraints against it — the zod_extension.init_config hook. Runs once at
+// engine init (before the config file loads) and again on every hot-reload
+// (into the temp table being rebuilt), so it must not assume a global.
+void console_init_config(cvar_table *cvars);
+
 // Caches console.enabled from cvars into g_console.enabled — read once here
 // instead of looking the cvar up on every grave-key press. Called at engine
 // init and again on config hot-reload, same as window_apply_config.
@@ -65,8 +116,8 @@ int console_resolve_visible_lines(void);
 // panel — clips to the most recent lines_that_fit entries.
 int console_visible_line_start(int count, int lines_that_fit);
 
-// Shared by console_write and zod_console_write — the only place a
-// variadic call can hand its va_list on to a second variadic-shaped sink.
+// Separated from console_write so a caller already holding a va_list (e.g.
+// its own variadic wrapper) can hand it on without re-packing varargs.
 void console_write_v(const char *fmt, va_list args);
 
 // Typed-input buffer with a movable cursor: characters insert at

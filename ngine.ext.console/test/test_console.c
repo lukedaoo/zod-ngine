@@ -78,12 +78,6 @@ MU_TEST(test_draw_is_noop_when_hidden) {
     mu_check(console_draw() == true);
 }
 
-MU_TEST(test_zod_console_toggle_forwards) {
-    reset();
-    mu_check(zod_console_toggle() == true);
-    mu_check(g_console.visible == true);
-}
-
 MU_TEST(test_resolve_visible_lines_defaults) {
     g_ctx = (engine_context){0};
     mu_assert_int_eq(DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES,
@@ -102,12 +96,6 @@ MU_TEST(test_visible_line_start_when_all_lines_fit) {
 
 MU_TEST(test_visible_line_start_when_buffer_exceeds_panel) {
     mu_assert_int_eq(90, console_visible_line_start(100, 10));
-}
-
-MU_TEST(test_zod_console_write_forwards) {
-    reset();
-    zod_console_write("fps: %d", 60);
-    mu_assert_string_eq("fps: 60", g_console.lines[0]);
 }
 
 MU_TEST(test_input_append_stores_chars) {
@@ -186,21 +174,6 @@ MU_TEST(test_handle_event_submit_routes_correctly) {
     mu_assert_int_eq(0, g_console.input_len);
 }
 
-MU_TEST(test_zod_console_visible_forwards) {
-    reset();
-    mu_check(zod_console_visible() == false);
-    g_console.visible = true;
-    mu_check(zod_console_visible() == true);
-}
-
-MU_TEST(test_zod_console_handle_event_forwards) {
-    reset();
-    g_console.visible = true;
-    zod_console_handle_event(
-         (console_input_event){.kind = CONSOLE_INPUT_TEXT, .text = "hi"});
-    mu_assert_string_eq("hi", g_console.input);
-}
-
 MU_TEST(test_cursor_move_left_clamps_at_zero) {
     reset();
     console_input_move_left();
@@ -267,8 +240,6 @@ MU_TEST_SUITE(console_suite) {
     MU_RUN_TEST(test_panel_height_uses_visible_lines_when_window_tall_enough);
     MU_RUN_TEST(test_panel_height_clamps_to_window_height);
     MU_RUN_TEST(test_draw_is_noop_when_hidden);
-    MU_RUN_TEST(test_zod_console_toggle_forwards);
-    MU_RUN_TEST(test_zod_console_write_forwards);
     MU_RUN_TEST(test_resolve_visible_lines_defaults);
     MU_RUN_TEST(test_resolve_visible_lines_reads_cvar_override);
     MU_RUN_TEST(test_visible_line_start_when_all_lines_fit);
@@ -283,8 +254,6 @@ MU_TEST_SUITE(console_suite) {
     MU_RUN_TEST(test_handle_event_text_appends_when_visible);
     MU_RUN_TEST(test_handle_event_backspace_routes_correctly);
     MU_RUN_TEST(test_handle_event_submit_routes_correctly);
-    MU_RUN_TEST(test_zod_console_visible_forwards);
-    MU_RUN_TEST(test_zod_console_handle_event_forwards);
     MU_RUN_TEST(test_cursor_move_left_clamps_at_zero);
     MU_RUN_TEST(test_cursor_move_right_clamps_at_input_len);
     MU_RUN_TEST(test_cursor_moves_left_then_right);
