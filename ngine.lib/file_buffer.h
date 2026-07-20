@@ -13,7 +13,7 @@ const file_buffer *read_file_as_string(const char *path);
 const file_buffer *read_file_as_binary(const char *path);
 void               free_file_buffer(const file_buffer *fb);
 
-#ifdef IO_IMPLEMENTATION
+#ifdef FILE_BUFFER_IMPLEMENTATION
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

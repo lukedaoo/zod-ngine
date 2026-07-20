@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define IO_IMPLEMENTATION
+#define FILE_BUFFER_IMPLEMENTATION
 #include "file_buffer.h"
 
 MU_TEST(test_read_file_success) {

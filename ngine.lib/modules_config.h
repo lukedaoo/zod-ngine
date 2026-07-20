@@ -17,7 +17,26 @@
 #define FILE_WATCHER_LOG_ENABLED 1
 #define ARRAY_LIST_LOG_ENABLED   1
 #define FILE_BUFFER_LOG_ENABLED  1
+#define COMMAND_LOG_ENABLED      1
 #endif
+
+// ------- Log
+// log.h — max number of log hooks that can be registered
+// @default 4
+// #define LOG_MAX_HOOKS 4
+
+// log.h — max length of a single formatted log message
+// @default 1024
+// #define LOG_MAX_MESSAGE 1024
+
+// log.h — use the simple (no color/timestamp) log line format
+// @default undefined
+// #define LOG_USE_SIMPLE
+
+// ------- File Buffer
+// file_buffer.h — enable log_* diagnostics for this module.
+// @default 0
+// #define FILE_BUFFER_LOG_ENABLED 0
 
 // ------- Cvars
 // cvar.h — max number of cvars a table can hold.
@@ -95,6 +114,17 @@
 // @default 6
 // #define SIMPLE_FONT_ATLAS_ROWS 6
 
+// simple_font.h — rasterized pixel size for the TTF glyph atlas
+// @default 32
+// #define SIMPLE_FONT_TTF_PIXEL_SIZE 32
+
+// simple_font.h — TTF glyph atlas grid dimensions (cols x rows must hold all
+// glyphs).
+// @default 16
+// #define SIMPLE_FONT_TTF_ATLAS_COLS 16
+// @default 6
+// #define SIMPLE_FONT_TTF_ATLAS_ROWS 6
+
 // ------ Array List
 // collections/array_list.h - initial capacity before first grow
 // @default 16
@@ -111,5 +141,34 @@
 // collections/array_list.h — enable log_* diagnostics for this module.
 // @default 0
 // #define ARRAY_LIST_LOG_ENABLED 0
+
+// ------- Command
+// command.h — max length of a command name, including null terminator
+// @default 32
+// #define COMMAND_MAX_NAME_LEN 32
+
+// command.h — max number of arguments a command invocation may take
+// @default 32
+// #define COMMAND_MAX_ARGC 32
+
+// command.h — max length of a single argument, including null terminator
+// @default 16
+// #define COMMAND_MAX_ARG_LEN 16
+
+// command.h — initial system_commands capacity before first grow
+// @default 16
+// #define COMMAND_TABLE_SYSTEM_COMMAND_INIT_SIZE 16
+
+// command.h — max number of system commands a table can hold
+// @default 256
+// #define COMMAND_TABLE_SYSTEM_COMMAND_MAX_SIZE 256
+
+// command.h — initial user_defined_commands capacity before first grow
+// @default 16
+// #define COMMAND_TABLE_USER_COMMAND_INITIAL_CAPACITY 16
+
+// command.h — enable log_* diagnostics for this module.
+// @default 0
+// #define COMMAND_LOG_ENABLED 0
 
 #endif

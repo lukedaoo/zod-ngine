@@ -14,6 +14,11 @@ bool        array_list_init(array_list *list, const size_t initial_capacity,
 array_list *array_list_create(const size_t initial_capacity, const size_t element_size);
 // @info(array_list_clear): set the list size to zero, do not free memory
 bool array_list_clear(array_list *list);
+// @info(array_list_deinit): free the internal data buffer only, not the list
+// struct itself. Use for stack/embedded lists from array_list_init.
+void array_list_deinit(array_list *list);
+// @info(array_list_destroy): free the data buffer and the list struct. Use for
+// heap lists from array_list_create.
 void array_list_destroy(array_list *list);
 // @info(array_list_shrink): reduces the capacity to exact size
 bool array_list_shrink(array_list *list);
@@ -146,9 +151,17 @@ bool array_list_shrink(array_list *list) {
     return true;
 }
 
-void array_list_destroy(array_list *list) {
+void array_list_deinit(array_list *list) {
     if (!list) return;
     free(list->data);
+    list->data            = NULL;
+    list->header.size     = 0;
+    list->header.capacity = 0;
+}
+
+void array_list_destroy(array_list *list) {
+    if (!list) return;
+    array_list_deinit(list);
     free(list);
 }
 
@@ -162,8 +175,9 @@ bool array_list_append(array_list *list, const void *element) {
             new_capacity = list->header.capacity + 1;
         if (new_capacity > ARRAY_LIST_MAX_CAPACITY) {
 #if ARRAY_LIST_LOG_ENABLED
-            log_warn("array_list.array_list_append: capacity overflow. Max capacity: %zu.",
-                     ARRAY_LIST_MAX_CAPACITY);
+            log_warn(
+                 "array_list.array_list_append: capacity overflow. Max capacity: %zu.",
+                 ARRAY_LIST_MAX_CAPACITY);
 #endif
             new_capacity = ARRAY_LIST_MAX_CAPACITY;
         }

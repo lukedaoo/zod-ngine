@@ -21,6 +21,9 @@
 #include "carg.h"
 #include "carg_to_cvar.h"
 
+// command
+#include "command.h"
+
 // io
 #include "file_watcher.h"
 
