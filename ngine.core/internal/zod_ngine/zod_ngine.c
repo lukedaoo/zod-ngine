@@ -176,11 +176,6 @@ bool zod_tick_hot_reload(void) {
         log_warn("config.watcher: reload failed — keeping previous config");
         return false;
     }
-    if (!config_validate(&g_ctx.config)) {
-        log_fatal("config.watcher: reloaded config failed validation — exiting");
-        zod_request_exit();
-        return false;
-    }
     zod_ngine_apply_config(true);
 #if DEBUG
     config_print(&g_ctx.config);

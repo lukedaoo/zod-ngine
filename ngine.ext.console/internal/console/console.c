@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <SDL3/SDL.h>
-
 #include <ngine.lib/log.h>
 
 #include "../../console.h"

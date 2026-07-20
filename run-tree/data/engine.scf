@@ -29,7 +29,7 @@ input_box_stroke           2.0            ; input box border thickness in px
 input_right_pad            4.0            ; right clearance before input text wraps/scrolls
 font_size                  32.0           ; console text size in px, like a text editor's font size
 input_gap                  8.0            ; vertical gap between last scrollback row and input box
-output_text_color          0xFFFFFFFF     ; scrollback line color. Hex format: 0xRRGGBBAA
+output_text_color          0x808080FF     ; scrollback line color. Hex format: 0xRRGGBBAA
 input_text_color           0xFFFFFFFF     ; input line + cursor color. Hex format: 0xRRGGBBAA
 input_box_color            0xFF223366     ; input box border color. Hex format: 0xRRGGBBAA
 input_box_background_color 0x00000080     ; input box fill color. Hex format: 0xRRGGBBAA

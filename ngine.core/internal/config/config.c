@@ -103,6 +103,13 @@ bool config_reload_from_file(config *cfg) {
         return false;
     }
 
+    if (!config_validate(&tmp)) {
+        cvar_destroy(&tmp.cvars);
+        log_warn("config.reload: reloaded config failed validation — keeping previous "
+                 "config");
+        return false;
+    }
+
     cvar_destroy(&cfg->cvars);
     cfg->cvars = tmp.cvars;
     return true;
