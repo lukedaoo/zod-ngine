@@ -59,6 +59,7 @@ int build_test_dir(const char *dir) {
     Nob_File_Paths files = {0};
     if (!nob_read_entire_dir(dir, &files)) return 1;
 
+    int failed = 0;
     for (size_t i = 0; i < files.count; ++i) {
         const char *name = files.items[i];
         if (!nob_sv_starts_with(nob_sv_from_cstr(name), nob_sv_from_cstr("test_")))
@@ -71,9 +72,45 @@ int build_test_dir(const char *dir) {
         Nob_Cmd cmd = {0};
         nob_cmd_append(&cmd, C_COMPILER, C_FLAGS, C_DEBUG_FLAGS, "-o", bin, src,
                        MATH_FLAGS);
-        if (!nob_cmd_run(&cmd)) return 1;
+        if (!nob_cmd_run(&cmd)) {
+            nob_log(NOB_ERROR, "FAIL (build)  %s/%s", dir, name);
+            failed++;  // keep building the rest so one break doesn't hide others
+        }
     }
-    return 0;
+    return failed > 0 ? 1 : 0;
+}
+
+// Collected descriptions of failed tests, shown in the run summary. Each entry
+// is "<file>:<line>: <detail>  (<test_func>)".
+static Nob_File_Paths g_failed_tests = {0};
+
+// Echo a finished test binary's captured output and scrape minunit failures
+// (format: "<func> failed:\n\t<file>:<line>: <detail>") into g_failed_tests.
+static void collect_failures(const char *log_path) {
+    Nob_String_Builder sb = {0};
+    if (!nob_read_entire_file(log_path, &sb)) return;
+    nob_sb_append_null(&sb);
+    fprintf(stderr, "%s", sb.items);  // keep the full minunit output visible
+
+    char *func = NULL;
+    for (char *line = strtok(sb.items, "\n"); line; line = strtok(NULL, "\n")) {
+        char *at = strstr(line, " failed:");
+        if (at) {
+            *at = '\0';
+            free(func);
+            func = strdup(line);
+        } else if (func) {
+            char *detail = line;
+            while (*detail == '\t' || *detail == ' ') detail++;
+            // NOLINTNEXTLINE(bugprone-multi-level-implicit-pointer-conversion)
+            nob_da_append(&g_failed_tests,
+                          (const char *)strdup(nob_temp_sprintf("%s  (%s)", detail, func)));
+            free(func);
+            func = NULL;
+        }
+    }
+    free(func);
+    nob_da_free(sb);
 }
 
 int run_test_dir(bool asan, const char *dir, bool needs_gl_sdl, int *passed,
@@ -95,17 +132,28 @@ int run_test_dir(bool asan, const char *dir, bool needs_gl_sdl, int *passed,
         if (needs_gl_sdl) nob_cmd_append(&test_cmd, GLAD_SRC, SDL_FLAGS, GLAD_FLAGS);
         nob_cmd_append(&test_cmd, MATH_FLAGS);
         if (asan) nob_cmd_append(&test_cmd, C_ASAN_FLAGS);
-        if (!nob_cmd_run(&test_cmd)) return 1;
+        if (!nob_cmd_run(&test_cmd)) {
+            nob_log(NOB_ERROR, "FAIL (build)  %s/%s", dir, name);
+            // NOLINTNEXTLINE(bugprone-multi-level-implicit-pointer-conversion)
+            nob_da_append(&g_failed_tests,
+                          (const char *)strdup(
+                               nob_temp_sprintf("%s/%s: build failed", dir, name)));
+            (*failed)++;
+            continue;
+        }
 
-        Nob_Cmd run_test = {0};
+        const char *log = nob_temp_sprintf("%s.log", bin);
+        Nob_Cmd     run_test = {0};
         nob_cmd_append(&run_test, bin);
-        if (nob_cmd_run(&run_test)) {
+        if (nob_cmd_run(&run_test, .stdout_path = log, .stderr_path = log)) {
             nob_log(NOB_INFO, "PASS  %s/%s", dir, name);
             (*passed)++;
         } else {
             nob_log(NOB_ERROR, "FAIL  %s/%s", dir, name);
+            collect_failures(log);
             (*failed)++;
         }
+        remove(log);  // drop the per-test capture file
     }
     return 0;
 }
@@ -190,6 +238,8 @@ int run_tests(bool asan, const char *dir) {
             "[test] %d passed  %d failed\n"
             "────────────────────────────────────",
             passed, failed);
+    for (size_t i = 0; i < g_failed_tests.count; ++i)
+        nob_log(NOB_ERROR, "  failed: %s", g_failed_tests.items[i]);
     return failed > 0 ? 1 : 0;
 }
 
@@ -287,6 +337,9 @@ static const char  *COMPDB_DEFINES[] = {"-DCARG_IMPLEMENTATION",
                                         "-DFILE_WATCHER_IMPLEMENTATION",
                                         "-DSTRING_VIEW_IMPLEMENTATION",
                                         "-DARRAY_LIST_IMPLEMENTATION",
+                                        "-DCOMMAND_IMPLEMENTATION",
+                                        "-DFILE_BUFFER_IMPLEMENTATION",
+                                        "-DSIMPLE_FONT_IMPLEMENTATION",
                                         "-DTYPES_IMPLEMENTATION",
                                         "-DZOD_NGINE_IMPLEMENTATION",
                                         "-DNOB_IMPLEMENTATION"};
