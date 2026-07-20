@@ -14,7 +14,7 @@
 #endif
 
 #ifndef CONSOLE_MAX_LINE_LEN
-#define CONSOLE_MAX_LINE_LEN 256
+#define CONSOLE_MAX_LINE_LEN 128
 #endif
 
 #ifndef CONSOLE_LINE_HEIGHT_RATIO
@@ -82,15 +82,15 @@
 #endif
 
 typedef struct console_state {
-    bool enabled;
-    bool visible;
+    bool    enabled;
+    bool    visible;
     int     count;
     int     visible_lines;
     char    lines[CONSOLE_MAX_LINES][CONSOLE_MAX_LINE_LEN];
     color4f lines_color[CONSOLE_MAX_LINES];
-    char input[CONSOLE_INPUT_MAX_LEN];
-    int  input_len;
-    int  cursor_pos;
+    char    input[CONSOLE_INPUT_MAX_LEN];
+    int     input_len;
+    int     cursor_pos;
 
     float   text_pad_x;
     float   top_pad;

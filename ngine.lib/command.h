@@ -62,7 +62,7 @@ command_execute_result command_execute(command *command, int argc, char **argv);
 #endif
 
 struct command {
-    const char   *name;
+    const char    name[COMMAND_MAX_NAME_LEN];
     command_group group;
     void (*handler)(int argc, char **argv);
 };
@@ -87,6 +87,8 @@ void command_table_init_with_capacity(command_table *table, const int system_com
 
 void command_table_destroy(command_table *table) {
     if (!table) return;
+    // TODO: once command_table_register owns command.name (strdup), loop both
+    // lists and free each cmd->name here before deinit, or these leak.
     array_list_deinit(&table->system_commands);
     array_list_deinit(&table->user_defined_commands);
 }

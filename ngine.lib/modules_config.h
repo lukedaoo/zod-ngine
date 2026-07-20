@@ -48,8 +48,8 @@
 // #define CVAR_DEFAULT_CAPACITY 8
 
 // cvar.h — max length of a cvar name, including null terminator
-// @default 64
-// #define CVAR_NAME_MAX 64
+// @default 40
+// #define CVAR_NAME_MAX 40
 
 // cvar.h — enable log_* diagnostics for this module.
 // @default 0

@@ -82,8 +82,8 @@
 
 // console_internal.h — max chars per scrollback line, including the
 // terminator (fixed-size array bound, not cvar-backed)
-// @default 256
-// #define CONSOLE_MAX_LINE_LEN 256
+// @default 128
+// #define CONSOLE_MAX_LINE_LEN 128
 
 // console_internal.h — line-spacing ratio: row pitch = console.font_size *
 // this ratio, computed at draw time (not a fixed pixel constant) so rows

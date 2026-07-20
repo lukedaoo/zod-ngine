@@ -72,7 +72,7 @@ bool cvar_copy_schema(cvar_table *dest, const cvar_table *src);
 #endif
 
 #ifndef CVAR_NAME_MAX
-#define CVAR_NAME_MAX 64
+#define CVAR_NAME_MAX 40
 #endif
 
 #ifndef CVAR_LOG_ENABLED

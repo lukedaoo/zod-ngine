@@ -29,6 +29,7 @@ MU_TEST(test_apply_config_reads_enabled_cvar) {
     g_console.enabled = false;
     console_apply_config();
     mu_check(g_console.enabled == true);
+    cvar_destroy(&g_ctx.config.cvars);
 }
 
 MU_TEST(test_write_stores_plain_string) {
@@ -111,6 +112,7 @@ MU_TEST(test_apply_config_reads_visible_lines_override) {
     cvar_set_int(&g_ctx.config.cvars, "console.visible_lines", 25);
     console_apply_config();
     mu_assert_int_eq(25, g_console.visible_lines);
+    cvar_destroy(&g_ctx.config.cvars);
 }
 
 MU_TEST(test_visible_line_start_when_all_lines_fit) {
