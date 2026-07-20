@@ -242,8 +242,8 @@ void console_platform_draw(int width, int height) {
     int start = console_visible_line_start(g_console.count, scrollback_rows);
     for (int i = start; i < g_console.count; i++) {
         render_text_draw_padded(0.0f, (float)(i - start) * row_height + line_offset,
-                                g_console.lines[i], scale, g_console.output_text_color,
-                                font, g_console.text_pad_x, 0.0f);
+                                g_console.lines[i], scale, g_console.lines_color[i], font,
+                                g_console.text_pad_x, 0.0f);
     }
 
     console_flush_rects();

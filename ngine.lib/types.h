@@ -19,6 +19,15 @@ typedef struct {
     float r, g, b, a;
 } color4f;
 
+#define COLOR4F_WHITE   ((color4f){.r = 1.00f, .g = 1.00f, .b = 1.00f, .a = 1.0f})
+#define COLOR4F_BLACK   ((color4f){.r = 0.00f, .g = 0.00f, .b = 0.00f, .a = 1.0f})
+#define COLOR4F_GRAY    ((color4f){.r = 0.55f, .g = 0.55f, .b = 0.55f, .a = 1.0f})
+#define COLOR4F_RED     ((color4f){.r = 0.90f, .g = 0.20f, .b = 0.20f, .a = 1.0f})
+#define COLOR4F_GREEN   ((color4f){.r = 0.20f, .g = 0.85f, .b = 0.20f, .a = 1.0f})
+#define COLOR4F_YELLOW  ((color4f){.r = 0.90f, .g = 0.80f, .b = 0.10f, .a = 1.0f})
+#define COLOR4F_CYAN    ((color4f){.r = 0.20f, .g = 0.80f, .b = 0.80f, .a = 1.0f})
+#define COLOR4F_MAGENTA ((color4f){.r = 0.85f, .g = 0.20f, .b = 0.85f, .a = 1.0f})
+
 color4f color4f_from_u32(uint32_t c);
 
 #ifdef TYPES_IMPLEMENTATION

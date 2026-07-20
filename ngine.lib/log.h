@@ -8,6 +8,16 @@
 
 enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
 
+#ifndef LOG_MAX_HOOKS
+#define LOG_MAX_HOOKS 4
+#endif
+
+#ifndef LOG_MAX_MESSAGE
+#define LOG_MAX_MESSAGE 1024
+#endif
+
+typedef void (*log_hook_fn)(int level, const char *message);
+
 #ifdef LOG_PRINT_FUNCTION
 
 #define log_trace(...) log_log(LOG_TRACE, __FILE__, __LINE__, __func__, __VA_ARGS__)
@@ -35,6 +45,9 @@ void log_log(int level, const char *source_file, int line, const char *func,
 
 int log_level_from_string(const char *level_string);
 
+void log_register_hook(log_hook_fn callback);
+void log_unregister_hook(log_hook_fn callback);
+
 #ifdef LOG_IMPLEMENTATION
 #include <stdarg.h>
 #include <time.h>
@@ -45,6 +58,9 @@ static struct {
 
     FILE *fp;
     int   fp_level;
+
+    log_hook_fn hooks[LOG_MAX_HOOKS];
+    int         hook_count;
 } log_config;
 
 void log_set_level(int level) { log_config.level = level; }
@@ -52,6 +68,24 @@ void log_set_level(int level) { log_config.level = level; }
 void log_set_fp(FILE *fp, int level) {
     log_config.fp       = fp;
     log_config.fp_level = level;
+}
+
+void log_register_hook(log_hook_fn callback) {
+    if (log_config.hook_count >= LOG_MAX_HOOKS) {
+        log_error("log.register_hook: hook table full (max %d) — '%p' dropped",
+                  LOG_MAX_HOOKS, (void *)callback);
+        return;
+    }
+    log_config.hooks[log_config.hook_count++] = callback;
+}
+
+void log_unregister_hook(log_hook_fn callback) {
+    for (int i = 0; i < log_config.hook_count; i++) {
+        if (log_config.hooks[i] == callback) {
+            log_config.hooks[i] = log_config.hooks[--log_config.hook_count];
+            return;
+        }
+    }
 }
 
 static const char *level_strings[] = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
@@ -112,6 +146,17 @@ void log_log(int level, const char *source_file, int line, const char *func,
         va_start(args, fmt);
         log_emit(log_config.fp, fmt, args);
         va_end(args);
+    }
+
+    if (log_config.hook_count > 0) {
+        char buf[LOG_MAX_MESSAGE];
+        va_start(args, fmt);
+        vsnprintf(buf, sizeof(buf), fmt, args);
+        va_end(args);
+
+        for (int i = 0; i < log_config.hook_count; i++) {
+            log_config.hooks[i](level, buf);
+        }
     }
 }
 

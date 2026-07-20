@@ -116,16 +116,6 @@ int main(const int argc, const char **argv) {
 #endif
 
         zod_begin_drawing();
-        // render_text_draw_basic(16.0f, 24.0f, "Hello, zod-ngine! ", 1.0f,
-        //                  (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
-        //
-        // render_text_draw_basic(16.0f, 48.0f, "Hello, zod-ngine! ", 1.0f,
-        //                  (color4f){1.0f, 0.0f, 0.0f, 1.0f}, zod_font_primary_get());
-        //
-        // log_debug(buf);
-        // render_text_draw_basic(16.0f, 64.0f, buf, 1.0f, (color4f){1.0f, 0.0f,
-        // 0.0f, 1.0f},
-        //                  zod_font_primary_get());
 #if ZOD_CONSOLE_ENABLED
         console_draw();
 #endif
@@ -134,10 +124,10 @@ int main(const int argc, const char **argv) {
         fps_frames++;
         fps_accum += zod_clock_delta();
         if (fps_accum >= 1.0f) {
-            log_info("engine.fps: %u, %f", fps_frames, (double)zod_clock_dt());
+            log_debug("engine.fps: %u, dt: %f", fps_frames, (double)zod_clock_dt());
 #if ZOD_CONSOLE_ENABLED
-            console_write("fps: %u, frame count: %u", fps_frames,
-                          g_ctx.clock.frame_count);
+            console_write_color(COLOR4F_GRAY, "fps: %u, frame count: %u", fps_frames,
+                                g_ctx.clock.frame_count);
 #endif
             fps_frames = 0;
             fps_accum -= 1.0f;

@@ -84,9 +84,10 @@
 typedef struct console_state {
     bool enabled;
     bool visible;
-    int  count;
-    int  visible_lines;
-    char lines[CONSOLE_MAX_LINES][CONSOLE_MAX_LINE_LEN];
+    int     count;
+    int     visible_lines;
+    char    lines[CONSOLE_MAX_LINES][CONSOLE_MAX_LINE_LEN];
+    color4f lines_color[CONSOLE_MAX_LINES];
     char input[CONSOLE_INPUT_MAX_LEN];
     int  input_len;
     int  cursor_pos;

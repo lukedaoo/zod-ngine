@@ -104,11 +104,79 @@ MU_TEST(test_string_to_log_level) {
     mu_check(log_level_from_string("FATAL") == LOG_FATAL);
 }
 
+static int  hook_last_level = -1;
+static char hook_last_message[256];
+static int  hook_call_count = 0;
+
+static void test_hook_capture(int level, const char *message) {
+    hook_last_level = level;
+    strncpy(hook_last_message, message, sizeof(hook_last_message) - 1);
+    hook_last_message[sizeof(hook_last_message) - 1] = '\0';
+    hook_call_count++;
+}
+
+MU_TEST(test_log_hook_fires_regardless_of_level) {
+    hook_call_count = 0;
+    log_register_hook(test_hook_capture);
+
+    log_set_level(LOG_FATAL + 1);  // mute stderr sink
+    log_set_fp(NULL, 0);           // mute file sink
+
+    log_warn("hook saw %d", 7);
+
+    mu_check(hook_call_count == 1);
+    mu_check(hook_last_level == LOG_WARN);
+    mu_check(strstr(hook_last_message, "hook saw 7") != NULL);
+}
+
+MU_TEST(test_log_hook_table_full_is_dropped_safely) {
+    // one hook already registered by the previous test; fill remaining slots
+    for (int i = 1; i < LOG_MAX_HOOKS; i++) {
+        log_register_hook(test_hook_capture);
+    }
+    log_register_hook(test_hook_capture);  // table full -> dropped, no crash
+
+    hook_call_count = 0;
+    log_warn("fanout");
+    mu_check(hook_call_count == LOG_MAX_HOOKS);
+}
+
+static void test_hook_noop(int level, const char *message) {
+    (void)level;
+    (void)message;
+}
+
+MU_TEST(test_log_unregister_hook_stops_firing) {
+    // previous tests left LOG_MAX_HOOKS copies of test_hook_capture registered;
+    // clear them all out first so this test starts from a known state
+    for (int i = 0; i < LOG_MAX_HOOKS; i++) {
+        log_unregister_hook(test_hook_capture);
+    }
+
+    log_register_hook(test_hook_capture);
+    log_register_hook(test_hook_noop);
+
+    hook_call_count = 0;
+    log_warn("before unregister");
+    mu_check(hook_call_count == 1);
+
+    log_unregister_hook(test_hook_capture);
+
+    hook_call_count = 0;
+    log_warn("after unregister");
+    mu_check(hook_call_count == 0);  // capture hook gone; noop hook still registered
+
+    log_unregister_hook(test_hook_noop);  // clean slate for any future tests
+}
+
 MU_TEST_SUITE(log_suite) {
     MU_RUN_TEST(test_log_writes_to_file);
     MU_RUN_TEST(test_log_file_level_threshold);
     MU_RUN_TEST(test_log_disable_via_null);
     MU_RUN_TEST(test_string_to_log_level);
+    MU_RUN_TEST(test_log_hook_fires_regardless_of_level);
+    MU_RUN_TEST(test_log_hook_table_full_is_dropped_safely);
+    MU_RUN_TEST(test_log_unregister_hook_stops_firing);
 }
 
 int main(void) {

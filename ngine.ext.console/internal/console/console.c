@@ -6,12 +6,24 @@
 
 #include <SDL3/SDL.h>
 
+#include <ngine.lib/log.h>
+
 #include "../../console.h"
 #include "ngine.core/internal/engine_context/engine_context_internal.h"
 #include "ngine.core/zod_ngine.h"
 #include "console_internal.h"
 
 #if ZOD_CONSOLE_ENABLED
+
+// Indexed by LOG_TRACE..LOG_FATAL — severity gradient shown in the console
+// scrollback regardless of console.output_text_color.
+static const color4f g_console_log_colors[] = {
+     [LOG_TRACE] = COLOR4F_GRAY, [LOG_DEBUG] = COLOR4F_CYAN,
+     [LOG_INFO] = COLOR4F_GREEN, [LOG_WARN] = COLOR4F_YELLOW,
+     [LOG_ERROR] = COLOR4F_RED,  [LOG_FATAL] = COLOR4F_MAGENTA,
+};
+
+static void console_write_line(const char *text, color4f color);
 
 static const cvar_constraint g_console_constraints[] = {
      {.name = "console.enabled", .expected = CVAR_BOOL},
@@ -33,7 +45,17 @@ static const cvar_constraint g_console_constraints[] = {
      {.name = "console.background_color", .expected = CVAR_INT},
 };
 
+static void console_log_hook(int level, const char *message) {
+    color4f color = (level >= LOG_TRACE && level <= LOG_FATAL)
+                         ? g_console_log_colors[level]
+                         : g_console.output_text_color;
+    console_write_line(message, color);
+}
+
 static void console_init_config(cvar_table *cvars) {
+    log_unregister_hook(console_log_hook);
+    log_register_hook(console_log_hook);
+
     cvar_set_int(cvars, "console.visible_lines", DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
     cvar_set_bool(cvars, "console.enabled", DEFAULT_CONFIG_CONSOLE_ENABLED);
     cvar_set_float(cvars, "console.text_pad_x", DEFAULT_CONFIG_CONSOLE_TEXT_PAD_X);
@@ -147,21 +169,45 @@ void console_handle_event(console_input_event event) {
     }
 }
 
-static void console_write_v(const char *fmt, va_list args) {
-    if (g_console.count == CONSOLE_MAX_LINES) {
-        memmove(g_console.lines[0], g_console.lines[1],
-                (size_t)(CONSOLE_MAX_LINES - 1) * CONSOLE_MAX_LINE_LEN);
-        g_console.count--;
-    }
+static void console_evict_line_if_full(void) {
+    if (g_console.count != CONSOLE_MAX_LINES) return;
+
+    memmove(g_console.lines[0], g_console.lines[1],
+            (size_t)(CONSOLE_MAX_LINES - 1) * CONSOLE_MAX_LINE_LEN);
+    memmove(g_console.lines_color, g_console.lines_color + 1,
+            (size_t)(CONSOLE_MAX_LINES - 1) * sizeof(color4f));
+    g_console.count--;
+}
+
+static void console_write_v(color4f color, const char *fmt, va_list args) {
+    console_evict_line_if_full();
 
     vsnprintf(g_console.lines[g_console.count], CONSOLE_MAX_LINE_LEN, fmt, args);
+    g_console.lines_color[g_console.count] = color;
+    g_console.count++;
+}
+
+// text is written verbatim (no % expansion) — safe for log messages that may
+// contain literal '%' characters.
+static void console_write_line(const char *text, color4f color) {
+    console_evict_line_if_full();
+
+    snprintf(g_console.lines[g_console.count], CONSOLE_MAX_LINE_LEN, "%s", text);
+    g_console.lines_color[g_console.count] = color;
     g_console.count++;
 }
 
 void console_write(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    console_write_v(fmt, args);
+    console_write_v(g_console.output_text_color, fmt, args);
+    va_end(args);
+}
+
+void console_write_color(color4f color, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    console_write_v(color, fmt, args);
     va_end(args);
 }
 
@@ -225,7 +271,10 @@ bool console_draw(void) {
     return true;
 }
 
-bool console_destroy(void) { return true; }
+bool console_destroy(void) {
+    log_unregister_hook(console_log_hook);
+    return true;
+}
 
 #else
 
@@ -235,6 +284,10 @@ bool console_toggle(void) { return false; }
 bool console_visible(void) { return false; }
 void console_handle_event(console_input_event event) { (void)event; }
 void console_write(const char *fmt, ...) { (void)fmt; }
+void console_write_color(color4f color, const char *fmt, ...) {
+    (void)color;
+    (void)fmt;
+}
 bool console_draw(void) { return true; }
 bool console_destroy(void) { return true; }
 

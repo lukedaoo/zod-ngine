@@ -1,6 +1,8 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
+#include <ngine.lib/types.h>
+
 typedef enum console_input_kind {
     CONSOLE_INPUT_TEXT,
     CONSOLE_INPUT_BACKSPACE,
@@ -21,6 +23,7 @@ bool console_draw(void);
 bool console_destroy(void);
 bool console_visible(void);
 void console_write(const char *fmt, ...);
+void console_write_color(color4f color, const char *fmt, ...);
 void console_handle_event(console_input_event event);
 
 #endif
