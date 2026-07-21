@@ -4,11 +4,13 @@
 #include "../../engine_context.h"
 #include "../../input.h"
 #include "../../window.h"
+#include "../../cmd_manager.h"
 
 #include "../config/config_internal.h"
 #include "../clock/clock_internal.h"
 #include "../input/input_internal.h"
 #include "../window/window_internal.h"
+#include "../cmd_manager/cmd_manager_internal.h"
 #include "ngine.lib/simple_font.h"
 
 struct engine_context {
@@ -16,6 +18,7 @@ struct engine_context {
     engine_clock clock;
     input        input;
     window       window;
+    cmd_manager  cmd_manager;
     simple_font  primary_font;
 
     bool should_exit;

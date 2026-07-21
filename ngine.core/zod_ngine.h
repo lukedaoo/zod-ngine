@@ -6,6 +6,7 @@
 #include <ngine.lib/cvar.h>
 #include <ngine.lib/cvar_load.h>
 #include <ngine.lib/simple_font.h>
+#include <ngine.lib/command.h>
 
 #include "input.h"
 
@@ -113,6 +114,11 @@ void zod_input_update(void);
 bool zod_input_key_down(zod_key_t key);
 bool zod_input_key_pressed(zod_key_t key);
 bool zod_input_key_released(zod_key_t key);
+
+//
+// Command Manager accessors
+//
+command_execute_result zod_sys_command_execute(const char *name, int argc, char **argv);
 
 // Utils
 bool zod_should_exit(void);

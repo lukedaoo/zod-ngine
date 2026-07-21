@@ -51,8 +51,9 @@ static void console_log_hook(int level, const char *message) {
 }
 
 static void console_init_config(cvar_table *cvars) {
-    log_unregister_hook(console_log_hook);
-    log_register_hook(console_log_hook);
+    // @todo: make it as command
+    // log_unregister_hook(console_log_hook);
+    // log_register_hook(console_log_hook);
 
     cvar_set_int(cvars, "console.visible_lines", DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
     cvar_set_bool(cvars, "console.enabled", DEFAULT_CONFIG_CONSOLE_ENABLED);
@@ -249,7 +250,12 @@ void console_input_move_right(void) {
 
 void console_input_submit(void) {
     if (g_console.input_len == 0) return;
-    console_write("%s", g_console.input);
+    command_execute_result result = zod_sys_command_execute(g_console.input, 0, NULL);
+    if (result.type == COMMAND_RESULT_ERROR) {
+        console_write_color(COLOR4F_RED, "ERROR: invalid command: %s", g_console.input);
+    } else if (result.type == COMMAND_RESULT_STRING) {
+        console_write("%s", result.value.str);
+    }
     g_console.input[0]   = '\0';
     g_console.input_len  = 0;
     g_console.cursor_pos = 0;

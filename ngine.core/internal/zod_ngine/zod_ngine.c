@@ -7,6 +7,7 @@
 #include <ngine.lib/file_watcher.h>
 
 #include "../../config.h"
+#include "../../cmd_manager.h"
 #include "../../render.h"
 #include "../../render_text.h"
 #include "../../zod_error.h"
@@ -135,6 +136,12 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         log_debug("clock.init: target fps = %d", target_fps);
     }
 
+    {
+        // command
+        cmd_manager_init(&g_ctx.cmd_manager);
+        log_debug("cmd_manager.init: ready");
+    }
+
     if (dispatch.after_init) dispatch.after_init(user_data);
 
     log_info("engine.init: ready");
@@ -187,5 +194,10 @@ void zod_begin_drawing(void) { render_begin(); }
 void zod_end_drawing(void) { render_end(); }
 
 const simple_font *zod_font_primary_get(void) { return &g_ctx.primary_font; }
+
+command_execute_result zod_sys_command_execute(const char *name, int argc, char **argv) {
+    return cmd_manager_execute(&g_ctx.cmd_manager, COMMAND_GROUP_SYSTEM, name, argc,
+                               argv);
+}
 
 #endif

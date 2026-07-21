@@ -19,6 +19,9 @@
 #define FILE_WATCHER_IMPLEMENTATION
 #define SIMPLE_FONT_IMPLEMENTATION
 #define TYPES_IMPLEMENTATION
+
+#define ARRAY_LIST_IMPLEMENTATION
+#define COMMAND_IMPLEMENTATION
 #include <ngine.lib/index.h>
 
 #endif
@@ -31,11 +34,12 @@
 #include "engine_context.h"
 #include "window.h"
 #include "render.h"
-#include <ngine.lib/types.h>
 
 #include "zod_error.h"
 #include "zod_ngine.h"
 #include "render_text.h"
+
+#include "cmd_manager.h"
 
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
@@ -58,6 +62,10 @@
 #include "internal/zod_ngine/zod_ngine_clock.c"
 #include "internal/zod_ngine/zod_ngine_input.c"
 #include "internal/render/render_text.c"
+
+#include "internal/cmd_manager/sys_cmd.c"
+#include "internal/cmd_manager/cmd_manager.c"
+
 #include "internal/error/zod_error.c"
 
 #endif

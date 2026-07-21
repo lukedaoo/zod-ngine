@@ -123,15 +123,17 @@ int main(const int argc, const char **argv) {
 
         fps_frames++;
         fps_accum += zod_clock_delta();
-        if (fps_accum >= 1.0f) {
-            log_debug("engine.fps: %u, dt: %f", fps_frames, (double)zod_clock_dt());
-#if ZOD_CONSOLE_ENABLED
-            console_write_color(COLOR4F_GRAY, "fps: %u, frame count: %u", fps_frames,
-                                g_ctx.clock.frame_count);
-#endif
-            fps_frames = 0;
-            fps_accum -= 1.0f;
-        }
+        //         if (fps_accum >= 1.0f) {
+        //             log_debug("engine.fps: %u, dt: %f", fps_frames,
+        //             (double)zod_clock_dt());
+        // #if ZOD_CONSOLE_ENABLED
+        //             console_write_color(COLOR4F_GRAY, "fps: %u, frame count: %u",
+        //             fps_frames,
+        //                                 g_ctx.clock.frame_count);
+        // #endif
+        //             fps_frames = 0;
+        //             fps_accum -= 1.0f;
+        //         }
         zod_end_drawing();
         zod_clock_sleep_to_target_fps();
     }
