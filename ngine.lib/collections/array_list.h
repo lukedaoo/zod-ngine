@@ -29,7 +29,8 @@ bool array_list_append(array_list *list, const void *element);
 bool array_list_remove(array_list *list, const size_t index);
 bool array_list_set(array_list *list, const size_t index, const void *element);
 
-void *array_list_get(const array_list *list, const size_t index);
+void  *array_list_get(const array_list *list, const size_t index);
+size_t array_list_search(const array_list *list, const void *element);
 
 #define arraylist_get_as(list, index, type)                                     \
     _Generic((*(type *)0),                                                      \
@@ -167,6 +168,14 @@ void array_list_destroy(array_list *list) {
 
 bool array_list_append(array_list *list, const void *element) {
     if (!list || !element) return false;
+    if (list->header.size >= ARRAY_LIST_MAX_CAPACITY) {
+#if ARRAY_LIST_LOG_ENABLED
+        log_warn(
+             "array_list.array_list_append: max capacity reached (%zu), append rejected.",
+             ARRAY_LIST_MAX_CAPACITY);
+#endif
+        return false;
+    }
 
     if (list->header.size >= list->header.capacity) {
         const float growth_factor = (float)ARRAY_LIST_GROWTH_FACTOR;
@@ -214,6 +223,15 @@ bool array_list_set(array_list *list, const size_t index, const void *element) {
 void *array_list_get(const array_list *list, const size_t index) {
     if (!list || index >= list->header.size) return NULL;
     return (void *)((char *)list->data + index * list->header.element_size);
+}
+
+size_t array_list_search(const array_list *list, const void *element) {
+    if (!list || !element) return -1;
+    for (size_t i = 0; i < list->header.size; i++) {
+        if (memcmp(array_list_get(list, i), element, list->header.element_size) == 0)
+            return i;
+    }
+    return -1;
 }
 
 #endif

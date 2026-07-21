@@ -22,3 +22,4 @@ memory/
 
 resources/learning-opengl/bin/
 *.log
+.tokensave

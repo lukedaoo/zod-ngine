@@ -129,6 +129,106 @@ MU_TEST(test_append_fills_to_max) {
     array_list_destroy(list);
 }
 
+MU_TEST(test_append_rejects_past_max) {
+    array_list *list = array_list_create(4, sizeof(int));
+    for (int i = 0; i < ARRAY_LIST_MAX_CAPACITY; i++)
+        mu_check(array_list_append(list, &i));
+
+    int overflow = 999;
+    mu_check(!array_list_append(list, &overflow));
+    mu_assert_int_eq(ARRAY_LIST_MAX_CAPACITY, (int)list->header.size);
+    mu_assert_int_eq(ARRAY_LIST_MAX_CAPACITY, (int)list->header.capacity);
+    mu_assert_int_eq(ARRAY_LIST_MAX_CAPACITY - 1,
+                     *arraylist_get_as(list, ARRAY_LIST_MAX_CAPACITY - 1, int));
+    array_list_destroy(list);
+}
+
+MU_TEST(test_search_null_list) {
+    int v = 1;
+    mu_assert_int_eq((int)(size_t)-1, (int)array_list_search(NULL, &v));
+}
+
+MU_TEST(test_search_null_element) {
+    array_list *list = array_list_create(4, sizeof(int));
+    mu_assert_int_eq((int)(size_t)-1, (int)array_list_search(list, NULL));
+    array_list_destroy(list);
+}
+
+MU_TEST(test_search_empty_list) {
+    array_list *list = array_list_create(4, sizeof(int));
+    int         v    = 1;
+    mu_assert_int_eq((int)(size_t)-1, (int)array_list_search(list, &v));
+    array_list_destroy(list);
+}
+
+MU_TEST(test_search_single_element_found) {
+    array_list *list = array_list_create(4, sizeof(int));
+    int         v    = 42;
+    array_list_append(list, &v);
+    mu_assert_int_eq(0, (int)array_list_search(list, &v));
+    array_list_destroy(list);
+}
+
+MU_TEST(test_search_single_element_not_found) {
+    array_list *list = array_list_create(4, sizeof(int));
+    int         v    = 42;
+    int         miss = 7;
+    array_list_append(list, &v);
+    mu_assert_int_eq((int)(size_t)-1, (int)array_list_search(list, &miss));
+    array_list_destroy(list);
+}
+
+MU_TEST(test_search_first_element_ints) {
+    array_list *list    = array_list_create(4, sizeof(int));
+    int         vals[3] = {10, 20, 30};
+    for (int i = 0; i < 3; i++) array_list_append(list, &vals[i]);
+    mu_assert_int_eq(0, (int)array_list_search(list, &vals[0]));
+    array_list_destroy(list);
+}
+
+MU_TEST(test_search_middle_element_ints) {
+    array_list *list    = array_list_create(4, sizeof(int));
+    int         vals[3] = {10, 20, 30};
+    for (int i = 0; i < 3; i++) array_list_append(list, &vals[i]);
+    mu_assert_int_eq(1, (int)array_list_search(list, &vals[1]));
+    array_list_destroy(list);
+}
+
+MU_TEST(test_search_last_element_ints) {
+    array_list *list    = array_list_create(4, sizeof(int));
+    int         vals[3] = {10, 20, 30};
+    for (int i = 0; i < 3; i++) array_list_append(list, &vals[i]);
+    mu_assert_int_eq(2, (int)array_list_search(list, &vals[2]));
+    array_list_destroy(list);
+}
+
+MU_TEST(test_search_no_match_ints) {
+    array_list *list    = array_list_create(4, sizeof(int));
+    int         vals[3] = {10, 20, 30};
+    int         miss    = 99;
+    for (int i = 0; i < 3; i++) array_list_append(list, &vals[i]);
+    mu_assert_int_eq((int)(size_t)-1, (int)array_list_search(list, &miss));
+    array_list_destroy(list);
+}
+
+MU_TEST(test_search_duplicate_returns_first) {
+    array_list *list    = array_list_create(4, sizeof(int));
+    int         vals[3] = {5, 5, 5};
+    for (int i = 0; i < 3; i++) array_list_append(list, &vals[i]);
+    mu_assert_int_eq(0, (int)array_list_search(list, &vals[0]));
+    array_list_destroy(list);
+}
+
+MU_TEST(test_search_struct_element) {
+    array_list *list = array_list_create(4, sizeof(large_elem));
+    large_elem  a    = {.id = 1};
+    large_elem  b    = {.id = 2};
+    array_list_append(list, &a);
+    array_list_append(list, &b);
+    mu_assert_int_eq(1, (int)array_list_search(list, &b));
+    array_list_destroy(list);
+}
+
 MU_TEST(test_remove_null_list) { mu_check(!array_list_remove(NULL, 0)); }
 
 MU_TEST(test_remove_empty_list) {
@@ -423,6 +523,18 @@ MU_TEST_SUITE(array_list_suite) {
     MU_RUN_TEST(test_append_struct);
     MU_RUN_TEST(test_append_triggers_growth);
     MU_RUN_TEST(test_append_fills_to_max);
+    MU_RUN_TEST(test_append_rejects_past_max);
+    MU_RUN_TEST(test_search_null_list);
+    MU_RUN_TEST(test_search_null_element);
+    MU_RUN_TEST(test_search_empty_list);
+    MU_RUN_TEST(test_search_single_element_found);
+    MU_RUN_TEST(test_search_single_element_not_found);
+    MU_RUN_TEST(test_search_first_element_ints);
+    MU_RUN_TEST(test_search_middle_element_ints);
+    MU_RUN_TEST(test_search_last_element_ints);
+    MU_RUN_TEST(test_search_no_match_ints);
+    MU_RUN_TEST(test_search_duplicate_returns_first);
+    MU_RUN_TEST(test_search_struct_element);
     MU_RUN_TEST(test_remove_null_list);
     MU_RUN_TEST(test_remove_empty_list);
     MU_RUN_TEST(test_remove_oob_eq_size);
