@@ -160,6 +160,12 @@ void zconsole_handle_event(zconsole_input_event event) {
         case ZCONSOLE_INPUT_RIGHT:
             console_priv_input_move_right();
             break;
+        case ZCONSOLE_INPUT_HISTORY_PREV:
+            console_priv_history_prev();
+            break;
+        case ZCONSOLE_INPUT_HISTORY_NEXT:
+            console_priv_history_next();
+            break;
     }
 }
 
@@ -266,8 +272,55 @@ void console_priv_input_move_right(void) {
     if (g_console.cursor_pos < g_console.input_len) g_console.cursor_pos++;
 }
 
+void console_priv_history_push(const char *text) {
+    if (!text || !*text) return;
+    snprintf(g_console.history[g_console.history_next_write], CONSOLE_INPUT_MAX_LEN, "%s",
+             text);
+    g_console.history_next_write =
+         (g_console.history_next_write + 1) % CONSOLE_MAX_HISTORY;
+    if (g_console.history_count < CONSOLE_MAX_HISTORY) g_console.history_count++;
+    g_console.history_index = 0;
+}
+
+// index is 1-based from most recent (1 = newest), matching history_index's convention.
+static void console_history_load(int index) {
+    int offset = index - 1;
+    int idx    = ((g_console.history_next_write - 1 - offset) % CONSOLE_MAX_HISTORY +
+                  CONSOLE_MAX_HISTORY) %
+                 CONSOLE_MAX_HISTORY;
+    snprintf(g_console.input, CONSOLE_INPUT_MAX_LEN, "%s", g_console.history[idx]);
+    g_console.input_len  = (int)strlen(g_console.input);
+    g_console.cursor_pos = g_console.input_len;
+}
+
+void console_priv_history_prev(void) {
+    if (g_console.history_count == 0) return;
+    if (g_console.history_index == 0) {
+        snprintf(g_console.history_draft, CONSOLE_INPUT_MAX_LEN, "%s", g_console.input);
+        g_console.history_index = 1;
+    } else if (g_console.history_index < g_console.history_count) {
+        g_console.history_index++;
+    }
+    console_history_load(g_console.history_index);
+}
+
+void console_priv_history_next(void) {
+    if (g_console.history_index == 0) return;
+    if (g_console.history_index == 1) {
+        g_console.history_index = 0;
+        snprintf(g_console.input, CONSOLE_INPUT_MAX_LEN, "%s", g_console.history_draft);
+        g_console.input_len  = (int)strlen(g_console.input);
+        g_console.cursor_pos = g_console.input_len;
+        return;
+    }
+    g_console.history_index--;
+    console_history_load(g_console.history_index);
+}
+
 void console_priv_input_submit(void) {
     if (g_console.input_len == 0) return;
+
+    console_priv_history_push(g_console.input);
 
     //
     // tokenize

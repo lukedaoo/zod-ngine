@@ -4,22 +4,26 @@
 #include <ngine.lib/simple_font.h>
 #include <ngine.lib/types.h>
 
+#ifndef RENDER_TEXT_BOLD_WEIGHT
+#define RENDER_TEXT_BOLD_WEIGHT 0.18f
+#endif
+
 void render_text_init(void);
 void render_text_destroy(void);
 void render_text_draw_basic(float x, float y, const char *str, float scale, color4f color,
-                            const simple_font *font);
+                            const simple_font *font, float weight);
 
 void render_text_draw_padded(float x, float y, const char *str, float scale,
                              color4f color, const simple_font *font, float pad_x,
-                             float pad_y);
+                             float pad_y, float weight);
 
 void render_text_draw_margined(float x, float y, const char *str, float scale,
                                color4f color, const simple_font *font, float margin_x,
-                               float margin_y);
+                               float margin_y, float weight);
 
 void render_text_draw_full(float x, float y, const char *str, float scale, color4f color,
                            const simple_font *font, float margin_x, float margin_y,
-                           float pad_x, float pad_y, bool is_center);
+                           float pad_x, float pad_y, bool is_center, float weight);
 
 void render_text_flush(void);
 

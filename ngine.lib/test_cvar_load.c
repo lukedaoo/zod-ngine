@@ -10,6 +10,9 @@
 #define CVAR_IMPLEMENTATION
 #include "cvar.h"
 
+#define CVAR_PARSER_IMPLEMENTATION
+#include "cvar_parser.h"
+
 #define INI_IMPLEMENTATION
 #include "ini.h"
 
@@ -101,7 +104,7 @@ MU_TEST_SUITE(cvar_reload_suite) {
 
 static cvar_type infer_value_type(const char *value) {
     cvar_table table = {0};
-    cvar_parse_and_set("test", "value", value, &table, NULL);
+    cvar_parse_and_set("test", "value", value, &table);
     cvar     *v    = cvar_get(&table, "test.value");
     cvar_type type = v->type;
     cvar_destroy(&table);
@@ -126,7 +129,7 @@ MU_TEST(test_float_no_suffix_still_float) {
 
 MU_TEST(test_float_suffix_value_correct) {
     cvar_table table = {0};
-    mu_check(cvar_parse_and_set("test", "value", "3.14F", &table, NULL));
+    mu_check(cvar_parse_and_set("test", "value", "3.14F", &table));
     cvar *v = cvar_get(&table, "test.value");
     mu_check(v->value.f > 3.13f && v->value.f < 3.15f);
     cvar_destroy(&table);
@@ -157,7 +160,7 @@ MU_TEST_SUITE(cvar_float_suffix_suite) {
 }
 
 static cvar *parse_single(cvar_table *t, const char *value) {
-    cvar_parse_and_set("s", "k", value, t, NULL);
+    cvar_parse_and_set("s", "k", value, t);
     return cvar_get(t, "s.k");
 }
 
@@ -439,9 +442,8 @@ static inline cvar *parse_entry(cvar_table *table, const cvar_constraint *entry,
 
     char full[CVAR_NAME_MAX];
     snprintf(full, sizeof(full), "%s.%s", section, key);
-    const cvar_constraint *found = cvar_find_constraint(table, full);
 
-    bool ok = cvar_parse_and_set(section, key, value, table, found);
+    bool ok = cvar_parse_and_set(section, key, value, table);
     if (ok_out) *ok_out = ok;
 
     return cvar_get(table, full);
@@ -611,14 +613,19 @@ MU_TEST(test_string_unquoted) {
     cvar_destroy(&t);
 }
 
-MU_TEST(test_type_mismatch_int_vs_float) {
+// A bare int literal for a float-declared cvar is coerced, not rejected —
+// otherwise a config author writing "8" instead of "8.0" would abort the
+// whole file's load (ini_parse/scf_parse stop on the first failing line).
+MU_TEST(test_bare_int_coerced_for_float) {
     cvar_constraint e = entry_float("test.mismatch");
     cvar_table      t = {0};
     bool            ok;
     cvar           *v = parse_entry(&t, &e, "test", "mismatch", "123", &ok);
 
-    mu_check(!ok);
-    mu_check(v == NULL);
+    mu_check(ok);
+    mu_check(v != NULL);
+    mu_check(v->type == CVAR_FLOAT);
+    mu_check(v->value.f == 123.0f);
     cvar_destroy(&t);
 }
 
@@ -629,6 +636,25 @@ MU_TEST(test_no_constraints_allows_anything) {
 
     mu_check(ok);
     mu_assert_int_eq(123, v->value.i);
+    cvar_destroy(&t);
+}
+
+// Regression: an earlier version of cvar_parse synthesized a same-type constraint
+// whenever no schema was registered, locking a schema-less cvar to whatever type it
+// was first seeded with. That broke config.c's "log.level", which is seeded as
+// CVAR_INT but the config file legitimately overrides it with a string level name
+// ("debug"), converted back to int by config_priv_adjust() after load — a schema-less
+// cvar's type must stay free to change on every parse, not just its first one.
+MU_TEST(test_no_constraints_allows_existing_cvar_type_to_change) {
+    cvar_table t = {0};
+    cvar_set_int(&t, "log.level", 0);
+
+    bool  ok;
+    cvar *v = parse_entry(&t, NULL, "log", "level", "\"debug\"", &ok);
+
+    mu_check(ok);
+    mu_check(v->type == CVAR_STRING);
+    mu_assert_string_eq("debug", v->value.str.data);
     cvar_destroy(&t);
 }
 
@@ -649,9 +675,10 @@ MU_TEST_SUITE(cvar_parse_with_range_suite) {
     MU_RUN_TEST(test_string_quoted);
     MU_RUN_TEST(test_string_unquoted);
 
-    MU_RUN_TEST(test_type_mismatch_int_vs_float);
+    MU_RUN_TEST(test_bare_int_coerced_for_float);
 
     MU_RUN_TEST(test_no_constraints_allows_anything);
+    MU_RUN_TEST(test_no_constraints_allows_existing_cvar_type_to_change);
 }
 
 int main(void) {

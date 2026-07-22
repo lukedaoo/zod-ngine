@@ -57,6 +57,8 @@ const cvar_constraint *cvar_find_constraint(const cvar_table *table, const char 
 
 bool cvar_copy_schema(cvar_table *dest, const cvar_table *src);
 
+const char *cvar_type_to_string(cvar_type type);
+
 #ifdef CVAR_IMPLEMENTATION
 
 #include <stdio.h>
@@ -248,8 +250,7 @@ const char *cvar_get_string(cvar_table *t, const char *name, const char *fallbac
     return cv->value.str.data;
 }
 
-#if CVAR_LOG_ENABLED
-static const char *cvar_type_to_string(cvar_type type) {
+const char *cvar_type_to_string(cvar_type type) {
     switch (type) {
         case CVAR_INT:
             return "int";
@@ -263,7 +264,6 @@ static const char *cvar_type_to_string(cvar_type type) {
             return "unknown";
     }
 }
-#endif
 
 static bool cvar_set(cvar_table *table, const char *name, cvar_type type,
                      const void *value) {

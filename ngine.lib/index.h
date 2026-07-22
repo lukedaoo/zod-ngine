@@ -17,6 +17,7 @@
 #include "ini.h"
 #include "scf.h"
 #include "cvar.h"
+#include "cvar_parser.h"
 #include "cvar_load.h"
 #include "carg.h"
 #include "carg_to_cvar.h"

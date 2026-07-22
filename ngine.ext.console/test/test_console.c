@@ -1,6 +1,7 @@
 #include "../../thirdparty/minunit.h"
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
 #define NGINE_UNIT_TEST
@@ -281,6 +282,97 @@ MU_TEST(test_handle_event_left_right_route_correctly) {
     mu_assert_int_eq(2, g_console.cursor_pos);
 }
 
+MU_TEST(test_history_prev_on_empty_history_is_noop) {
+    reset();
+    console_priv_history_prev();
+    mu_assert_int_eq(0, g_console.input_len);
+}
+
+MU_TEST(test_history_prev_loads_most_recent_entry) {
+    reset();
+    console_priv_history_push("cmd1");
+    console_priv_history_push("cmd2");
+    console_priv_history_prev();
+    mu_assert_string_eq("cmd2", g_console.input);
+    mu_assert_int_eq(4, g_console.cursor_pos);
+}
+
+MU_TEST(test_history_prev_twice_loads_older_entry) {
+    reset();
+    console_priv_history_push("cmd1");
+    console_priv_history_push("cmd2");
+    console_priv_history_prev();
+    console_priv_history_prev();
+    mu_assert_string_eq("cmd1", g_console.input);
+}
+
+MU_TEST(test_history_prev_clamps_at_oldest_entry) {
+    reset();
+    console_priv_history_push("cmd1");
+    console_priv_history_push("cmd2");
+    console_priv_history_prev();
+    console_priv_history_prev();
+    console_priv_history_prev();
+    mu_assert_string_eq("cmd1", g_console.input);
+}
+
+MU_TEST(test_history_next_on_fresh_input_is_noop) {
+    reset();
+    console_priv_history_push("cmd1");
+    console_priv_history_next();
+    mu_assert_int_eq(0, g_console.input_len);
+}
+
+MU_TEST(test_history_next_restores_draft_past_newest) {
+    reset();
+    console_priv_history_push("cmd1");
+    console_priv_input_append('x');
+    console_priv_input_append('y');
+    console_priv_history_prev();
+    mu_assert_string_eq("cmd1", g_console.input);
+    console_priv_history_next();
+    mu_assert_string_eq("xy", g_console.input);
+}
+
+MU_TEST(test_history_edit_persists_until_navigated_away) {
+    reset();
+    console_priv_history_push("cmd1");
+    console_priv_history_prev();
+    console_priv_input_append('!');
+    mu_assert_string_eq("cmd1!", g_console.input);
+}
+
+MU_TEST(test_history_overflow_evicts_oldest) {
+    reset();
+    for (int i = 0; i < CONSOLE_MAX_HISTORY + 1; i++) {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "cmd%d", i);
+        console_priv_history_push(buf);
+    }
+    console_priv_history_prev();
+    for (int i = 1; i < CONSOLE_MAX_HISTORY; i++) console_priv_history_prev();
+    mu_assert_string_eq("cmd1", g_console.input);
+}
+
+MU_TEST(test_submit_pushes_to_history) {
+    reset();
+    console_priv_input_append('h');
+    console_priv_input_append('i');
+    console_priv_input_submit();
+    console_priv_history_prev();
+    mu_assert_string_eq("hi", g_console.input);
+}
+
+MU_TEST(test_handle_event_history_prev_next_route_correctly) {
+    reset();
+    g_console.visible = true;
+    console_priv_history_push("cmd1");
+    zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_HISTORY_PREV});
+    mu_assert_string_eq("cmd1", g_console.input);
+    zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_HISTORY_NEXT});
+    mu_assert_int_eq(0, g_console.input_len);
+}
+
 MU_TEST(test_cmd_register_log_hook_returns_registered_message) {
     reset();
     command_execute_result res = console_cmd_priv_register_log_hook(0, NULL);
@@ -382,6 +474,16 @@ MU_TEST_SUITE(console_suite) {
     MU_RUN_TEST(test_append_inserts_at_cursor_position);
     MU_RUN_TEST(test_backspace_removes_char_before_cursor);
     MU_RUN_TEST(test_handle_event_left_right_route_correctly);
+    MU_RUN_TEST(test_history_prev_on_empty_history_is_noop);
+    MU_RUN_TEST(test_history_prev_loads_most_recent_entry);
+    MU_RUN_TEST(test_history_prev_twice_loads_older_entry);
+    MU_RUN_TEST(test_history_prev_clamps_at_oldest_entry);
+    MU_RUN_TEST(test_history_next_on_fresh_input_is_noop);
+    MU_RUN_TEST(test_history_next_restores_draft_past_newest);
+    MU_RUN_TEST(test_history_edit_persists_until_navigated_away);
+    MU_RUN_TEST(test_history_overflow_evicts_oldest);
+    MU_RUN_TEST(test_submit_pushes_to_history);
+    MU_RUN_TEST(test_handle_event_history_prev_next_route_correctly);
 }
 
 int main(void) {

@@ -107,6 +107,12 @@ int main(const int argc, const char **argv) {
                 } else if (e.key.key == SDLK_RIGHT) {
                     zconsole_handle_event(
                          (zconsole_input_event){.kind = ZCONSOLE_INPUT_RIGHT});
+                } else if (e.key.key == SDLK_UP) {
+                    zconsole_handle_event(
+                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_HISTORY_PREV});
+                } else if (e.key.key == SDLK_DOWN) {
+                    zconsole_handle_event(
+                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_HISTORY_NEXT});
                 }
             }
 #endif

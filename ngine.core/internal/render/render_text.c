@@ -26,6 +26,7 @@ typedef struct render_text_vertex {
     float x, y;
     float u, v;
     float r, g, b, a;
+    float weight;
 } render_text_vertex;
 
 static struct {
@@ -47,15 +48,18 @@ static const char *RENDER_TEXT_VERT_SRC =
      "layout(location=0) in vec2 pos;\n"
      "layout(location=1) in vec2 uv;\n"
      "layout(location=2) in vec4 color;\n"
+     "layout(location=3) in float weight;\n"
      "uniform vec2 viewport;\n"
      "out vec2 v_uv;\n"
      "out vec4 v_color;\n"
+     "out float v_weight;\n"
      "void main() {\n"
      "    vec2 ndc = (pos / viewport) * 2.0 - 1.0;\n"
      "    ndc.y    = -ndc.y;\n"
      "    gl_Position = vec4(ndc, 0.0, 1.0);\n"
-     "    v_uv    = uv;\n"
-     "    v_color = color;\n"
+     "    v_uv     = uv;\n"
+     "    v_color  = color;\n"
+     "    v_weight = weight;\n"
      "}\n";
 
 // atlas stores a signed distance field (0.5 == glyph edge), not plain
@@ -66,12 +70,17 @@ static const char *RENDER_TEXT_FRAG_SRC =
      "#version 460 core\n"
      "in vec2 v_uv;\n"
      "in vec4 v_color;\n"
+     "in float v_weight;\n"
      "uniform sampler2D atlas;\n"
      "out vec4 frag_color;\n"
      "void main() {\n"
      "    float dist = texture(atlas, v_uv).r;\n"
      "    float aa   = max(fwidth(dist) * 0.75, 1e-4);\n"
-     "    float a    = smoothstep(0.5 - aa, 0.5 + aa, dist);\n"
+     // v_weight (0 = regular, >0 = bold) shifts the SDF edge below 0.5 so
+     // more of each glyph's distance field falls inside the fill, thickening
+     // strokes without a second atlas/font.
+     "    float edge = 0.5 - v_weight;\n"
+     "    float a    = smoothstep(edge - aa, edge + aa, dist);\n"
      "    frag_color = vec4(v_color.rgb, v_color.a * a);\n"
      "}\n";
 
@@ -145,6 +154,11 @@ void render_text_init(void) {
          2, 4, GL_FLOAT, GL_FALSE, sizeof(render_text_vertex),
          (const void *)offsetof(render_text_vertex,  // NOLINT(performance-no-int-to-ptr)
                                 r));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(
+         3, 1, GL_FLOAT, GL_FALSE, sizeof(render_text_vertex),
+         (const void *)offsetof(render_text_vertex,  // NOLINT(performance-no-int-to-ptr)
+                                weight));
     glBindVertexArray(0);
 
     render_text_state.quad_count = 0;
@@ -164,8 +178,9 @@ void render_text_destroy(void) {
 
 void render_text_invalidate(void) { render_text_state.dirty = true; }
 
-void render_text_draw_basic(float x, float y, const char *str, float scale, color4f color,
-                            const simple_font *font) {
+static void render_text_draw_weighted(float x, float y, const char *str, float scale,
+                                      color4f color, const simple_font *font,
+                                      float weight) {
     if (font != render_text_state.bound_font || render_text_state.dirty) {
         render_text_upload_atlas(font);
         render_text_state.bound_font = font;
@@ -195,12 +210,12 @@ void render_text_draw_basic(float x, float y, const char *str, float scale, colo
                                                  RENDER_TEXT_VERTS_PER_QUAD];
 
                 // clang-format off
-                v[0] = (render_text_vertex){qx0, qy0, u0, v0, color.r, color.g, color.b, color.a};
-                v[1] = (render_text_vertex){qx1, qy0, u1, v0, color.r, color.g, color.b, color.a};
-                v[2] = (render_text_vertex){qx1, qy1, u1, v1, color.r, color.g, color.b, color.a};
-                v[3] = (render_text_vertex){qx0, qy0, u0, v0, color.r, color.g, color.b, color.a};
-                v[4] = (render_text_vertex){qx1, qy1, u1, v1, color.r, color.g, color.b, color.a};
-                v[5] = (render_text_vertex){qx0, qy1, u0, v1, color.r, color.g, color.b, color.a};
+                v[0] = (render_text_vertex){qx0, qy0, u0, v0, color.r, color.g, color.b, color.a, weight};
+                v[1] = (render_text_vertex){qx1, qy0, u1, v0, color.r, color.g, color.b, color.a, weight};
+                v[2] = (render_text_vertex){qx1, qy1, u1, v1, color.r, color.g, color.b, color.a, weight};
+                v[3] = (render_text_vertex){qx0, qy0, u0, v0, color.r, color.g, color.b, color.a, weight};
+                v[4] = (render_text_vertex){qx1, qy1, u1, v1, color.r, color.g, color.b, color.a, weight};
+                v[5] = (render_text_vertex){qx0, qy1, u0, v1, color.r, color.g, color.b, color.a, weight};
                 // clang-format on
 
                 render_text_state.quad_count++;
@@ -210,6 +225,11 @@ void render_text_draw_basic(float x, float y, const char *str, float scale, colo
             cursor_x += (float)fallback_advance * scale;
         }
     }
+}
+
+void render_text_draw_basic(float x, float y, const char *str, float scale, color4f color,
+                            const simple_font *font, float weight) {
+    render_text_draw_weighted(x, y, str, scale, color, font, weight);
 }
 
 void render_text_flush(void) {
@@ -250,13 +270,14 @@ void render_text_flush(void) {
 void render_text_init(void) {}
 void render_text_destroy(void) {}
 void render_text_draw_basic(float x, float y, const char *str, float scale, color4f color,
-                            const simple_font *font) {
+                            const simple_font *font, float weight) {
     (void)x;
     (void)y;
     (void)str;
     (void)scale;
     (void)color;
     (void)font;
+    (void)weight;
 }
 void render_text_flush(void) {}
 void render_text_invalidate(void) {}
@@ -276,13 +297,13 @@ static float render_text_measure_width(const char *str, float scale,
 
 void render_text_draw_padded(float x, float y, const char *str, float scale,
                              color4f color, const simple_font *font, float pad_x,
-                             float pad_y) {
-    render_text_draw_basic(x + pad_x, y + pad_y, str, scale, color, font);
+                             float pad_y, float weight) {
+    render_text_draw_basic(x + pad_x, y + pad_y, str, scale, color, font, weight);
 }
 
 void render_text_draw_margined(float x, float y, const char *str, float scale,
                                color4f color, const simple_font *font, float margin_x,
-                               float margin_y) {
+                               float margin_y, float weight) {
     float dx = x + margin_x;
     float dy = y + margin_y;
 
@@ -294,12 +315,12 @@ void render_text_draw_margined(float x, float y, const char *str, float scale,
     dx = fminf(dx, vw - margin_x - tw);
     dy = fminf(dy, vh - margin_y - th);
 
-    render_text_draw_basic(dx, dy, str, scale, color, font);
+    render_text_draw_basic(dx, dy, str, scale, color, font, weight);
 }
 
 void render_text_draw_full(float x, float y, const char *str, float scale, color4f color,
                            const simple_font *font, float margin_x, float margin_y,
-                           float pad_x, float pad_y, bool is_center) {
+                           float pad_x, float pad_y, bool is_center, float weight) {
     float tw = render_text_measure_width(str, scale, font);
     float th = (float)SIMPLE_FONT_GLYPH_SIZE * scale;
 
@@ -314,7 +335,7 @@ void render_text_draw_full(float x, float y, const char *str, float scale, color
 
     if (is_center) dx -= tw / 2.0f;
 
-    render_text_draw_basic(dx, dy, str, scale, color, font);
+    render_text_draw_weighted(dx, dy, str, scale, color, font, weight);
 }
 
 #endif

@@ -243,7 +243,7 @@ void console_priv_platform_draw(int width, int height) {
     for (int i = start; i < g_console.count; i++) {
         render_text_draw_padded(0.0f, (float)(i - start) * row_height + line_offset,
                                 g_console.lines[i], scale, g_console.lines_color[i], font,
-                                g_console.text_pad_x, 0.0f);
+                                g_console.text_pad_x, 0.0f, 0.05f);
     }
 
     console_flush_rects();
@@ -260,13 +260,13 @@ void console_priv_platform_draw(int width, int height) {
 
         render_text_draw_padded(box_x, input_y, g_console.input + scroll_start, scale,
                                 g_console.input_text_color, font, g_console.text_pad_x,
-                                0.0f);
+                                0.0f, 0.0f);
         float cursor_x =
              box_x + g_console.text_pad_x +
              console_measure_text_width(g_console.input + scroll_start,
                                         g_console.cursor_pos - scroll_start, font, scale);
         render_text_draw_basic(cursor_x, input_y, "|", scale, g_console.input_text_color,
-                               font);
+                               font, 0.0f);
 
         // scroll_start only guarantees the cursor fits — text past the
         // cursor (or an unscrolled string longer than the box) still queues

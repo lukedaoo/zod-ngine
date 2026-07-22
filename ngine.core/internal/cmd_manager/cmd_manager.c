@@ -6,13 +6,16 @@
 #include "cmd_manager_internal.h"
 
 void cmd_manager_priv_register_default_system_commands(cmd_manager *mgr) {
-    command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "reload-config",
-                           sys_cmd_priv_reload_config);
+    command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "reload-config-file",
+                           sys_cmd_priv_reload_config_file);
 
     command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "show-commands",
                            sys_cmd_priv_show_commands);
 
-    assert(mgr->table.system_commands.header.size == 2 && "expected 2 system commands");
+    command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "set-config",
+                           sys_cmd_priv_set_config);
+
+    assert(mgr->table.system_commands.header.size == 3 && "expected 3 system commands");
 }
 
 void cmd_manager_priv_init(cmd_manager *mgr) {

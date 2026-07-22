@@ -25,6 +25,10 @@
 #define CONSOLE_INPUT_MAX_LEN 128
 #endif
 
+#ifndef CONSOLE_MAX_HISTORY
+#define CONSOLE_MAX_HISTORY 10
+#endif
+
 #ifndef DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES
 #define DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES 10
 #endif
@@ -92,6 +96,14 @@ typedef struct console_state {
     int     input_len;
     int     cursor_pos;
 
+    char    history[CONSOLE_MAX_HISTORY][CONSOLE_INPUT_MAX_LEN];
+    int     history_count;
+    int     history_next_write;
+    // 0 = not navigating (also the correct value on zero-init, so no explicit
+    // reset is needed at startup) — N>=1 = viewing the N-th most recent entry.
+    int     history_index;
+    char    history_draft[CONSOLE_INPUT_MAX_LEN];
+
     float   text_pad_x;
     float   top_pad;
     float   input_box_margin;
@@ -132,6 +144,10 @@ void console_priv_input_backspace(void);
 void console_priv_input_move_left(void);
 void console_priv_input_move_right(void);
 void console_priv_input_submit(void);
+
+void console_priv_history_push(const char *text);
+void console_priv_history_prev(void);
+void console_priv_history_next(void);
 
 void console_priv_platform_draw(int width, int height);
 

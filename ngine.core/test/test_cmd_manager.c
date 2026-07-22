@@ -23,11 +23,12 @@ static command_execute_result mock_handler_alt(int argc, char **argv) {
 MU_TEST(test_init_registers_default_system_commands) {
     cmd_manager mgr = {0};
     cmd_manager_priv_init(&mgr);
-    mu_assert_int_eq(2, (int)mgr.table.system_commands.header.size);
-    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_SYSTEM, "reload-config") !=
+    mu_assert_int_eq(3, (int)mgr.table.system_commands.header.size);
+    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_SYSTEM, "reload-config-file") !=
              NULL);
     mu_check(command_table_get(&mgr.table, COMMAND_GROUP_SYSTEM, "show-commands") !=
              NULL);
+    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_SYSTEM, "set-config") != NULL);
     cmd_manager_priv_destroy(&mgr);
 }
 
@@ -133,11 +134,11 @@ MU_TEST_SUITE(cmd_manager_execute_suite) {
     MU_RUN_TEST(test_execute_null_mgr_safe);
 }
 
-MU_TEST(test_sys_cmd_reload_config_rejects_args) {
+MU_TEST(test_sys_cmd_reload_config_file_rejects_args) {
     char                  *argv[] = {"x"};
-    command_execute_result res    = sys_cmd_priv_reload_config(1, argv);
+    command_execute_result res    = sys_cmd_priv_reload_config_file(1, argv);
     mu_check(res.type == COMMAND_RESULT_ERROR);
-    mu_assert_string_eq("reload-config: takes no arguments", res.value.str);
+    mu_assert_string_eq("reload-config-file: takes no arguments", res.value.str);
 }
 
 MU_TEST(test_sys_cmd_show_commands_lists_both_groups) {
@@ -148,7 +149,8 @@ MU_TEST(test_sys_cmd_show_commands_lists_both_groups) {
 
     command_execute_result res = sys_cmd_priv_show_commands(0, NULL);
     mu_check(res.type == COMMAND_RESULT_STRING);
-    mu_check(strstr(res.value.str, "system [reload-config, show-commands]") != NULL);
+    mu_check(strstr(res.value.str, "system [reload-config-file, show-commands, set-config]") !=
+             NULL);
     mu_check(strstr(res.value.str, "user [foo]") != NULL);
     mu_check(res.value.str[strlen(res.value.str) - 1] != '\n');
 
@@ -181,12 +183,113 @@ MU_TEST(test_sys_cmd_show_commands_rejects_extra_args) {
     mu_check(res.type == COMMAND_RESULT_ERROR);
 }
 
+MU_TEST(test_sys_cmd_set_config_rejects_missing_args) {
+    char                  *argv[] = {"window.width"};
+    command_execute_result res    = sys_cmd_priv_set_config(1, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
+MU_TEST(test_sys_cmd_set_config_rejects_unknown_cvar) {
+    g_ctx = (engine_context){0};
+    char                  *argv[] = {"does.not.exist", "1"};
+    command_execute_result res    = sys_cmd_priv_set_config(2, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
+MU_TEST(test_sys_cmd_set_config_sets_int) {
+    g_ctx = (engine_context){0};
+    cvar_set_int(&g_ctx.config.cvars, "window.width", 800);
+
+    char                  *argv[] = {"window.width", "1280"};
+    command_execute_result res    = sys_cmd_priv_set_config(2, argv);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("set-config window.width=1280", res.value.str);
+    mu_assert_int_eq(1280, cvar_get_int(&g_ctx.config.cvars, "window.width", -1));
+
+    cvar_destroy(&g_ctx.config.cvars);
+}
+
+MU_TEST(test_sys_cmd_set_config_coerces_bare_int_for_float) {
+    g_ctx = (engine_context){0};
+    cvar_set_float(&g_ctx.config.cvars, "console.input_gap", 0.0f);
+    static const cvar_constraint c = {.name     = "console.input_gap",
+                                      .expected = CVAR_FLOAT};
+    cvar_add_schema(&g_ctx.config.cvars, &c, 1);
+
+    char                  *argv[] = {"console.input_gap", "8"};
+    command_execute_result res    = sys_cmd_priv_set_config(2, argv);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_check(cvar_get_float(&g_ctx.config.cvars, "console.input_gap", -1.0f) == 8.0f);
+
+    cvar_destroy(&g_ctx.config.cvars);
+}
+
+MU_TEST(test_sys_cmd_set_config_rejects_bad_int) {
+    g_ctx = (engine_context){0};
+    cvar_set_int(&g_ctx.config.cvars, "window.width", 800);
+    static const cvar_constraint c = {.name = "window.width", .expected = CVAR_INT};
+    cvar_add_schema(&g_ctx.config.cvars, &c, 1);
+
+    char                  *argv[] = {"window.width", "not-a-number"};
+    command_execute_result res    = sys_cmd_priv_set_config(2, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+    mu_assert_int_eq(800, cvar_get_int(&g_ctx.config.cvars, "window.width", -1));
+
+    cvar_destroy(&g_ctx.config.cvars);
+}
+
+MU_TEST(test_sys_cmd_set_config_sets_bool) {
+    g_ctx = (engine_context){0};
+    cvar_set_bool(&g_ctx.config.cvars, "window.vsync", false);
+
+    char                  *argv[] = {"window.vsync", "true"};
+    command_execute_result res    = sys_cmd_priv_set_config(2, argv);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_check(cvar_get_bool(&g_ctx.config.cvars, "window.vsync", false) == true);
+
+    cvar_destroy(&g_ctx.config.cvars);
+}
+
+MU_TEST(test_sys_cmd_set_config_sets_string_with_spaces) {
+    g_ctx = (engine_context){0};
+    cvar_set_string(&g_ctx.config.cvars, "window.title", "old");
+
+    char                  *argv[] = {"window.title", "Hello", "World"};
+    command_execute_result res    = sys_cmd_priv_set_config(3, argv);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("set-config window.title=\"Hello World\"", res.value.str);
+    mu_assert_string_eq("Hello World",
+                        cvar_get_string(&g_ctx.config.cvars, "window.title", ""));
+
+    cvar_destroy(&g_ctx.config.cvars);
+}
+
+MU_TEST(test_sys_cmd_set_config_string_accepts_numeric_literal) {
+    g_ctx = (engine_context){0};
+    cvar_set_string(&g_ctx.config.cvars, "window.title", "old");
+
+    char                  *argv[] = {"window.title", "123"};
+    command_execute_result res    = sys_cmd_priv_set_config(2, argv);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("123", cvar_get_string(&g_ctx.config.cvars, "window.title", ""));
+
+    cvar_destroy(&g_ctx.config.cvars);
+}
+
 MU_TEST_SUITE(sys_cmd_suite) {
-    MU_RUN_TEST(test_sys_cmd_reload_config_rejects_args);
+    MU_RUN_TEST(test_sys_cmd_reload_config_file_rejects_args);
     MU_RUN_TEST(test_sys_cmd_show_commands_lists_both_groups);
     MU_RUN_TEST(test_sys_cmd_show_commands_filters_by_group);
     MU_RUN_TEST(test_sys_cmd_show_commands_rejects_unknown_group);
     MU_RUN_TEST(test_sys_cmd_show_commands_rejects_extra_args);
+    MU_RUN_TEST(test_sys_cmd_set_config_rejects_missing_args);
+    MU_RUN_TEST(test_sys_cmd_set_config_rejects_unknown_cvar);
+    MU_RUN_TEST(test_sys_cmd_set_config_sets_int);
+    MU_RUN_TEST(test_sys_cmd_set_config_coerces_bare_int_for_float);
+    MU_RUN_TEST(test_sys_cmd_set_config_rejects_bad_int);
+    MU_RUN_TEST(test_sys_cmd_set_config_sets_bool);
+    MU_RUN_TEST(test_sys_cmd_set_config_sets_string_with_spaces);
+    MU_RUN_TEST(test_sys_cmd_set_config_string_accepts_numeric_literal);
 }
 
 int main(void) {

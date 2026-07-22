@@ -115,18 +115,22 @@ static void test_hook_capture(int level, const char *message) {
     hook_call_count++;
 }
 
-MU_TEST(test_log_hook_fires_regardless_of_level) {
+MU_TEST(test_log_hook_respects_log_level) {
     hook_call_count = 0;
     log_register_hook(test_hook_capture);
+    log_set_fp(NULL, 0);  // mute file sink, isolate the hook from it
 
-    log_set_level(LOG_FATAL + 1);  // mute stderr sink
-    log_set_fp(NULL, 0);           // mute file sink
+    log_set_level(LOG_ERROR);  // hooks now gate on the same threshold as stderr
 
-    log_warn("hook saw %d", 7);
+    log_warn("below threshold");
+    mu_check(hook_call_count == 0);
 
+    log_error("hook saw %d", 7);
     mu_check(hook_call_count == 1);
-    mu_check(hook_last_level == LOG_WARN);
+    mu_check(hook_last_level == LOG_ERROR);
     mu_check(strstr(hook_last_message, "hook saw 7") != NULL);
+
+    log_set_level(LOG_TRACE);  // restore default for subsequent tests
 }
 
 MU_TEST(test_log_hook_table_full_is_dropped_safely) {
@@ -174,7 +178,7 @@ MU_TEST_SUITE(log_suite) {
     MU_RUN_TEST(test_log_file_level_threshold);
     MU_RUN_TEST(test_log_disable_via_null);
     MU_RUN_TEST(test_string_to_log_level);
-    MU_RUN_TEST(test_log_hook_fires_regardless_of_level);
+    MU_RUN_TEST(test_log_hook_respects_log_level);
     MU_RUN_TEST(test_log_hook_table_full_is_dropped_safely);
     MU_RUN_TEST(test_log_unregister_hook_stops_firing);
 }

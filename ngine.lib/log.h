@@ -101,6 +101,13 @@ static void log_emit(FILE *fp, const char *fmt, va_list ap) {
     fflush(fp);
 }
 
+#define LOG_EMIT_VARARGS(fp)       \
+    do {                           \
+        va_start(args, fmt);       \
+        log_emit((fp), fmt, args); \
+        va_end(args);              \
+    } while (0)
+
 void log_log(int level, const char *source_file, int line, const char *func,
              const char *fmt, ...) {
     va_list args;
@@ -128,9 +135,7 @@ void log_log(int level, const char *source_file, int line, const char *func,
 #endif
         if (func) fprintf(stderr, " %s", func);
         fprintf(stderr, ": ");
-        va_start(args, fmt);
-        log_emit(stderr, fmt, args);
-        va_end(args);
+        LOG_EMIT_VARARGS(stderr);
     }
 
     if (log_config.fp && level >= log_config.fp_level) {
@@ -143,12 +148,10 @@ void log_log(int level, const char *source_file, int line, const char *func,
 #endif
         if (func) fprintf(log_config.fp, " %s", func);
         fprintf(log_config.fp, ": ");
-        va_start(args, fmt);
-        log_emit(log_config.fp, fmt, args);
-        va_end(args);
+        LOG_EMIT_VARARGS(log_config.fp);
     }
 
-    if (log_config.hook_count > 0) {
+    if (log_config.hook_count > 0 && level >= log_config.level) {
         char buf[LOG_MAX_MESSAGE];
         va_start(args, fmt);
         vsnprintf(buf, sizeof(buf), fmt, args);
@@ -158,6 +161,7 @@ void log_log(int level, const char *source_file, int line, const char *func,
             log_config.hooks[i](level, buf);
         }
     }
+#undef LOG_EMIT_VARARGS
 }
 
 int log_level_from_string(const char *level_string) {

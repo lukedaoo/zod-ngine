@@ -22,6 +22,9 @@ static void write_file(const char *path, const char *content) {
 #define CVAR_IMPLEMENTATION
 #include "cvar.h"
 
+#define CVAR_PARSER_IMPLEMENTATION
+#include "cvar_parser.h"
+
 #define INI_IMPLEMENTATION
 #include "ini.h"
 
@@ -66,6 +69,17 @@ MU_TEST(test_typed_handler_rejects_float_for_int) {
 
     mu_check(!call_strict("window", "width", "3.14", &table, entries, 1));
     mu_assert_int_eq(-1, cvar_get_int(&table, "window.width", -1));
+
+    cvar_destroy(&table);
+}
+
+MU_TEST(test_typed_handler_coerces_bare_int_for_float) {
+    static const cvar_constraint entries[] = {
+         {.name = "console.input_gap", .expected = CVAR_FLOAT}};
+    cvar_table table = {0};
+
+    mu_check(call_strict("console", "input_gap", "8", &table, entries, 1));
+    mu_check(cvar_get_float(&table, "console.input_gap", -1.0f) == 8.0f);
 
     cvar_destroy(&table);
 }
@@ -185,6 +199,24 @@ MU_TEST(test_typed_scf_force_reload_rejects_type_mismatch) {
     remove(TEST_SCF);
 }
 
+MU_TEST(test_typed_scf_bare_int_for_float_does_not_abort_file) {
+    static const cvar_constraint entries[] = {
+         {.name = "console.input_gap", .expected = CVAR_FLOAT},
+         {.name = "window.width", .expected = CVAR_INT}};
+    cvar_table table = {0};
+    cvar_set_float(&table, "console.input_gap", 0.0f);
+    cvar_set_int(&table, "window.width", 800);
+    cvar_add_schema(&table, entries, 2);
+
+    write_file(TEST_SCF, ":/console\ninput_gap 8\n:/window\nwidth 1280\n");
+    mu_check(cvar_load_scf(&table, TEST_SCF, true));
+    mu_check(cvar_get_float(&table, "console.input_gap", -1.0f) == 8.0f);
+    mu_assert_int_eq(1280, cvar_get_int(&table, "window.width", -1));
+
+    cvar_destroy(&table);
+    remove(TEST_SCF);
+}
+
 MU_TEST(test_typed_scf_no_constraints_force_reload_succeeds) {
     cvar_table table = {0};
     cvar_set_int(&table, "window.width", 800);
@@ -201,6 +233,7 @@ MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_typed_handler_accepts_correct_int);
     MU_RUN_TEST(test_typed_handler_rejects_string_for_int);
     MU_RUN_TEST(test_typed_handler_rejects_float_for_int);
+    MU_RUN_TEST(test_typed_handler_coerces_bare_int_for_float);
     MU_RUN_TEST(test_typed_handler_accepts_no_matching_entry);
     MU_RUN_TEST(test_typed_handler_null_constraints_falls_through);
     MU_RUN_TEST(test_typed_handler_accepts_correct_bool);
@@ -209,6 +242,7 @@ MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_add_schema_collision_keeps_first_not_silent);
     MU_RUN_TEST(test_typed_scf_force_reload_accepts_correct_types);
     MU_RUN_TEST(test_typed_scf_force_reload_rejects_type_mismatch);
+    MU_RUN_TEST(test_typed_scf_bare_int_for_float_does_not_abort_file);
     MU_RUN_TEST(test_typed_scf_no_constraints_force_reload_succeeds);
 }
 

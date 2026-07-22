@@ -9,6 +9,8 @@ typedef enum zconsole_input_kind {
     ZCONSOLE_INPUT_SUBMIT,
     ZCONSOLE_INPUT_LEFT,
     ZCONSOLE_INPUT_RIGHT,
+    ZCONSOLE_INPUT_HISTORY_PREV,
+    ZCONSOLE_INPUT_HISTORY_NEXT,
 } zconsole_input_kind;
 
 typedef struct zconsole_input_event {
