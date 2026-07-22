@@ -42,6 +42,7 @@ static const cvar_constraint g_console_constraints[] = {
       .range    = {.has_min = true, .min.f = 0.0f}},
      {.name = "console.output_text_color", .expected = CVAR_INT},
      {.name = "console.input_text_color", .expected = CVAR_INT},
+     {.name = "console.cursor_color", .expected = CVAR_INT},
      {.name = "console.input_box_color", .expected = CVAR_INT},
      {.name = "console.input_box_background_color", .expected = CVAR_INT},
      {.name = "console.background_color", .expected = CVAR_INT},
@@ -66,6 +67,7 @@ static void console_init_config(cvar_table *cvars) {
                  DEFAULT_CONFIG_CONSOLE_OUTPUT_TEXT_COLOR);
     cvar_set_int(cvars, "console.input_text_color",
                  DEFAULT_CONFIG_CONSOLE_INPUT_TEXT_COLOR);
+    cvar_set_int(cvars, "console.cursor_color", DEFAULT_CONFIG_CONSOLE_CURSOR_COLOR);
     cvar_set_int(cvars, "console.input_box_color",
                  DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR);
     cvar_set_int(cvars, "console.input_box_background_color",
@@ -112,6 +114,9 @@ void console_priv_apply_config(void) {
     g_console.input_text_color = color4f_from_u32(
          (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.input_text_color",
                                 DEFAULT_CONFIG_CONSOLE_INPUT_TEXT_COLOR));
+    g_console.cursor_color = color4f_from_u32(
+         (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.cursor_color",
+                                DEFAULT_CONFIG_CONSOLE_CURSOR_COLOR));
     g_console.input_box_color = color4f_from_u32(
          (uint32_t)cvar_get_int(&g_ctx.config.cvars, "console.input_box_color",
                                 DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR));
@@ -261,7 +266,8 @@ int console_priv_visible_line_start(int count, int lines_that_fit, int scroll_of
 void console_priv_scroll_up(void) {
     int step = g_console.visible_lines > 0 ? g_console.visible_lines : 1;
     g_console.scroll_offset += step;
-    if (g_console.scroll_offset > g_console.count) g_console.scroll_offset = g_console.count;
+    if (g_console.scroll_offset > g_console.count)
+        g_console.scroll_offset = g_console.count;
 }
 
 void console_priv_scroll_down(void) {

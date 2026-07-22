@@ -73,6 +73,10 @@
 #define DEFAULT_CONFIG_CONSOLE_INPUT_TEXT_COLOR 0xFFFFFFFF
 #endif
 
+#ifndef DEFAULT_CONFIG_CONSOLE_CURSOR_COLOR
+#define DEFAULT_CONFIG_CONSOLE_CURSOR_COLOR 0xFFD400FF
+#endif
+
 #ifndef DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR
 #define DEFAULT_CONFIG_CONSOLE_INPUT_BOX_COLOR 0xFFFFFF66
 #endif
@@ -118,6 +122,7 @@ typedef struct console_state {
     float   font_size;
     color4f output_text_color;
     color4f input_text_color;
+    color4f cursor_color;
     color4f input_box_color;
     color4f input_box_background_color;
     color4f background_color;

@@ -246,11 +246,10 @@ void console_priv_platform_draw(int width, int height) {
     int   start = console_priv_visible_line_start(g_console.count, scrollback_rows,
                                                   g_console.scroll_offset);
     for (int i = start; i < g_console.count; i++) {
-        render_text_draw_clipped(g_console.text_pad_x,
-                                 (float)(i - start) * row_height + line_offset,
-                                 g_console.lines[i], scale, g_console.lines_color[i],
-                                 font, 0.05f, 0.0f, 0.0f, (float)width,
-                                 scrollback_clip_bottom);
+        render_text_draw_clipped(
+             g_console.text_pad_x, (float)(i - start) * row_height + line_offset,
+             g_console.lines[i], scale, g_console.lines_color[i], font, 0.05f, 0.0f, 0.0f,
+             (float)width, scrollback_clip_bottom);
     }
 
     console_flush_rects();
@@ -280,10 +279,25 @@ void console_priv_platform_draw(int width, int height) {
              box_x + g_console.text_pad_x +
              console_measure_text_width(g_console.input + scroll_start,
                                         g_console.cursor_pos - scroll_start, font, scale);
-        render_text_draw_clipped(cursor_x, input_y, "|", scale,
-                                 g_console.input_text_color, font, 0.0f, clip_left,
-                                 clip_top, clip_right, clip_bottom);
         render_text_flush();
+
+        if (g_console.cursor_pos > scroll_start) {
+            const simple_font_glyph *last_glyph =
+                 simple_font_get_glyph(font, g_console.input[g_console.cursor_pos - 1]);
+            float overhang =
+                 last_glyph && last_glyph->width > last_glyph->advance
+                      ? (float)(last_glyph->width - last_glyph->advance) * scale * 0.5f
+                      : 0.0f;
+            cursor_x += fmaxf(1.0f, overhang + 1.0f);
+        } else {
+            cursor_x += 1.0f;
+        }
+        float caret_w      = g_console.font_size * 0.4f;
+        float caret_height = g_console.font_size * 0.7f;
+        float caret_top    = row_top + (row_height - caret_height) * 0.5f;
+        console_queue_rect(cursor_x, caret_top, caret_w, caret_height,
+                           g_console.cursor_color);
+        console_flush_rects();
     }
 }
 
