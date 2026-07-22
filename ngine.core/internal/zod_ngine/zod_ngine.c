@@ -59,6 +59,12 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     log_info("\nengine.init: starting");
 
     {
+        // command manager
+        cmd_manager_init(&g_ctx.cmd_manager);
+        log_debug("cmd_manager.init: ready");
+    }
+
+    {
         config_init(&g_ctx.config);
         zod_run_extension_init_config(&g_ctx.config.cvars);
         config_add_user_constraints(&g_ctx.config, config_setup.constraints,
@@ -136,12 +142,6 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         log_debug("clock.init: target fps = %d", target_fps);
     }
 
-    {
-        // command
-        cmd_manager_init(&g_ctx.cmd_manager);
-        log_debug("cmd_manager.init: ready");
-    }
-
     if (dispatch.after_init) dispatch.after_init(user_data);
 
     log_info("engine.init: ready");
@@ -195,9 +195,22 @@ void zod_end_drawing(void) { render_end(); }
 
 const simple_font *zod_font_primary_get(void) { return &g_ctx.primary_font; }
 
+bool zod_command_register(command_group group, const char *name,
+                          command_execute_result (*handler)(int argc, char **argv)) {
+    return cmd_manager_register(&g_ctx.cmd_manager, group, name, handler);
+}
+
+bool zod_command_unregister(command_group group, const char *name) {
+    return cmd_manager_unregister(&g_ctx.cmd_manager, group, name);
+}
+
 command_execute_result zod_sys_command_execute(const char *name, int argc, char **argv) {
     return cmd_manager_execute(&g_ctx.cmd_manager, COMMAND_GROUP_SYSTEM, name, argc,
                                argv);
 }
 
+command_execute_result zod_user_command_execute(const char *name, int argc, char **argv) {
+    return cmd_manager_execute(&g_ctx.cmd_manager, COMMAND_GROUP_USER_DEFINED, name, argc,
+                               argv);
+}
 #endif

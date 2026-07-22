@@ -135,4 +135,9 @@ void console_input_submit(void);
 
 void console_platform_draw(int width, int height);
 
+void console_write_line(color4f color, const char *text);
+void console_write_multiple_lines(color4f color, const char *text);
+void console_log_hook(int level, const char *message);
+void console_clear();
+void console_cmd_register();
 #endif

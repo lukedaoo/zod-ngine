@@ -13,15 +13,18 @@
 
 #if ZOD_CONSOLE_ENABLED
 
-// Indexed by LOG_TRACE..LOG_FATAL — severity gradient shown in the console
-// scrollback regardless of console.output_text_color.
 static const color4f g_console_log_colors[] = {
      [LOG_TRACE] = COLOR4F_GRAY, [LOG_DEBUG] = COLOR4F_CYAN,
      [LOG_INFO] = COLOR4F_GREEN, [LOG_WARN] = COLOR4F_YELLOW,
      [LOG_ERROR] = COLOR4F_RED,  [LOG_FATAL] = COLOR4F_MAGENTA,
 };
 
-static void console_write_line(const char *text, color4f color);
+void console_log_hook(int level, const char *message) {
+    color4f color = (level >= LOG_TRACE && level <= LOG_FATAL)
+                         ? g_console_log_colors[level]
+                         : g_console.output_text_color;
+    console_write_line(color, message);
+}
 
 static const cvar_constraint g_console_constraints[] = {
      {.name = "console.enabled", .expected = CVAR_BOOL},
@@ -43,17 +46,12 @@ static const cvar_constraint g_console_constraints[] = {
      {.name = "console.background_color", .expected = CVAR_INT},
 };
 
-static void console_log_hook(int level, const char *message) {
-    color4f color = (level >= LOG_TRACE && level <= LOG_FATAL)
-                         ? g_console_log_colors[level]
-                         : g_console.output_text_color;
-    console_write_line(message, color);
-}
-
 static void console_init_config(cvar_table *cvars) {
     // @todo: make it as command
     // log_unregister_hook(console_log_hook);
     // log_register_hook(console_log_hook);
+
+    console_cmd_register();
 
     cvar_set_int(cvars, "console.visible_lines", DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
     cvar_set_bool(cvars, "console.enabled", DEFAULT_CONFIG_CONSOLE_ENABLED);
@@ -188,12 +186,29 @@ static void console_write_v(color4f color, const char *fmt, va_list args) {
 
 // text is written verbatim (no % expansion) — safe for log messages that may
 // contain literal '%' characters.
-static void console_write_line(const char *text, color4f color) {
+void console_write_line(color4f color, const char *text) {
     console_evict_line_if_full();
 
     snprintf(g_console.lines[g_console.count], CONSOLE_MAX_LINE_LEN, "%s", text);
     g_console.lines_color[g_console.count] = color;
     g_console.count++;
+}
+
+void console_write_multiple_lines(color4f color, const char *text) {
+    const char *start = text;
+    for (const char *p = text;; p++) {
+        if (*p == '\n' || *p == '\0') {
+            size_t len = (size_t)(p - start);
+            size_t copy_len =
+                 len < CONSOLE_MAX_LINE_LEN - 1 ? len : CONSOLE_MAX_LINE_LEN - 1;
+            char buf[CONSOLE_MAX_LINE_LEN];
+            memcpy(buf, start, copy_len);
+            buf[copy_len] = '\0';
+            console_write_line(color, buf);
+            if (*p == '\0') break;
+            start = p + 1;
+        }
+    }
 }
 
 void console_write(const char *fmt, ...) {
@@ -250,11 +265,27 @@ void console_input_move_right(void) {
 
 void console_input_submit(void) {
     if (g_console.input_len == 0) return;
-    command_execute_result result = zod_sys_command_execute(g_console.input, 0, NULL);
+
+    //
+    // tokenize
+    //
+    char *argv[COMMAND_MAX_ARGC];
+    int   argc = 0;
+    char *name = strtok(g_console.input, " ");
+    char *tok;
+    while (argc < COMMAND_MAX_ARGC && (tok = strtok(NULL, " "))) argv[argc++] = tok;
+
+    // user-defined commands can shadow system ones — try user first.
+    command_execute_result result = zod_user_command_execute(name, argc, argv);
+    if (result.type == COMMAND_RESULT_COMMAND_NOT_FOUND)
+        result = zod_sys_command_execute(name, argc, argv);
+
     if (result.type == COMMAND_RESULT_ERROR) {
-        console_write_color(COLOR4F_RED, "ERROR: invalid command: %s", g_console.input);
+        console_write_color(COLOR4F_RED, "ERROR: %s", result.value.str);
+    } else if (result.type == COMMAND_RESULT_COMMAND_NOT_FOUND) {
+        console_write_color(COLOR4F_RED, "ERROR: invalid command: %s", name);
     } else if (result.type == COMMAND_RESULT_STRING) {
-        console_write("%s", result.value.str);
+        console_write_multiple_lines(g_console.output_text_color, result.value.str);
     }
     g_console.input[0]   = '\0';
     g_console.input_len  = 0;
@@ -278,6 +309,17 @@ bool console_draw(void) {
 bool console_destroy(void) {
     log_unregister_hook(console_log_hook);
     return true;
+}
+
+void console_clear() {
+    g_console.count      = 0;
+    g_console.cursor_pos = 0;
+    g_console.input_len  = 0;
+    g_console.input[0]   = '\0';
+
+    for (int i = 0; i < CONSOLE_MAX_LINES; i++) {
+        g_console.lines[i][0] = '\0';
+    }
 }
 
 #else

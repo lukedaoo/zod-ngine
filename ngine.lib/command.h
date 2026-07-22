@@ -13,6 +13,7 @@ typedef enum {
     COMMAND_RESULT_STRING,
     COMMAND_RESULT_PTR,
     COMMAND_RESULT_ERROR,
+    COMMAND_RESULT_COMMAND_NOT_FOUND,
 } command_result_type;
 
 typedef struct {
@@ -164,12 +165,19 @@ bool command_table_register(command_table *table, command_group group, const cha
     strncpy(command.name, name, COMMAND_MAX_NAME_LEN);
     command.group   = group;
     command.handler = handler;
+
+    bool result = false;
     if (group == COMMAND_GROUP_SYSTEM) {
-        return array_list_append(&table->system_commands, &command);
+        result = array_list_append(&table->system_commands, &command);
     } else if (group == COMMAND_GROUP_USER_DEFINED) {
-        return array_list_append(&table->user_defined_commands, &command);
+        result = array_list_append(&table->user_defined_commands, &command);
     }
-    return false;
+    if (result) {
+#if COMMAND_LOG_ENABLED
+        log_info("command.register: command %s registered", name);
+#endif
+    }
+    return result;
 }
 
 command *command_table_get(const command_table *table, const command_group group,
@@ -211,7 +219,7 @@ command_execute_result command_execute_by_name(const command_table *table,
         log_error("command.execute_by_name: command %s does not exist", name);
 #endif
         return (command_execute_result){
-             .type      = COMMAND_RESULT_ERROR,
+             .type      = COMMAND_RESULT_COMMAND_NOT_FOUND,
              .value.str = "command.execute_by_name: command does not exist"  //
         };
     }
@@ -224,8 +232,8 @@ command_execute_result command_execute(command *cmd, int argc, char **argv) {
         log_error("command.execute: command is NULL");
 #endif
         return (command_execute_result){
-             .type      = COMMAND_RESULT_ERROR,
-             .value.str = "command.execute: command is NULL"  //
+             .type      = COMMAND_RESULT_COMMAND_NOT_FOUND,
+             .value.str = "command.execute: command does not exist"  //
         };
     }
     return cmd->handler(argc, argv);

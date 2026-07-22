@@ -118,7 +118,11 @@ bool zod_input_key_released(zod_key_t key);
 //
 // Command Manager accessors
 //
+bool zod_command_register(command_group group, const char *name,
+                          command_execute_result (*handler)(int argc, char **argv));
+bool zod_command_unregister(command_group group, const char *name);
 command_execute_result zod_sys_command_execute(const char *name, int argc, char **argv);
+command_execute_result zod_user_command_execute(const char *name, int argc, char **argv);
 
 // Utils
 bool zod_should_exit(void);

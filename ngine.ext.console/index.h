@@ -11,6 +11,8 @@
 #include "internal/console/console_platform_gl.c"
 #endif
 #include "internal/console/console.c"
+#include "internal/console/console_cmd.c"
+#include "internal/console/console_cmd_handler.c"
 #endif
 
 #endif

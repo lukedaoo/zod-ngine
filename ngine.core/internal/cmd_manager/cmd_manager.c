@@ -1,10 +1,16 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
+#include <assert.h>
+
 #include "../../cmd_manager.h"
 #include "cmd_manager_internal.h"
 
 void cmd_manager_register_default_system_commands(cmd_manager *mgr) {
     command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "help", sys_cmd_help);
+    command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "reload-config",
+                           sys_cmd_reload_config);
+
+    assert(mgr->table.system_commands.header.size == 2 && "expected 2 system commands");
 }
 
 void cmd_manager_init(cmd_manager *mgr) {
