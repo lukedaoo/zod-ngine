@@ -7,7 +7,6 @@ nob.exe
 nob.exe.old
 tmp/
 *.exe
-*.out
 
 .idea
 *.txt

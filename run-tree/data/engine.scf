@@ -10,7 +10,7 @@ height                     900            ; window height, not applicable for fu
 transparent                false          ; enable alpha channel
 clear_color                0x141A1AFF     ; clear color. Hex format: 0xRRGGBBAA
 vsync                      true           ; enable vsync
-fullscreen                 true           ; borderless fullscreen, hot-reloadable
+fullscreen                 false           ; borderless fullscreen, hot-reloadable
 resizable                  true           ; OS-draggable window edge, creation-time only, not hot-reloadable
 
 ; Logging configuration

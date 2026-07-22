@@ -86,6 +86,9 @@ int main(const int argc, const char **argv) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) zngine_request_exit();
+            if (e.type == SDL_EVENT_WINDOW_RESIZED) {
+                zngine_window_notify_resized(e.window.data1, e.window.data2);
+            }
 #if ZOD_CONSOLE_ENABLED
             if (e.type == SDL_EVENT_TEXT_INPUT) {
                 if (strcmp(e.text.text, "~") == 0) continue;
