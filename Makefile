@@ -19,7 +19,7 @@ test-asan: nob
 help: nob
 	./nob help
 
-# info(makefile-working):configuration system
+# info(makefile-working): command system
 working: nob
 	./nob build-debug
 	./engine_run --log-level trace

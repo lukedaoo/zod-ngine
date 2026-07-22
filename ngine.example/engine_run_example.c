@@ -86,8 +86,6 @@ int main(const int argc, const char **argv) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) zngine_request_exit();
-            if (e.type == SDL_EVENT_WINDOW_RESIZED)
-                zngine_window_notify_resized(e.window.data1, e.window.data2);
 #if ZOD_CONSOLE_ENABLED
             if (e.type == SDL_EVENT_TEXT_INPUT) {
                 if (strcmp(e.text.text, "~") == 0) continue;
@@ -127,7 +125,7 @@ int main(const int argc, const char **argv) {
         fps_accum += zngine_clock_delta();
         if (fps_accum >= 1.0f) {
             log_debug("engine.fps: %u, dt: %f, frame_count: %u", fps_frames,
-                    (double)zngine_clock_dt(), zngine_clock_frame());
+                      (double)zngine_clock_dt(), zngine_clock_frame());
             fps_frames = 0;
             fps_accum -= 1.0f;
         }

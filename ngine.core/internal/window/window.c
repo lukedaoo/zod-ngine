@@ -55,7 +55,8 @@ bool window_priv_apply_config(window *window) {
     //
     {
 #if RENDER_BACKEND == RENDER_BACKEND_OPENGL
-        bool vsync    = cvar_get_bool(&g_ctx.config.cvars, "window.vsync", DEFAULT_CONFIG_WINDOW_VSYNC);
+        bool vsync    = cvar_get_bool(&g_ctx.config.cvars, "window.vsync",
+                                      DEFAULT_CONFIG_WINDOW_VSYNC);
         bool vsync_ok = SDL_GL_SetSwapInterval(vsync ? 1 : 0);
         if (!vsync_ok) {
             log_warn(
@@ -87,7 +88,7 @@ bool window_priv_apply_config(window *window) {
                 window->height = actual_h;
                 render_backend_priv_resize(window->backend.context, actual_w, actual_h);
                 log_debug("window.apply_config: fullscreen=%d, size=%dx%d", fullscreen,
-                         actual_w, actual_h);
+                          actual_w, actual_h);
             }
         }
     }

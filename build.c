@@ -103,14 +103,48 @@ static void collect_failures(const char *log_path) {
             char *detail = line;
             while (*detail == '\t' || *detail == ' ') detail++;
             // NOLINTNEXTLINE(bugprone-multi-level-implicit-pointer-conversion)
-            nob_da_append(&g_failed_tests,
-                          (const char *)strdup(nob_temp_sprintf("%s  (%s)", detail, func)));
+            nob_da_append(&g_failed_tests, (const char *)strdup(nob_temp_sprintf(
+                                                "%s  (%s)", detail, func)));
             free(func);
             func = NULL;
         }
     }
     free(func);
     nob_da_free(sb);
+}
+
+static void run_test_file(bool asan, const char *dir, const char *name, bool needs_gl_sdl,
+                          int *passed, int *failed) {
+    const char *src = nob_temp_sprintf("%s/%s", dir, name);
+    const char *bin =
+         nob_temp_sprintf("./%.*s.out%s", (int)(strlen(name) - 2), name, EXE_EXT);
+
+    Nob_Cmd test_cmd = {0};
+    nob_cmd_append(&test_cmd, C_COMPILER, C_FLAGS, "-o", bin, src);
+    if (needs_gl_sdl) nob_cmd_append(&test_cmd, GLAD_SRC, SDL_FLAGS, GLAD_FLAGS);
+    nob_cmd_append(&test_cmd, MATH_FLAGS);
+    if (asan) nob_cmd_append(&test_cmd, C_ASAN_FLAGS);
+    if (!nob_cmd_run(&test_cmd)) {
+        nob_log(NOB_ERROR, "FAIL (build)  %s/%s", dir, name);
+        // NOLINTNEXTLINE(bugprone-multi-level-implicit-pointer-conversion)
+        nob_da_append(&g_failed_tests, (const char *)strdup(nob_temp_sprintf(
+                                            "%s/%s: build failed", dir, name)));
+        (*failed)++;
+        return;
+    }
+
+    const char *log      = nob_temp_sprintf("%s.log", bin);
+    Nob_Cmd     run_test = {0};
+    nob_cmd_append(&run_test, bin);
+    if (nob_cmd_run(&run_test, .stdout_path = log, .stderr_path = log)) {
+        nob_log(NOB_INFO, "PASS  %s/%s", dir, name);
+        (*passed)++;
+    } else {
+        nob_log(NOB_ERROR, "FAIL  %s/%s", dir, name);
+        collect_failures(log);
+        (*failed)++;
+    }
+    remove(log);  // drop the per-test capture file
 }
 
 int run_test_dir(bool asan, const char *dir, bool needs_gl_sdl, int *passed,
@@ -122,38 +156,7 @@ int run_test_dir(bool asan, const char *dir, bool needs_gl_sdl, int *passed,
         const char *name = files.items[i];
         if (!nob_sv_starts_with(nob_sv_from_cstr(name), nob_sv_from_cstr("test_")))
             continue;
-
-        const char *src = nob_temp_sprintf("%s/%s", dir, name);
-        const char *bin =
-             nob_temp_sprintf("./%.*s.out%s", (int)(strlen(name) - 2), name, EXE_EXT);
-
-        Nob_Cmd test_cmd = {0};
-        nob_cmd_append(&test_cmd, C_COMPILER, C_FLAGS, "-o", bin, src);
-        if (needs_gl_sdl) nob_cmd_append(&test_cmd, GLAD_SRC, SDL_FLAGS, GLAD_FLAGS);
-        nob_cmd_append(&test_cmd, MATH_FLAGS);
-        if (asan) nob_cmd_append(&test_cmd, C_ASAN_FLAGS);
-        if (!nob_cmd_run(&test_cmd)) {
-            nob_log(NOB_ERROR, "FAIL (build)  %s/%s", dir, name);
-            // NOLINTNEXTLINE(bugprone-multi-level-implicit-pointer-conversion)
-            nob_da_append(&g_failed_tests,
-                          (const char *)strdup(
-                               nob_temp_sprintf("%s/%s: build failed", dir, name)));
-            (*failed)++;
-            continue;
-        }
-
-        const char *log = nob_temp_sprintf("%s.log", bin);
-        Nob_Cmd     run_test = {0};
-        nob_cmd_append(&run_test, bin);
-        if (nob_cmd_run(&run_test, .stdout_path = log, .stderr_path = log)) {
-            nob_log(NOB_INFO, "PASS  %s/%s", dir, name);
-            (*passed)++;
-        } else {
-            nob_log(NOB_ERROR, "FAIL  %s/%s", dir, name);
-            collect_failures(log);
-            (*failed)++;
-        }
-        remove(log);  // drop the per-test capture file
+        run_test_file(asan, dir, name, needs_gl_sdl, passed, failed);
     }
     return 0;
 }
@@ -210,8 +213,32 @@ int run_tests(bool asan, const char *dir) {
     if (!nob_mkdir_if_not_exists("tmp")) return 1;
 #endif
     if (check_modules_separation() != 0) return 1;
-    int passed = 0, failed = 0;
-    if (dir) {
+    int    passed = 0, failed = 0;
+    size_t dir_len = dir ? strlen(dir) : 0;
+    if (dir && dir_len > 2 && strcmp(dir + dir_len - 2, ".c") == 0) {
+        const char *slash = strrchr(dir, '/');
+        if (!slash) {
+            nob_log(NOB_ERROR,
+                    "test file path must include its directory, e.g. "
+                    "ngine.lib/test_cvar.c");
+            return 1;
+        }
+        const char *file_dir  = nob_temp_sprintf("%.*s", (int)(slash - dir), dir);
+        const char *file_name = slash + 1;
+        bool        found     = false;
+        for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) {
+            if (strcmp(file_dir, TEST_DIRS[i].dir) == 0) {
+                run_test_file(asan, file_dir, file_name, TEST_DIRS[i].needs_gl_sdl,
+                              &passed, &failed);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            nob_log(NOB_ERROR, "unknown test dir '%s' for file '%s'", file_dir, dir);
+            return 1;
+        }
+    } else if (dir) {
         bool found = false;
         for (size_t i = 0; i < TEST_DIRS_COUNT; ++i) {
             if (strcmp(dir, TEST_DIRS[i].dir) == 0 ||
@@ -433,8 +460,10 @@ int main(int argc, char **argv) {
         nob_log(NOB_INFO, "                                build with debug symbols");
         nob_log(NOB_INFO, "  build-release [--backend=opengl|vulkan]");
         nob_log(NOB_INFO, "                                build with optimizations");
-        nob_log(NOB_INFO, "  test [dir]                    run tests (ngine.lib, ngine.core)");
-        nob_log(NOB_INFO, "  test-asan [dir]               run tests with asan");
+        nob_log(NOB_INFO,
+                "  test [dir|file]               run tests (ngine.lib, ngine.core, or "
+                "a single test_*.c)");
+        nob_log(NOB_INFO, "  test-asan [dir|file]          run tests with asan");
         nob_log(NOB_INFO, "  clean                         remove build artifacts");
         nob_log(NOB_INFO,
                 "  compdb                        generate compile_commands.json");

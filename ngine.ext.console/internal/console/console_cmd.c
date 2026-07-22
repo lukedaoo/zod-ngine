@@ -10,9 +10,9 @@
 #include "console_cmd_internal.h"
 
 void console_cmd_priv_register() {
-    zngine_command_register(COMMAND_GROUP_USER_DEFINED, "log-hook-register",
+    zngine_command_register(COMMAND_GROUP_USER_DEFINED, "register-log",
                             console_cmd_priv_register_log_hook);
-    zngine_command_register(COMMAND_GROUP_USER_DEFINED, "log-hook-unregister",
+    zngine_command_register(COMMAND_GROUP_USER_DEFINED, "unregister-log",
                             console_cmd_priv_unregister_log_hook);
 
     zngine_command_register(COMMAND_GROUP_USER_DEFINED, "clear",

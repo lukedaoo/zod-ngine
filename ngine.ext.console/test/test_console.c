@@ -285,7 +285,7 @@ MU_TEST(test_cmd_register_log_hook_returns_registered_message) {
     reset();
     command_execute_result res = console_cmd_priv_register_log_hook(0, NULL);
     mu_check(res.type == COMMAND_RESULT_STRING);
-    mu_assert_string_eq("log-hook registered", res.value.str);
+    mu_assert_string_eq("log hook registered", res.value.str);
 }
 
 MU_TEST(test_cmd_register_log_hook_rejects_args) {
@@ -298,7 +298,7 @@ MU_TEST(test_cmd_unregister_log_hook_returns_unregistered_message) {
     reset();
     command_execute_result res = console_cmd_priv_unregister_log_hook(0, NULL);
     mu_check(res.type == COMMAND_RESULT_STRING);
-    mu_assert_string_eq("log-hook unregistered", res.value.str);
+    mu_assert_string_eq("log hook unregistered", res.value.str);
 }
 
 MU_TEST(test_cmd_unregister_log_hook_rejects_args) {

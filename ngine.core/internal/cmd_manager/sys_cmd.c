@@ -10,6 +10,7 @@
 #include "../../zod_ngine.h"
 #include "../engine_context/engine_context_internal.h"
 
+// reload-config
 command_execute_result sys_cmd_priv_reload_config(int argc, char **argv) {
     (void)argv;
     if (argc > 0) {
@@ -57,6 +58,7 @@ static void sys_cmd_priv_append_group(char *buf, size_t len, size_t *pos,
     sys_cmd_priv_buf_append(buf, len, pos, "]\n");
 }
 
+// show-commands
 command_execute_result sys_cmd_priv_show_commands(int argc, char **argv) {
     if (argc > 1) {
         return (command_execute_result){

@@ -124,10 +124,12 @@ bool zngine_input_key_released(zod_key_t key);
 // Command Manager accessors
 //
 bool zngine_command_register(command_group group, const char *name,
-                          command_execute_result (*handler)(int argc, char **argv));
+                             command_execute_result (*handler)(int argc, char **argv));
 bool zngine_command_unregister(command_group group, const char *name);
-command_execute_result zngine_sys_command_execute(const char *name, int argc, char **argv);
-command_execute_result zngine_user_command_execute(const char *name, int argc, char **argv);
+command_execute_result zngine_sys_command_execute(const char *name, int argc,
+                                                  char **argv);
+command_execute_result zngine_user_command_execute(const char *name, int argc,
+                                                   char **argv);
 
 // Utils
 bool zngine_should_exit(void);
