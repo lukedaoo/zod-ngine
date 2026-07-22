@@ -203,4 +203,54 @@ command_execute_result sys_cmd_priv_get_config(int argc, char **argv) {
 
     return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
 }
+#ifndef SYS_CMD_LIST_CONFIG_BUFFER_LEN
+#define SYS_CMD_LIST_CONFIG_BUFFER_LEN 4096
+#endif
+
+// list-config
+command_execute_result sys_cmd_priv_list_config(int argc, char **argv) {
+    (void)argv;
+    if (argc > 0) {
+        return (command_execute_result){
+             .type      = COMMAND_RESULT_ERROR,
+             .value.str = "list-config: takes no arguments",
+        };
+    }
+
+    cvar_table *cvars = &g_ctx.config.cvars;
+    if (cvars->size == 0) return (command_execute_result){.type = COMMAND_RESULT_VOID};
+
+    static __thread char buf[SYS_CMD_LIST_CONFIG_BUFFER_LEN];
+    size_t               pos = 0;
+
+    for (size_t i = 0; i < cvars->size; i++) {
+        const cvar *cv = &cvars->data[i];
+        sys_cmd_priv_buf_append(buf, sizeof(buf), &pos, "%s %s", cv->name,
+                                cvar_type_to_string(cv->type));
+
+        const cvar_constraint *c = cvar_find_constraint(cvars, cv->name);
+        bool has_range = c && (c->range.has_min || c->range.has_max) &&
+                         (cv->type == CVAR_INT || cv->type == CVAR_FLOAT);
+        if (has_range) {
+            char min_buf[24], max_buf[24];
+            if (cv->type == CVAR_INT) {
+                snprintf(min_buf, sizeof(min_buf), c->range.has_min ? "%d" : "-inf",
+                         c->range.min.i);
+                snprintf(max_buf, sizeof(max_buf), c->range.has_max ? "%d" : "inf",
+                         c->range.max.i);
+            } else {
+                snprintf(min_buf, sizeof(min_buf), c->range.has_min ? "%g" : "-inf",
+                         (double)c->range.min.f);
+                snprintf(max_buf, sizeof(max_buf), c->range.has_max ? "%g" : "inf",
+                         (double)c->range.max.f);
+            }
+            sys_cmd_priv_buf_append(buf, sizeof(buf), &pos, " [%s,%s]", min_buf, max_buf);
+        }
+        sys_cmd_priv_buf_append(buf, sizeof(buf), &pos, "\n");
+    }
+
+    if (pos > 0 && buf[pos - 1] == '\n') buf[pos - 1] = '\0';
+
+    return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
+}
 #endif

@@ -135,7 +135,8 @@ MU_TEST(test_sys_cmd_show_commands_lists_both_groups) {
     command_execute_result res = sys_cmd_priv_show_commands(0, NULL);
     mu_check(res.type == COMMAND_RESULT_STRING);
     mu_check(strstr(res.value.str,
-                    "system [reload-config-file, show-commands, set-config, get-config]") != NULL);
+                    "system [reload-config-file, show-commands, set-config, get-config, "
+                    "list-config]") != NULL);
     mu_check(strstr(res.value.str, "user [foo]") != NULL);
     mu_check(res.value.str[strlen(res.value.str) - 1] != '\n');
 
@@ -261,6 +262,44 @@ MU_TEST(test_sys_cmd_set_config_string_accepts_numeric_literal) {
     cvar_destroy(&g_ctx.config.cvars);
 }
 
+MU_TEST(test_sys_cmd_list_config_rejects_args) {
+    char                  *argv[] = {"extra"};
+    command_execute_result res    = sys_cmd_priv_list_config(1, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
+MU_TEST(test_sys_cmd_list_config_empty_table_is_void) {
+    g_ctx                      = (engine_context){0};
+    command_execute_result res = sys_cmd_priv_list_config(0, NULL);
+    mu_check(res.type == COMMAND_RESULT_VOID);
+}
+
+MU_TEST(test_sys_cmd_list_config_shows_range_when_constrained) {
+    g_ctx = (engine_context){0};
+    cvar_set_int(&g_ctx.config.cvars, "engine.target_fps", 60);
+    static const cvar_constraint c = {.name     = "engine.target_fps",
+                                      .expected = CVAR_INT,
+                                      .range    = {.has_min = true, .min.i = 1}};
+    cvar_add_schema(&g_ctx.config.cvars, &c, 1);
+
+    command_execute_result res = sys_cmd_priv_list_config(0, NULL);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("engine.target_fps int [1,inf]", res.value.str);
+
+    cvar_destroy(&g_ctx.config.cvars);
+}
+
+MU_TEST(test_sys_cmd_list_config_omits_brackets_when_unconstrained) {
+    g_ctx = (engine_context){0};
+    cvar_set_bool(&g_ctx.config.cvars, "debug.enabled", true);
+
+    command_execute_result res = sys_cmd_priv_list_config(0, NULL);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("debug.enabled bool", res.value.str);
+
+    cvar_destroy(&g_ctx.config.cvars);
+}
+
 MU_TEST_SUITE(sys_cmd_suite) {
     MU_RUN_TEST(test_sys_cmd_reload_config_file_rejects_args);
     MU_RUN_TEST(test_sys_cmd_show_commands_lists_both_groups);
@@ -275,6 +314,10 @@ MU_TEST_SUITE(sys_cmd_suite) {
     MU_RUN_TEST(test_sys_cmd_set_config_sets_bool);
     MU_RUN_TEST(test_sys_cmd_set_config_sets_string_with_spaces);
     MU_RUN_TEST(test_sys_cmd_set_config_string_accepts_numeric_literal);
+    MU_RUN_TEST(test_sys_cmd_list_config_rejects_args);
+    MU_RUN_TEST(test_sys_cmd_list_config_empty_table_is_void);
+    MU_RUN_TEST(test_sys_cmd_list_config_shows_range_when_constrained);
+    MU_RUN_TEST(test_sys_cmd_list_config_omits_brackets_when_unconstrained);
 }
 
 int main(void) {
