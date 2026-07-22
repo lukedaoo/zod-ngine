@@ -215,9 +215,6 @@ command_execute_result command_execute_by_name(const command_table *table,
                                                const char *name, int argc, char **argv) {
     command *cmd = command_table_get(table, group, name);
     if (!cmd) {
-#if COMMAND_LOG_ENABLED
-        log_error("command.execute_by_name: command %s does not exist", name);
-#endif
         return (command_execute_result){
              .type      = COMMAND_RESULT_COMMAND_NOT_FOUND,
              .value.str = "command.execute_by_name: command does not exist"  //

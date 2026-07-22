@@ -42,7 +42,7 @@ command_execute_result console_cmd_priv_clear_console(int argc, char **argv) {
     if (argc > 0) {
         return (command_execute_result){
              .type      = COMMAND_RESULT_ERROR,
-             .value.str = "clear-console: takes no arguments",
+             .value.str = "clear: takes no arguments",
         };
     }
     console_priv_clear();
@@ -52,6 +52,6 @@ command_execute_result console_cmd_priv_clear_console(int argc, char **argv) {
     };
 }
 
-#endif  // ZOD_CONSOLE_ENABLED
+#endif
 
-#endif  // ZOD_NGINE_IMPLEMENTATION
+#endif

@@ -23,9 +23,11 @@ static const cvar_constraint g_engine_constraints[] = {
      {.name = "window.vsync", .expected = CVAR_BOOL},
      {.name = "window.clear_color", .expected = CVAR_INT},
      {.name = "window.transparent", .expected = CVAR_BOOL},
+     {.name = "window.fullscreen", .expected = CVAR_BOOL},
+     {.name = "window.resizable", .expected = CVAR_BOOL},
 };
 
-#define ENGINE_CONSTRAINTS_COUNT 7
+#define ENGINE_CONSTRAINTS_COUNT 9
 
 void config_priv_seed_preset(config *cfg) {
     cvar_set_int(&cfg->cvars, "engine.target_fps", DEFAULT_CONFIG_TARGET_FPS);
@@ -36,6 +38,8 @@ void config_priv_seed_preset(config *cfg) {
     cvar_set_bool(&cfg->cvars, "window.vsync", DEFAULT_CONFIG_WINDOW_VSYNC);
     cvar_set_int(&cfg->cvars, "window.clear_color", DEFAULT_CONFIG_WINDOW_CLEAR_COLOR);
     cvar_set_bool(&cfg->cvars, "window.transparent", DEFAULT_CONFIG_WINDOW_TRANSPARENT);
+    cvar_set_bool(&cfg->cvars, "window.fullscreen", DEFAULT_CONFIG_WINDOW_FULLSCREEN);
+    cvar_set_bool(&cfg->cvars, "window.resizable", DEFAULT_CONFIG_WINDOW_RESIZABLE);
 
     cvar_set_int(&cfg->cvars, "log.level", DEFAULT_CONFIG_LOG_LEVEL);
 }

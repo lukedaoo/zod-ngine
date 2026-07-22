@@ -1,8 +1,8 @@
 #include <stdbool.h>
 
 #define ZOD_NGINE_IMPLEMENTATION
-#include "ngine.core/index.h"
-#include "ngine.ext.console/index.h"
+#include <ngine.core/index.h>
+#include <ngine.ext.console/index.h>
 
 #define CONFIG_PATH "run-tree/data/engine.scf"
 
@@ -86,11 +86,13 @@ int main(const int argc, const char **argv) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) zngine_request_exit();
+            if (e.type == SDL_EVENT_WINDOW_RESIZED)
+                zngine_window_notify_resized(e.window.data1, e.window.data2);
 #if ZOD_CONSOLE_ENABLED
             if (e.type == SDL_EVENT_TEXT_INPUT) {
                 if (strcmp(e.text.text, "~") == 0) continue;
                 zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT,
-                                                           .text = e.text.text});
+                                                             .text = e.text.text});
             } else if (e.type == SDL_EVENT_KEY_DOWN) {
                 if (e.key.key == SDLK_BACKSPACE) {
                     zconsole_handle_event(
@@ -124,7 +126,8 @@ int main(const int argc, const char **argv) {
         fps_frames++;
         fps_accum += zngine_clock_delta();
         if (fps_accum >= 1.0f) {
-            log_debug("engine.fps: %u, dt: %f", fps_frames, (double)zngine_clock_dt());
+            log_debug("engine.fps: %u, dt: %f, frame_count: %u", fps_frames,
+                    (double)zngine_clock_dt(), zngine_clock_frame());
             fps_frames = 0;
             fps_accum -= 1.0f;
         }

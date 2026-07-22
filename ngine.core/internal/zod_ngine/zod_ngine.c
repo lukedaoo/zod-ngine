@@ -130,6 +130,9 @@ bool zngine_init(const zngine_init_params params) {
         if (cvar_get_bool(&g_ctx.config.cvars, "window.transparent",
                           DEFAULT_CONFIG_WINDOW_TRANSPARENT))
             flags |= SDL_WINDOW_TRANSPARENT;
+        if (cvar_get_bool(&g_ctx.config.cvars, "window.resizable",
+                          DEFAULT_CONFIG_WINDOW_RESIZABLE))
+            flags |= SDL_WINDOW_RESIZABLE;
         g_ctx.window = window_priv_create(title, w, h, flags);
         zngine_apply_config(false);
     }
@@ -168,6 +171,10 @@ void zngine_apply_config(bool adjust_config) {
 
     for (size_t i = 0; i < g_extensions_count; ++i)
         if (g_extensions[i].apply_config) g_extensions[i].apply_config();
+}
+
+void zngine_window_notify_resized(int width, int height) {
+    window_priv_notify_resized(&g_ctx.window, width, height);
 }
 
 bool zngine_should_exit(void) { return g_ctx.should_exit; }

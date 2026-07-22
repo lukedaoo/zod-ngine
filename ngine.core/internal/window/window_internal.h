@@ -10,6 +10,7 @@ struct window {
     int            width;
     int            height;
     uint32_t       clear_color;  // 0xRRGGBBAA
+    bool           fullscreen;
 };
 
 #endif

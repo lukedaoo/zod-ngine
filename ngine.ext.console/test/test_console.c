@@ -66,6 +66,27 @@ MU_TEST(test_write_truncates_overlong_line) {
     mu_assert_int_eq(CONSOLE_MAX_LINE_LEN - 1, (int)strlen(g_console.lines[0]));
 }
 
+MU_TEST(test_write_multiple_lines_wraps_overlong_segment) {
+    reset();
+    char long_arg[2 * (CONSOLE_MAX_LINE_LEN - 1) + 1];
+    memset(long_arg, 'a', sizeof(long_arg) - 1);
+    long_arg[sizeof(long_arg) - 1] = '\0';
+
+    console_priv_write_multiple_lines(COLOR4F_RED, long_arg);
+
+    mu_assert_int_eq(2, g_console.count);
+    mu_assert_int_eq(CONSOLE_MAX_LINE_LEN - 1, (int)strlen(g_console.lines[0]));
+    mu_assert_int_eq(CONSOLE_MAX_LINE_LEN - 1, (int)strlen(g_console.lines[1]));
+}
+
+MU_TEST(test_write_multiple_lines_preserves_newlines) {
+    reset();
+    console_priv_write_multiple_lines(COLOR4F_RED, "system [foo]\nuser [bar]");
+    mu_assert_int_eq(2, g_console.count);
+    mu_assert_string_eq("system [foo]", g_console.lines[0]);
+    mu_assert_string_eq("user [bar]", g_console.lines[1]);
+}
+
 MU_TEST(test_panel_height_uses_visible_lines_when_window_tall_enough) {
     mu_assert_int_eq(200, console_priv_panel_height(10000, 10, 20, 0));
 }
@@ -90,8 +111,9 @@ MU_TEST(test_visible_lines_plus_one_yields_exact_scrollback_rows) {
     int visible_lines = 5;
     int row_height    = 20;
     int overhead      = 10;
-    int height    = console_priv_panel_height(10000, visible_lines + 1, row_height, overhead);
-    int lines_fit = (height - overhead) / row_height;
+    int height =
+         console_priv_panel_height(10000, visible_lines + 1, row_height, overhead);
+    int lines_fit       = (height - overhead) / row_height;
     int scrollback_rows = lines_fit - 1;
     mu_assert_int_eq(visible_lines, scrollback_rows);
 }
@@ -170,21 +192,24 @@ MU_TEST(test_input_submit_on_empty_is_noop) {
 
 MU_TEST(test_handle_event_noop_when_hidden) {
     reset();
-    zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = "hi"});
+    zconsole_handle_event(
+         (zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = "hi"});
     mu_assert_int_eq(0, g_console.input_len);
 }
 
 MU_TEST(test_handle_event_text_appends_when_visible) {
     reset();
     g_console.visible = true;
-    zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = "hi"});
+    zconsole_handle_event(
+         (zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = "hi"});
     mu_assert_string_eq("hi", g_console.input);
 }
 
 MU_TEST(test_handle_event_backspace_routes_correctly) {
     reset();
     g_console.visible = true;
-    zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = "hi"});
+    zconsole_handle_event(
+         (zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = "hi"});
     zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_BACKSPACE});
     mu_assert_string_eq("h", g_console.input);
 }
@@ -192,7 +217,8 @@ MU_TEST(test_handle_event_backspace_routes_correctly) {
 MU_TEST(test_handle_event_submit_routes_correctly) {
     reset();
     g_console.visible = true;
-    zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = "hi"});
+    zconsole_handle_event(
+         (zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = "hi"});
     zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_SUBMIT});
     mu_assert_int_eq(1, g_console.count);
     mu_assert_string_eq("ERROR: invalid command: hi", g_console.lines[0]);
@@ -247,7 +273,8 @@ MU_TEST(test_backspace_removes_char_before_cursor) {
 MU_TEST(test_handle_event_left_right_route_correctly) {
     reset();
     g_console.visible = true;
-    zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = "hi"});
+    zconsole_handle_event(
+         (zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = "hi"});
     zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_LEFT});
     mu_assert_int_eq(1, g_console.cursor_pos);
     zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_RIGHT});
@@ -303,8 +330,7 @@ MU_TEST(test_cmd_register_wires_user_commands_into_cmd_manager) {
 
     console_cmd_priv_register();
 
-    command_execute_result res =
-         zngine_user_command_execute("clear-console", 0, NULL);
+    command_execute_result res = zngine_user_command_execute("clear", 0, NULL);
     mu_check(res.type == COMMAND_RESULT_STRING);
     mu_assert_string_eq("console cleared", res.value.str);
 
@@ -329,6 +355,8 @@ MU_TEST_SUITE(console_suite) {
     MU_RUN_TEST(test_write_formats_args);
     MU_RUN_TEST(test_write_overflow_drops_oldest_line);
     MU_RUN_TEST(test_write_truncates_overlong_line);
+    MU_RUN_TEST(test_write_multiple_lines_wraps_overlong_segment);
+    MU_RUN_TEST(test_write_multiple_lines_preserves_newlines);
     MU_RUN_TEST(test_panel_height_uses_visible_lines_when_window_tall_enough);
     MU_RUN_TEST(test_panel_height_clamps_to_window_height);
     MU_RUN_TEST(test_panel_height_includes_overhead);

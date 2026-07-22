@@ -1,6 +1,7 @@
 #include "../../thirdparty/minunit.h"
 
 #include <stdbool.h>
+#include <string.h>
 
 #define NGINE_UNIT_TEST
 #undef ZOD_NGINE_IMPLEMENTATION
@@ -23,8 +24,10 @@ MU_TEST(test_init_registers_default_system_commands) {
     cmd_manager mgr = {0};
     cmd_manager_priv_init(&mgr);
     mu_assert_int_eq(2, (int)mgr.table.system_commands.header.size);
-    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_SYSTEM, "help") != NULL);
-    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_SYSTEM, "reload-config") != NULL);
+    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_SYSTEM, "reload-config") !=
+             NULL);
+    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_SYSTEM, "show-commands") !=
+             NULL);
     cmd_manager_priv_destroy(&mgr);
 }
 
@@ -54,7 +57,8 @@ MU_TEST(test_unregister_removes_command) {
     cmd_manager mgr = {0};
     cmd_manager_priv_init(&mgr);
     cmd_manager_priv_register(&mgr, COMMAND_GROUP_USER_DEFINED, "foo", mock_handler);
-    mu_check(cmd_manager_priv_unregister(&mgr, COMMAND_GROUP_USER_DEFINED, "foo") == true);
+    mu_check(cmd_manager_priv_unregister(&mgr, COMMAND_GROUP_USER_DEFINED, "foo") ==
+             true);
     mu_check(command_table_get(&mgr.table, COMMAND_GROUP_USER_DEFINED, "foo") == NULL);
     cmd_manager_priv_destroy(&mgr);
 }
@@ -63,8 +67,10 @@ MU_TEST(test_unregister_idempotent) {
     cmd_manager mgr = {0};
     cmd_manager_priv_init(&mgr);
     cmd_manager_priv_register(&mgr, COMMAND_GROUP_USER_DEFINED, "foo", mock_handler);
-    mu_check(cmd_manager_priv_unregister(&mgr, COMMAND_GROUP_USER_DEFINED, "foo") == true);
-    mu_check(cmd_manager_priv_unregister(&mgr, COMMAND_GROUP_USER_DEFINED, "foo") == false);
+    mu_check(cmd_manager_priv_unregister(&mgr, COMMAND_GROUP_USER_DEFINED, "foo") ==
+             true);
+    mu_check(cmd_manager_priv_unregister(&mgr, COMMAND_GROUP_USER_DEFINED, "foo") ==
+             false);
     cmd_manager_priv_destroy(&mgr);
 }
 
@@ -127,21 +133,60 @@ MU_TEST_SUITE(cmd_manager_execute_suite) {
     MU_RUN_TEST(test_execute_null_mgr_safe);
 }
 
-MU_TEST(test_sys_cmd_help_returns_string) {
-    command_execute_result res = sys_cmd_priv_help(0, NULL);
-    mu_check(res.type == COMMAND_RESULT_STRING);
-}
-
 MU_TEST(test_sys_cmd_reload_config_rejects_args) {
-    char                   *argv[] = {"x"};
+    char                  *argv[] = {"x"};
     command_execute_result res    = sys_cmd_priv_reload_config(1, argv);
     mu_check(res.type == COMMAND_RESULT_ERROR);
     mu_assert_string_eq("reload-config: takes no arguments", res.value.str);
 }
 
+MU_TEST(test_sys_cmd_show_commands_lists_both_groups) {
+    g_ctx = (engine_context){0};
+    cmd_manager_priv_init(&g_ctx.cmd_manager);
+    cmd_manager_priv_register(&g_ctx.cmd_manager, COMMAND_GROUP_USER_DEFINED, "foo",
+                              mock_handler);
+
+    command_execute_result res = sys_cmd_priv_show_commands(0, NULL);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_check(strstr(res.value.str, "system [reload-config, show-commands]") != NULL);
+    mu_check(strstr(res.value.str, "user [foo]") != NULL);
+    mu_check(res.value.str[strlen(res.value.str) - 1] != '\n');
+
+    cmd_manager_priv_destroy(&g_ctx.cmd_manager);
+}
+
+MU_TEST(test_sys_cmd_show_commands_filters_by_group) {
+    g_ctx = (engine_context){0};
+    cmd_manager_priv_init(&g_ctx.cmd_manager);
+    cmd_manager_priv_register(&g_ctx.cmd_manager, COMMAND_GROUP_USER_DEFINED, "foo",
+                              mock_handler);
+
+    char                  *argv[] = {"user"};
+    command_execute_result res    = sys_cmd_priv_show_commands(1, argv);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("user [foo]", res.value.str);
+
+    cmd_manager_priv_destroy(&g_ctx.cmd_manager);
+}
+
+MU_TEST(test_sys_cmd_show_commands_rejects_unknown_group) {
+    char                  *argv[] = {"bogus"};
+    command_execute_result res    = sys_cmd_priv_show_commands(1, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
+MU_TEST(test_sys_cmd_show_commands_rejects_extra_args) {
+    char                  *argv[] = {"system", "extra"};
+    command_execute_result res    = sys_cmd_priv_show_commands(2, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
 MU_TEST_SUITE(sys_cmd_suite) {
-    MU_RUN_TEST(test_sys_cmd_help_returns_string);
     MU_RUN_TEST(test_sys_cmd_reload_config_rejects_args);
+    MU_RUN_TEST(test_sys_cmd_show_commands_lists_both_groups);
+    MU_RUN_TEST(test_sys_cmd_show_commands_filters_by_group);
+    MU_RUN_TEST(test_sys_cmd_show_commands_rejects_unknown_group);
+    MU_RUN_TEST(test_sys_cmd_show_commands_rejects_extra_args);
 }
 
 int main(void) {

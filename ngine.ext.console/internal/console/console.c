@@ -195,13 +195,19 @@ void console_priv_write_multiple_lines(color4f color, const char *text) {
     const char *start = text;
     for (const char *p = text;; p++) {
         if (*p == '\n' || *p == '\0') {
-            size_t len = (size_t)(p - start);
-            size_t copy_len =
-                 len < CONSOLE_MAX_LINE_LEN - 1 ? len : CONSOLE_MAX_LINE_LEN - 1;
-            char buf[CONSOLE_MAX_LINE_LEN];
-            memcpy(buf, start, copy_len);
-            buf[copy_len] = '\0';
-            console_priv_write_line(color, buf);
+            const char *seg     = start;
+            size_t      seg_len = (size_t)(p - start);
+            do {
+                size_t chunk_len = seg_len < CONSOLE_MAX_LINE_LEN - 1
+                                        ? seg_len
+                                        : CONSOLE_MAX_LINE_LEN - 1;
+                char   buf[CONSOLE_MAX_LINE_LEN];
+                memcpy(buf, seg, chunk_len);
+                buf[chunk_len] = '\0';
+                console_priv_write_line(color, buf);
+                seg += chunk_len;
+                seg_len -= chunk_len;
+            } while (seg_len > 0);  // wrap segments longer than one console line
             if (*p == '\0') break;
             start = p + 1;
         }
@@ -223,7 +229,7 @@ void zconsole_write_color(color4f color, const char *fmt, ...) {
 }
 
 int console_priv_panel_height(int window_height, int visible_lines, int row_height,
-                         int overhead) {
+                              int overhead) {
     int desired = visible_lines * row_height + overhead;
     return desired < window_height ? desired : window_height;
 }
@@ -297,8 +303,8 @@ bool zconsole_draw(void) {
     // +1 reserves a row for the input line so visible_lines rows of
     // scrollback actually fit — console_priv_platform_draw's lines_fit already
     // budgets one row for input (scrollback_rows = lines_fit - 1).
-    int height = console_priv_panel_height(g_ctx.window.height, g_console.visible_lines + 1,
-                                      row_height, overhead);
+    int height = console_priv_panel_height(
+         g_ctx.window.height, g_console.visible_lines + 1, row_height, overhead);
     console_priv_platform_draw(g_ctx.window.width, height);
     return true;
 }

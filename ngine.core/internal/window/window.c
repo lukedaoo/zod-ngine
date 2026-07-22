@@ -67,9 +67,34 @@ bool window_priv_apply_config(window *window) {
 #endif
     }
     //
-    // window size
+    // fullscreen
     //
     {
+        bool fullscreen = cvar_get_bool(&g_ctx.config.cvars, "window.fullscreen",
+                                        DEFAULT_CONFIG_WINDOW_FULLSCREEN);
+        if (fullscreen != window->fullscreen) {
+            if (!SDL_SetWindowFullscreen(window->handle, fullscreen)) {
+                log_warn(
+                     "window.apply_config: fullscreen=%d set failed — %s, continuing "
+                     "without change",
+                     fullscreen, SDL_GetError());
+                ok = false;
+            } else {
+                window->fullscreen = fullscreen;
+                int actual_w, actual_h;
+                SDL_GetWindowSize(window->handle, &actual_w, &actual_h);
+                window->width  = actual_w;
+                window->height = actual_h;
+                render_backend_priv_resize(window->backend.context, actual_w, actual_h);
+                log_debug("window.apply_config: fullscreen=%d, size=%dx%d", fullscreen,
+                         actual_w, actual_h);
+            }
+        }
+    }
+    //
+    // window size
+    //
+    if (!window->fullscreen) {
         int w = cvar_get_int(&g_ctx.config.cvars, "window.width",
                              DEFAULT_CONFIG_WINDOW_WIDTH);
         int h = cvar_get_int(&g_ctx.config.cvars, "window.height",
@@ -100,6 +125,15 @@ bool window_priv_apply_config(window *window) {
         }
     }
     return ok;
+}
+
+void window_priv_notify_resized(window *window, int width, int height) {
+    if (!window || width <= 0 || height <= 0) return;
+    if (width == window->width && height == window->height) return;
+    window->width  = width;
+    window->height = height;
+    render_backend_priv_resize(window->backend.context, width, height);
+    log_debug("window.notify_resized: %dx%d", width, height);
 }
 
 #endif

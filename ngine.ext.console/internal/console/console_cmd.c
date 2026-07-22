@@ -11,12 +11,12 @@
 
 void console_cmd_priv_register() {
     zngine_command_register(COMMAND_GROUP_USER_DEFINED, "log-hook-register",
-                         console_cmd_priv_register_log_hook);
+                            console_cmd_priv_register_log_hook);
     zngine_command_register(COMMAND_GROUP_USER_DEFINED, "log-hook-unregister",
-                         console_cmd_priv_unregister_log_hook);
+                            console_cmd_priv_unregister_log_hook);
 
-    zngine_command_register(COMMAND_GROUP_USER_DEFINED, "clear-console",
-                         console_cmd_priv_clear_console);
+    zngine_command_register(COMMAND_GROUP_USER_DEFINED, "clear",
+                            console_cmd_priv_clear_console);
 }
 
 #endif  // ZOD_CONSOLE_ENABLED

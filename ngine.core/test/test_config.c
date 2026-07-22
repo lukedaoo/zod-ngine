@@ -28,6 +28,8 @@ MU_TEST(test_preset_string_default) {
 MU_TEST(test_preset_bool_default) {
     reset();
     mu_check(zngine_config_get_bool("window.vsync", false) == true);
+    mu_check(zngine_config_get_bool("window.fullscreen", true) == false);
+    mu_check(zngine_config_get_bool("window.resizable", true) == false);
 }
 
 MU_TEST(test_fallback_on_missing) {

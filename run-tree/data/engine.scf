@@ -5,11 +5,13 @@ target_fps                 144            ; target frame rate
 ; Window configuration
 :/window
 title                      "Test Engine"
-width                      1600
-height                     900
+width                      1600           ; window width,  not applicable for fullscreen
+height                     900            ; window height, not applicable for fullscreen
 transparent                false          ; enable alpha channel
 clear_color                0x141A1AFF     ; clear color. Hex format: 0xRRGGBBAA
 vsync                      true           ; enable vsync
+fullscreen                 true           ; borderless fullscreen, hot-reloadable
+resizable                  true           ; OS-draggable window edge, creation-time only, not hot-reloadable
 
 ; Logging configuration
 :/log

@@ -60,6 +60,11 @@ void zngine_destroy(void);
 
 void zngine_apply_config(bool adjust_config);
 
+// Call from the app's event loop on SDL_EVENT_WINDOW_RESIZED so the
+// viewport tracks interactive drag-resizes (only fires when window.resizable
+// is set).
+void zngine_window_notify_resized(int width, int height);
+
 //
 // Config accessors
 //
