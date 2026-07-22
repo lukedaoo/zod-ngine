@@ -75,6 +75,7 @@ static void reset(void) {
     cvar_destroy(&g_ctx.config.cvars);
     if (g_ctx.config.config_file_watcher)
         file_watcher_close(g_ctx.config.config_file_watcher);
+    cmd_manager_priv_destroy(&g_ctx.cmd_manager);
     g_ctx                      = (engine_context){0};
     before_init_called         = false;
     after_init_called          = false;
@@ -396,6 +397,7 @@ int main(void) {
     MU_RUN_SUITE(zod_ngine_init_suite);
     MU_RUN_SUITE(zod_ngine_init_validation_suite);
     MU_RUN_SUITE(zod_ngine_stage2_suite);
+    reset();  // free the last test's zngine_init() allocations
     MU_REPORT();
     return MU_EXIT_CODE;
 }
