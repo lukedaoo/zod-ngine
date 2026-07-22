@@ -15,7 +15,10 @@ void cmd_manager_priv_register_default_system_commands(cmd_manager *mgr) {
     command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "set-config",
                            sys_cmd_priv_set_config);
 
-    assert(mgr->table.system_commands.header.size == 3 && "expected 3 system commands");
+    command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "get-config",
+                           sys_cmd_priv_get_config);
+
+    assert(mgr->table.system_commands.header.size == 4 && "expected 4 system commands");
 }
 
 void cmd_manager_priv_init(cmd_manager *mgr) {

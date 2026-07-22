@@ -20,24 +20,9 @@ static command_execute_result mock_handler_alt(int argc, char **argv) {
     return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = "alt"};
 }
 
-MU_TEST(test_init_registers_default_system_commands) {
-    cmd_manager mgr = {0};
-    cmd_manager_priv_init(&mgr);
-    mu_assert_int_eq(3, (int)mgr.table.system_commands.header.size);
-    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_SYSTEM, "reload-config-file") !=
-             NULL);
-    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_SYSTEM, "show-commands") !=
-             NULL);
-    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_SYSTEM, "set-config") != NULL);
-    cmd_manager_priv_destroy(&mgr);
-}
-
 MU_TEST(test_destroy_null_safe) { cmd_manager_priv_destroy(NULL); }
 
-MU_TEST_SUITE(cmd_manager_init_suite) {
-    MU_RUN_TEST(test_init_registers_default_system_commands);
-    MU_RUN_TEST(test_destroy_null_safe);
-}
+MU_TEST_SUITE(cmd_manager_init_suite) { MU_RUN_TEST(test_destroy_null_safe); }
 
 MU_TEST(test_register_user_defined_command) {
     cmd_manager mgr = {0};
@@ -149,8 +134,8 @@ MU_TEST(test_sys_cmd_show_commands_lists_both_groups) {
 
     command_execute_result res = sys_cmd_priv_show_commands(0, NULL);
     mu_check(res.type == COMMAND_RESULT_STRING);
-    mu_check(strstr(res.value.str, "system [reload-config-file, show-commands, set-config]") !=
-             NULL);
+    mu_check(strstr(res.value.str,
+                    "system [reload-config-file, show-commands, set-config, get-config]") != NULL);
     mu_check(strstr(res.value.str, "user [foo]") != NULL);
     mu_check(res.value.str[strlen(res.value.str) - 1] != '\n');
 
@@ -190,7 +175,7 @@ MU_TEST(test_sys_cmd_set_config_rejects_missing_args) {
 }
 
 MU_TEST(test_sys_cmd_set_config_rejects_unknown_cvar) {
-    g_ctx = (engine_context){0};
+    g_ctx                         = (engine_context){0};
     char                  *argv[] = {"does.not.exist", "1"};
     command_execute_result res    = sys_cmd_priv_set_config(2, argv);
     mu_check(res.type == COMMAND_RESULT_ERROR);

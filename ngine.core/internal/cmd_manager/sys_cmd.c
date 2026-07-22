@@ -94,18 +94,18 @@ command_execute_result sys_cmd_priv_show_commands(int argc, char **argv) {
 #define SYS_CMD_SET_CONFIG_VALUE_LEN 128
 #endif
 
-#ifndef SYS_CMD_SET_CONFIG_BUFFER_LEN
-#define SYS_CMD_SET_CONFIG_BUFFER_LEN (CVAR_NAME_MAX + SYS_CMD_SET_CONFIG_VALUE_LEN + 32)
+#ifndef SYS_CMD_CONFIG_BUFFER_LEN
+#define SYS_CMD_CONFIG_BUFFER_LEN (CVAR_NAME_MAX + SYS_CMD_SET_CONFIG_VALUE_LEN + 32)
 #endif
 
 // set-config
 command_execute_result sys_cmd_priv_set_config(int argc, char **argv) {
-    static __thread char buf[SYS_CMD_SET_CONFIG_BUFFER_LEN];
+    static __thread char buf[SYS_CMD_CONFIG_BUFFER_LEN];
 
     if (argc < 2) {
         return (command_execute_result){
              .type      = COMMAND_RESULT_ERROR,
-             .value.str = "set-config: usage: set-config <cvar_name> <value>",
+             .value.str = "usage: set-config <cvar_name> <value>",
         };
     }
 
@@ -165,5 +165,42 @@ command_execute_result sys_cmd_priv_set_config(int argc, char **argv) {
     zngine_apply_config(true);
     return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
 }
+// get-config
+command_execute_result sys_cmd_priv_get_config(int argc, char **argv) {
+    (void)argv;
+    if (argc != 1) {
+        return (command_execute_result){
+             .type      = COMMAND_RESULT_ERROR,
+             .value.str = "usage: get-config <cvar_name>",
+        };
+    }
 
+    static __thread char buf[SYS_CMD_CONFIG_BUFFER_LEN];
+    const char          *name  = argv[0];
+    cvar_table          *cvars = &g_ctx.config.cvars;
+    cvar                *v     = cvar_get(cvars, name);
+    if (!v) {
+        snprintf(buf, sizeof(buf), "get-config: unknown cvar '%s'", name);
+        return (command_execute_result){.type = COMMAND_RESULT_ERROR, .value.str = buf};
+    }
+
+    switch (v->type) {
+        case CVAR_INT:
+            snprintf(buf, sizeof(buf), "get-config: found %s=%d", name, v->value.i);
+            break;
+        case CVAR_FLOAT:
+            snprintf(buf, sizeof(buf), "get-config: found %s=%f", name, v->value.f);
+            break;
+        case CVAR_BOOL:
+            snprintf(buf, sizeof(buf), "get-config: found %s=%s", name,
+                     v->value.b ? "true" : "false");
+            break;
+        case CVAR_STRING:
+            snprintf(buf, sizeof(buf), "get-config: found %s=\"%s\"", name,
+                     v->value.str.data);
+            break;
+    }
+
+    return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
+}
 #endif
