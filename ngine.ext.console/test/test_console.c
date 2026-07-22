@@ -254,6 +254,73 @@ MU_TEST(test_handle_event_left_right_route_correctly) {
     mu_assert_int_eq(2, g_console.cursor_pos);
 }
 
+MU_TEST(test_cmd_register_log_hook_returns_registered_message) {
+    reset();
+    command_execute_result res = console_cmd_priv_register_log_hook(0, NULL);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("log-hook registered", res.value.str);
+}
+
+MU_TEST(test_cmd_register_log_hook_rejects_args) {
+    reset();
+    command_execute_result res = console_cmd_priv_register_log_hook(1, NULL);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
+MU_TEST(test_cmd_unregister_log_hook_returns_unregistered_message) {
+    reset();
+    command_execute_result res = console_cmd_priv_unregister_log_hook(0, NULL);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("log-hook unregistered", res.value.str);
+}
+
+MU_TEST(test_cmd_unregister_log_hook_rejects_args) {
+    reset();
+    command_execute_result res = console_cmd_priv_unregister_log_hook(1, NULL);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
+MU_TEST(test_cmd_clear_console_clears_lines) {
+    reset();
+    zconsole_write("hello");
+    command_execute_result res = console_cmd_priv_clear_console(0, NULL);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("console cleared", res.value.str);
+    mu_assert_int_eq(0, g_console.count);
+    mu_assert_string_eq("", g_console.lines[0]);
+}
+
+MU_TEST(test_cmd_clear_console_rejects_args) {
+    reset();
+    command_execute_result res = console_cmd_priv_clear_console(1, NULL);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
+MU_TEST(test_cmd_register_wires_user_commands_into_cmd_manager) {
+    reset();
+    g_ctx = (engine_context){0};
+    cmd_manager_priv_init(&g_ctx.cmd_manager);
+
+    console_cmd_priv_register();
+
+    command_execute_result res =
+         zngine_user_command_execute("clear-console", 0, NULL);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("console cleared", res.value.str);
+
+    cmd_manager_priv_destroy(&g_ctx.cmd_manager);
+}
+
+MU_TEST_SUITE(console_cmd_suite) {
+    MU_RUN_TEST(test_cmd_register_log_hook_returns_registered_message);
+    MU_RUN_TEST(test_cmd_register_log_hook_rejects_args);
+    MU_RUN_TEST(test_cmd_unregister_log_hook_returns_unregistered_message);
+    MU_RUN_TEST(test_cmd_unregister_log_hook_rejects_args);
+    MU_RUN_TEST(test_cmd_clear_console_clears_lines);
+    MU_RUN_TEST(test_cmd_clear_console_rejects_args);
+    MU_RUN_TEST(test_cmd_register_wires_user_commands_into_cmd_manager);
+}
+
 MU_TEST_SUITE(console_suite) {
     MU_RUN_TEST(test_toggle_flips_visibility);
     MU_RUN_TEST(test_toggle_noop_when_disabled);
@@ -291,6 +358,7 @@ MU_TEST_SUITE(console_suite) {
 
 int main(void) {
     MU_RUN_SUITE(console_suite);
+    MU_RUN_SUITE(console_cmd_suite);
     MU_REPORT();
     return MU_EXIT_CODE;
 }
