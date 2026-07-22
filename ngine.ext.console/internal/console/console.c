@@ -166,6 +166,12 @@ void zconsole_handle_event(zconsole_input_event event) {
         case ZCONSOLE_INPUT_HISTORY_NEXT:
             console_priv_history_next();
             break;
+        case ZCONSOLE_INPUT_SCROLL_UP:
+            console_priv_scroll_up();
+            break;
+        case ZCONSOLE_INPUT_SCROLL_DOWN:
+            console_priv_scroll_down();
+            break;
     }
 }
 
@@ -185,6 +191,7 @@ static void console_write_v(color4f color, const char *fmt, va_list args) {
     vsnprintf(g_console.lines[g_console.count], CONSOLE_MAX_LINE_LEN, fmt, args);
     g_console.lines_color[g_console.count] = color;
     g_console.count++;
+    g_console.scroll_offset = 0;  // new output snaps the view back to the bottom
 }
 
 // text is written verbatim (no % expansion) — safe for log messages that may
@@ -195,6 +202,7 @@ void console_priv_write_line(color4f color, const char *text) {
     snprintf(g_console.lines[g_console.count], CONSOLE_MAX_LINE_LEN, "%s", text);
     g_console.lines_color[g_console.count] = color;
     g_console.count++;
+    g_console.scroll_offset = 0;  // new output snaps the view back to the bottom
 }
 
 void console_priv_write_multiple_lines(color4f color, const char *text) {
@@ -240,9 +248,26 @@ int console_priv_panel_height(int window_height, int visible_lines, int row_heig
     return desired < window_height ? desired : window_height;
 }
 
-int console_priv_visible_line_start(int count, int lines_that_fit) {
-    int start = count - lines_that_fit;
+int console_priv_visible_line_start(int count, int lines_that_fit, int scroll_offset) {
+    int max_offset = count - lines_that_fit;
+    if (max_offset < 0) max_offset = 0;
+    if (scroll_offset > max_offset) scroll_offset = max_offset;
+    if (scroll_offset < 0) scroll_offset = 0;
+
+    int start = count - lines_that_fit - scroll_offset;
     return start > 0 ? start : 0;
+}
+
+void console_priv_scroll_up(void) {
+    int step = g_console.visible_lines > 0 ? g_console.visible_lines : 1;
+    g_console.scroll_offset += step;
+    if (g_console.scroll_offset > g_console.count) g_console.scroll_offset = g_console.count;
+}
+
+void console_priv_scroll_down(void) {
+    int step = g_console.visible_lines > 0 ? g_console.visible_lines : 1;
+    g_console.scroll_offset -= step;
+    if (g_console.scroll_offset < 0) g_console.scroll_offset = 0;
 }
 
 void console_priv_input_append(char c) {
@@ -368,10 +393,11 @@ bool zconsole_destroy(void) {
 }
 
 void console_priv_clear() {
-    g_console.count      = 0;
-    g_console.cursor_pos = 0;
-    g_console.input_len  = 0;
-    g_console.input[0]   = '\0';
+    g_console.count         = 0;
+    g_console.cursor_pos    = 0;
+    g_console.input_len     = 0;
+    g_console.input[0]      = '\0';
+    g_console.scroll_offset = 0;
 
     for (int i = 0; i < CONSOLE_MAX_LINES; i++) {
         g_console.lines[i][0] = '\0';

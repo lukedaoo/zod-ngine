@@ -11,6 +11,8 @@ typedef enum zconsole_input_kind {
     ZCONSOLE_INPUT_RIGHT,
     ZCONSOLE_INPUT_HISTORY_PREV,
     ZCONSOLE_INPUT_HISTORY_NEXT,
+    ZCONSOLE_INPUT_SCROLL_UP,
+    ZCONSOLE_INPUT_SCROLL_DOWN,
 } zconsole_input_kind;
 
 typedef struct zconsole_input_event {

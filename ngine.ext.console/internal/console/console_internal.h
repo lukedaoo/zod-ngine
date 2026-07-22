@@ -104,6 +104,11 @@ typedef struct console_state {
     int     history_index;
     char    history_draft[CONSOLE_INPUT_MAX_LEN];
 
+    // Lines scrolled up from the bottom (0 = pinned to newest). Loosely clamped
+    // to [0, count] here; console_priv_visible_line_start does the tight clamp
+    // against however many lines actually fit on screen right now.
+    int     scroll_offset;
+
     float   text_pad_x;
     float   top_pad;
     float   input_box_margin;
@@ -136,8 +141,9 @@ int console_priv_panel_height(int window_height, int visible_lines, int row_heig
                          int overhead);
 
 // First index of g_console.lines to draw, given how many lines fit in the
-// panel — clips to the most recent lines_that_fit entries.
-int console_priv_visible_line_start(int count, int lines_that_fit);
+// panel and how far scrolled up from the bottom — clips to the most recent
+// lines_that_fit entries once scroll_offset is applied and clamped.
+int console_priv_visible_line_start(int count, int lines_that_fit, int scroll_offset);
 
 void console_priv_input_append(char c);
 void console_priv_input_backspace(void);
@@ -148,6 +154,9 @@ void console_priv_input_submit(void);
 void console_priv_history_push(const char *text);
 void console_priv_history_prev(void);
 void console_priv_history_next(void);
+
+void console_priv_scroll_up(void);
+void console_priv_scroll_down(void);
 
 void console_priv_platform_draw(int width, int height);
 

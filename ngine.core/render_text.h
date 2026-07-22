@@ -13,6 +13,14 @@ void render_text_destroy(void);
 void render_text_draw_basic(float x, float y, const char *str, float scale, color4f color,
                             const simple_font *font, float weight);
 
+// CPU-side clip to [clip_x0,clip_y0]-[clip_x1,clip_y1] in caller space — a glyph
+// straddling an edge is trimmed (geometry + UV), one fully outside is dropped.
+// Substitute for wrapping a draw call in glEnable(GL_SCISSOR_TEST)/glScissor.
+void render_text_draw_clipped(float x, float y, const char *str, float scale,
+                              color4f color, const simple_font *font, float weight,
+                              float clip_x0, float clip_y0, float clip_x1,
+                              float clip_y1);
+
 void render_text_draw_padded(float x, float y, const char *str, float scale,
                              color4f color, const simple_font *font, float pad_x,
                              float pad_y, float weight);

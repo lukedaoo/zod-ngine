@@ -139,11 +139,81 @@ MU_TEST(test_apply_config_reads_visible_lines_override) {
 }
 
 MU_TEST(test_visible_line_start_when_all_lines_fit) {
-    mu_assert_int_eq(0, console_priv_visible_line_start(5, 10));
+    mu_assert_int_eq(0, console_priv_visible_line_start(5, 10, 0));
 }
 
 MU_TEST(test_visible_line_start_when_buffer_exceeds_panel) {
-    mu_assert_int_eq(90, console_priv_visible_line_start(100, 10));
+    mu_assert_int_eq(90, console_priv_visible_line_start(100, 10, 0));
+}
+
+MU_TEST(test_visible_line_start_applies_scroll_offset) {
+    mu_assert_int_eq(80, console_priv_visible_line_start(100, 10, 10));
+}
+
+MU_TEST(test_visible_line_start_clamps_scroll_offset_to_top) {
+    mu_assert_int_eq(0, console_priv_visible_line_start(100, 10, 1000));
+}
+
+MU_TEST(test_visible_line_start_clamps_negative_scroll_offset) {
+    mu_assert_int_eq(90, console_priv_visible_line_start(100, 10, -5));
+}
+
+MU_TEST(test_scroll_up_advances_by_visible_lines) {
+    reset();
+    g_console.count         = 100;
+    g_console.visible_lines = 10;
+    console_priv_scroll_up();
+    mu_assert_int_eq(10, g_console.scroll_offset);
+}
+
+MU_TEST(test_scroll_up_clamps_to_count) {
+    reset();
+    g_console.count         = 5;
+    g_console.visible_lines = 10;
+    console_priv_scroll_up();
+    mu_assert_int_eq(5, g_console.scroll_offset);
+}
+
+MU_TEST(test_scroll_down_retreats_by_visible_lines) {
+    reset();
+    g_console.count         = 100;
+    g_console.visible_lines = 10;
+    g_console.scroll_offset = 25;
+    console_priv_scroll_down();
+    mu_assert_int_eq(15, g_console.scroll_offset);
+}
+
+MU_TEST(test_scroll_down_clamps_to_zero) {
+    reset();
+    g_console.visible_lines = 10;
+    g_console.scroll_offset = 5;
+    console_priv_scroll_down();
+    mu_assert_int_eq(0, g_console.scroll_offset);
+}
+
+MU_TEST(test_new_output_resets_scroll_offset) {
+    reset();
+    g_console.scroll_offset = 10;
+    zconsole_write("new line");
+    mu_assert_int_eq(0, g_console.scroll_offset);
+}
+
+MU_TEST(test_clear_resets_scroll_offset) {
+    reset();
+    g_console.scroll_offset = 10;
+    console_priv_clear();
+    mu_assert_int_eq(0, g_console.scroll_offset);
+}
+
+MU_TEST(test_handle_event_scroll_routes_correctly) {
+    reset();
+    g_console.visible       = true;
+    g_console.count         = 100;
+    g_console.visible_lines = 10;
+    zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_SCROLL_UP});
+    mu_assert_int_eq(10, g_console.scroll_offset);
+    zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_SCROLL_DOWN});
+    mu_assert_int_eq(0, g_console.scroll_offset);
 }
 
 MU_TEST(test_input_append_stores_chars) {
@@ -458,6 +528,16 @@ MU_TEST_SUITE(console_suite) {
     MU_RUN_TEST(test_apply_config_reads_visible_lines_override);
     MU_RUN_TEST(test_visible_line_start_when_all_lines_fit);
     MU_RUN_TEST(test_visible_line_start_when_buffer_exceeds_panel);
+    MU_RUN_TEST(test_visible_line_start_applies_scroll_offset);
+    MU_RUN_TEST(test_visible_line_start_clamps_scroll_offset_to_top);
+    MU_RUN_TEST(test_visible_line_start_clamps_negative_scroll_offset);
+    MU_RUN_TEST(test_scroll_up_advances_by_visible_lines);
+    MU_RUN_TEST(test_scroll_up_clamps_to_count);
+    MU_RUN_TEST(test_scroll_down_retreats_by_visible_lines);
+    MU_RUN_TEST(test_scroll_down_clamps_to_zero);
+    MU_RUN_TEST(test_new_output_resets_scroll_offset);
+    MU_RUN_TEST(test_clear_resets_scroll_offset);
+    MU_RUN_TEST(test_handle_event_scroll_routes_correctly);
     MU_RUN_TEST(test_input_append_stores_chars);
     MU_RUN_TEST(test_input_append_bounded_when_full);
     MU_RUN_TEST(test_input_backspace_removes_last_char);

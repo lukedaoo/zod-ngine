@@ -239,11 +239,18 @@ void console_priv_platform_draw(int width, int height) {
         console_platform_draw_input_box(box_x, row_top, box_w, row_height);
     }
 
-    int start = console_priv_visible_line_start(g_console.count, scrollback_rows);
+    // Scrollback text is clipped on the CPU (per-glyph, geometry + UV trimmed to
+    // the rect) rather than via glScissor — never renders at/past row_top (the
+    // input box's own row) or past the panel bottom, regardless of scrollback_rows.
+    float scrollback_clip_bottom = lines_fit > 0 ? row_top : (float)height;
+    int   start = console_priv_visible_line_start(g_console.count, scrollback_rows,
+                                                  g_console.scroll_offset);
     for (int i = start; i < g_console.count; i++) {
-        render_text_draw_padded(0.0f, (float)(i - start) * row_height + line_offset,
-                                g_console.lines[i], scale, g_console.lines_color[i], font,
-                                g_console.text_pad_x, 0.0f, 0.05f);
+        render_text_draw_clipped(g_console.text_pad_x,
+                                 (float)(i - start) * row_height + line_offset,
+                                 g_console.lines[i], scale, g_console.lines_color[i],
+                                 font, 0.05f, 0.0f, 0.0f, (float)width,
+                                 scrollback_clip_bottom);
     }
 
     console_flush_rects();
@@ -252,35 +259,31 @@ void console_priv_platform_draw(int width, int height) {
     if (lines_fit > 0) {
         float input_y =
              (float)scrollback_rows * row_height + line_offset + g_console.input_gap;
-        // Available width is the box's own interior (box_w), not the panel's
-        // full width — text must stay within the box it's visually drawn in.
         float available_width = box_w - g_console.text_pad_x - g_console.input_right_pad;
         int   scroll_start    = console_input_scroll_start(
              g_console.input, g_console.cursor_pos, available_width, font, scale);
 
-        render_text_draw_padded(box_x, input_y, g_console.input + scroll_start, scale,
-                                g_console.input_text_color, font, g_console.text_pad_x,
-                                0.0f, 0.0f);
+        // Clipped to the box's own interior — scroll_start only guarantees the
+        // cursor fits, text past the cursor (or an unscrolled string longer than
+        // the box) would otherwise still extend past the box edges.
+        float stroke      = g_console.input_box_stroke;
+        float clip_left   = box_x + stroke;
+        float clip_top    = row_top + stroke;
+        float clip_right  = box_x + box_w - stroke;
+        float clip_bottom = row_top + row_height - stroke;
+
+        render_text_draw_clipped(box_x + g_console.text_pad_x, input_y,
+                                 g_console.input + scroll_start, scale,
+                                 g_console.input_text_color, font, 0.0f, clip_left,
+                                 clip_top, clip_right, clip_bottom);
         float cursor_x =
              box_x + g_console.text_pad_x +
              console_measure_text_width(g_console.input + scroll_start,
                                         g_console.cursor_pos - scroll_start, font, scale);
-        render_text_draw_basic(cursor_x, input_y, "|", scale, g_console.input_text_color,
-                               font, 0.0f);
-
-        // scroll_start only guarantees the cursor fits — text past the
-        // cursor (or an unscrolled string longer than the box) still queues
-        // quads beyond the box edges, so clip the flush to the box interior
-        // instead of trying to bound it purely by character counting.
-        float     stroke       = g_console.input_box_stroke;
-        GLboolean prev_scissor = glIsEnabled(GL_SCISSOR_TEST);
-        glEnable(GL_SCISSOR_TEST);
-        glScissor((GLint)(box_x + stroke),
-                  (GLint)((float)g_ctx.window.height - (row_top + row_height - stroke)),
-                  (GLsizei)(box_w - 2.0f * stroke),
-                  (GLsizei)(row_height - 2.0f * stroke));
+        render_text_draw_clipped(cursor_x, input_y, "|", scale,
+                                 g_console.input_text_color, font, 0.0f, clip_left,
+                                 clip_top, clip_right, clip_bottom);
         render_text_flush();
-        if (!prev_scissor) glDisable(GL_SCISSOR_TEST);
     }
 }
 

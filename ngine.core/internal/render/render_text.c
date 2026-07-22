@@ -178,9 +178,44 @@ void render_text_destroy(void) {
 
 void render_text_invalidate(void) { render_text_state.dirty = true; }
 
-static void render_text_draw_weighted(float x, float y, const char *str, float scale,
-                                      color4f color, const simple_font *font,
-                                      float weight) {
+// Pure geometry, no GL/font/state dependency — trims [qx0,qy0]-[qx1,qy1] (with UV
+// [u0,v0]-[u1,v1]) to the clip rect, re-interpolating UV at any edge it trims so a
+// partial glyph still samples the right slice of the atlas instead of the whole
+// glyph squashed into a smaller quad. Returns false (out params untouched) if the
+// quad is fully outside the clip rect — caller should skip it entirely.
+static bool render_text_clip_quad(float qx0, float qy0, float qx1, float qy1, float u0,
+                                  float v0, float u1, float v1, float clip_x0,
+                                  float clip_y0, float clip_x1, float clip_y1,
+                                  float *out_x0, float *out_y0, float *out_x1,
+                                  float *out_y1, float *out_u0, float *out_v0,
+                                  float *out_u1, float *out_v1) {
+    float cx0 = fmaxf(qx0, clip_x0);
+    float cy0 = fmaxf(qy0, clip_y0);
+    float cx1 = fminf(qx1, clip_x1);
+    float cy1 = fminf(qy1, clip_y1);
+
+    if (cx1 <= cx0 || cy1 <= cy0) return false;
+
+    *out_x0 = cx0;
+    *out_y0 = cy0;
+    *out_x1 = cx1;
+    *out_y1 = cy1;
+    *out_u0 = u0 + (cx0 - qx0) / (qx1 - qx0) * (u1 - u0);
+    *out_u1 = u0 + (cx1 - qx0) / (qx1 - qx0) * (u1 - u0);
+    *out_v0 = v0 + (cy0 - qy0) / (qy1 - qy0) * (v1 - v0);
+    *out_v1 = v0 + (cy1 - qy0) / (qy1 - qy0) * (v1 - v0);
+    return true;
+}
+
+// clip_x0/y0/x1/y1 bound every glyph quad in caller space (pass +-INFINITY on all
+// sides for "no clipping"). This is a CPU-side substitute for glScissor, so callers
+// never need GL scissor state at all, at the cost of a few extra comparisons per
+// glyph (render_text_clip_quad above).
+static void render_text_draw_weighted_clipped(float x, float y, const char *str,
+                                              float scale, color4f color,
+                                              const simple_font *font, float weight,
+                                              float clip_x0, float clip_y0, float clip_x1,
+                                              float clip_y1) {
     if (font != render_text_state.bound_font || render_text_state.dirty) {
         render_text_upload_atlas(font);
         render_text_state.bound_font = font;
@@ -205,20 +240,26 @@ static void render_text_draw_weighted(float x, float y, const char *str, float s
                 float u1 = (float)(g->x + g->width) / (float)atlas.width;
                 float v1 = (float)(g->y + g->height) / (float)atlas.height;
 
-                render_text_vertex *v =
-                     &render_text_state.vertices[(ptrdiff_t)render_text_state.quad_count *
-                                                 RENDER_TEXT_VERTS_PER_QUAD];
+                float cx0, cy0, cx1, cy1, cu0, cv0, cu1, cv1;
+                if (render_text_clip_quad(qx0, qy0, qx1, qy1, u0, v0, u1, v1, clip_x0,
+                                          clip_y0, clip_x1, clip_y1, &cx0, &cy0, &cx1,
+                                          &cy1, &cu0, &cv0, &cu1, &cv1)) {
+                    render_text_vertex *v =
+                         &render_text_state
+                               .vertices[(ptrdiff_t)render_text_state.quad_count *
+                                         RENDER_TEXT_VERTS_PER_QUAD];
 
-                // clang-format off
-                v[0] = (render_text_vertex){qx0, qy0, u0, v0, color.r, color.g, color.b, color.a, weight};
-                v[1] = (render_text_vertex){qx1, qy0, u1, v0, color.r, color.g, color.b, color.a, weight};
-                v[2] = (render_text_vertex){qx1, qy1, u1, v1, color.r, color.g, color.b, color.a, weight};
-                v[3] = (render_text_vertex){qx0, qy0, u0, v0, color.r, color.g, color.b, color.a, weight};
-                v[4] = (render_text_vertex){qx1, qy1, u1, v1, color.r, color.g, color.b, color.a, weight};
-                v[5] = (render_text_vertex){qx0, qy1, u0, v1, color.r, color.g, color.b, color.a, weight};
-                // clang-format on
+                    // clang-format off
+                    v[0] = (render_text_vertex){cx0, cy0, cu0, cv0, color.r, color.g, color.b, color.a, weight};
+                    v[1] = (render_text_vertex){cx1, cy0, cu1, cv0, color.r, color.g, color.b, color.a, weight};
+                    v[2] = (render_text_vertex){cx1, cy1, cu1, cv1, color.r, color.g, color.b, color.a, weight};
+                    v[3] = (render_text_vertex){cx0, cy0, cu0, cv0, color.r, color.g, color.b, color.a, weight};
+                    v[4] = (render_text_vertex){cx1, cy1, cu1, cv1, color.r, color.g, color.b, color.a, weight};
+                    v[5] = (render_text_vertex){cx0, cy1, cu0, cv1, color.r, color.g, color.b, color.a, weight};
+                    // clang-format on
 
-                render_text_state.quad_count++;
+                    render_text_state.quad_count++;
+                }
             }
             cursor_x += (float)g->advance * scale;
         } else {
@@ -229,7 +270,16 @@ static void render_text_draw_weighted(float x, float y, const char *str, float s
 
 void render_text_draw_basic(float x, float y, const char *str, float scale, color4f color,
                             const simple_font *font, float weight) {
-    render_text_draw_weighted(x, y, str, scale, color, font, weight);
+    render_text_draw_weighted_clipped(x, y, str, scale, color, font, weight, -INFINITY,
+                                      -INFINITY, INFINITY, INFINITY);
+}
+
+void render_text_draw_clipped(float x, float y, const char *str, float scale,
+                              color4f color, const simple_font *font, float weight,
+                              float clip_x0, float clip_y0, float clip_x1,
+                              float clip_y1) {
+    render_text_draw_weighted_clipped(x, y, str, scale, color, font, weight, clip_x0,
+                                      clip_y0, clip_x1, clip_y1);
 }
 
 void render_text_flush(void) {
@@ -278,6 +328,16 @@ void render_text_draw_basic(float x, float y, const char *str, float scale, colo
     (void)color;
     (void)font;
     (void)weight;
+}
+void render_text_draw_clipped(float x, float y, const char *str, float scale,
+                              color4f color, const simple_font *font, float weight,
+                              float clip_x0, float clip_y0, float clip_x1,
+                              float clip_y1) {
+    (void)clip_x0;
+    (void)clip_y0;
+    (void)clip_x1;
+    (void)clip_y1;
+    render_text_draw_basic(x, y, str, scale, color, font, weight);
 }
 void render_text_flush(void) {}
 void render_text_invalidate(void) {}
@@ -335,7 +395,7 @@ void render_text_draw_full(float x, float y, const char *str, float scale, color
 
     if (is_center) dx -= tw / 2.0f;
 
-    render_text_draw_weighted(dx, dy, str, scale, color, font, weight);
+    render_text_draw_basic(dx, dy, str, scale, color, font, weight);
 }
 
 #endif

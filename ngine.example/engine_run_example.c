@@ -113,6 +113,12 @@ int main(const int argc, const char **argv) {
                 } else if (e.key.key == SDLK_DOWN) {
                     zconsole_handle_event(
                          (zconsole_input_event){.kind = ZCONSOLE_INPUT_HISTORY_NEXT});
+                } else if (e.key.key == SDLK_PAGEUP) {
+                    zconsole_handle_event(
+                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_SCROLL_UP});
+                } else if (e.key.key == SDLK_PAGEDOWN) {
+                    zconsole_handle_event(
+                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_SCROLL_DOWN});
                 }
             }
 #endif

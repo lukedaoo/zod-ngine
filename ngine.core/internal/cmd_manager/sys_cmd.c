@@ -141,7 +141,7 @@ command_execute_result sys_cmd_priv_set_config(int argc, char **argv) {
     }
 
     if (!cvar_parse_and_set_named(name, value_buf, cvars)) {
-        snprintf(buf, sizeof(buf), "set-config: failed to set '%s' — see log for details",
+        snprintf(buf, sizeof(buf), "set-config: failed to set '%s'. See log for details",
                  name);
         return (command_execute_result){.type = COMMAND_RESULT_ERROR, .value.str = buf};
     }
@@ -229,8 +229,8 @@ command_execute_result sys_cmd_priv_list_config(int argc, char **argv) {
                                 cvar_type_to_string(cv->type));
 
         const cvar_constraint *c = cvar_find_constraint(cvars, cv->name);
-        bool has_range = c && (c->range.has_min || c->range.has_max) &&
-                         (cv->type == CVAR_INT || cv->type == CVAR_FLOAT);
+        bool has_range           = c && (c->range.has_min || c->range.has_max) &&
+                                   (cv->type == CVAR_INT || cv->type == CVAR_FLOAT);
         if (has_range) {
             char min_buf[24], max_buf[24];
             if (cv->type == CVAR_INT) {
