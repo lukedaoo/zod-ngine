@@ -27,7 +27,7 @@ static const cvar_constraint g_engine_constraints[] = {
 
 #define ENGINE_CONSTRAINTS_COUNT 7
 
-void config_seed_preset(config *cfg) {
+void config_priv_seed_preset(config *cfg) {
     cvar_set_int(&cfg->cvars, "engine.target_fps", DEFAULT_CONFIG_TARGET_FPS);
 
     cvar_set_int(&cfg->cvars, "window.width", DEFAULT_CONFIG_WINDOW_WIDTH);
@@ -40,19 +40,19 @@ void config_seed_preset(config *cfg) {
     cvar_set_int(&cfg->cvars, "log.level", DEFAULT_CONFIG_LOG_LEVEL);
 }
 
-void config_init(config *cfg) {
+void config_priv_init(config *cfg) {
     log_debug("config.init: seeding defaults");
-    config_seed_preset(cfg);
+    config_priv_seed_preset(cfg);
     cvar_add_schema(&cfg->cvars, g_engine_constraints, ENGINE_CONSTRAINTS_COUNT);
 }
 
-void config_destroy(config *cfg) {
+void config_priv_destroy(config *cfg) {
     if (!cfg) return;
     cvar_destroy(&cfg->cvars);
     file_watcher_close(cfg->config_file_watcher);
 }
 
-void config_add_user_constraints(config *cfg, const cvar_constraint *entries,
+void config_priv_add_user_constraints(config *cfg, const cvar_constraint *entries,
                                  size_t count) {
     cvar_add_schema(&cfg->cvars, entries, count);
 }
@@ -79,11 +79,11 @@ static bool load_config_from_file_default(const char *filepath, cvar_table *cvar
     return ok;
 }
 
-bool config_reload_from_file(config *cfg) {
+bool config_priv_reload_from_file(config *cfg) {
     if (!cfg || !cfg->config_file_watcher) {
         log_error(
              "config.reload: called without a file watcher — enable hot_reload=true in "
-             "zod_engine_init_params");
+             "zngine_init_params");
         return false;
     }
 
@@ -93,8 +93,8 @@ bool config_reload_from_file(config *cfg) {
     }
 
     config tmp = {0};
-    config_seed_preset(&tmp);
-    zod_run_extension_init_config(&tmp.cvars);
+    config_priv_seed_preset(&tmp);
+    zngine_run_extension_init_config(&tmp.cvars);
     cvar_copy_schema(&tmp.cvars, &cfg->cvars);
     if (!cfg->reload_config_func(cfg->config_file_watcher->path, &tmp.cvars)) {
         cvar_destroy(&tmp.cvars);
@@ -103,7 +103,7 @@ bool config_reload_from_file(config *cfg) {
         return false;
     }
 
-    if (!config_validate(&tmp)) {
+    if (!config_priv_validate(&tmp)) {
         cvar_destroy(&tmp.cvars);
         log_warn("config.reload: reloaded config failed validation — keeping previous "
                  "config");
@@ -115,7 +115,7 @@ bool config_reload_from_file(config *cfg) {
     return true;
 }
 
-bool config_adjust(config *cfg) {
+bool config_priv_adjust(config *cfg) {
     if (!cfg) {
         log_error("config.adjust: called with NULL cfg — this is a bug");
         return false;
@@ -137,7 +137,7 @@ bool config_adjust(config *cfg) {
     return true;
 }
 
-bool config_validate(config *cfg) {
+bool config_priv_validate(config *cfg) {
     if (!cfg) {
         log_error("config.validate: called with NULL cfg — this is a bug");
         return false;
@@ -163,7 +163,7 @@ bool config_validate(config *cfg) {
     return true;
 }
 
-void config_print(config *cfg) {
+void config_priv_print(config *cfg) {
     log_debug("config.print: current values");
     cvar_print(&cfg->cvars);
 }

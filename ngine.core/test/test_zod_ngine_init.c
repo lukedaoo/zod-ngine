@@ -89,20 +89,20 @@ static void reset(void) {
 
 MU_TEST(test_init_returns_true_no_dispatch) {
     reset();
-    mu_check(zod_ngine_init((zod_engine_init_params){0}));
+    mu_check(zngine_init((zngine_init_params){0}));
 }
 
 MU_TEST(test_init_seeds_preset_config) {
     reset();
-    zod_ngine_init((zod_engine_init_params){0});
-    mu_assert_int_eq(800, zod_config_get_int("window.width", 0));
-    mu_assert_int_eq(600, zod_config_get_int("window.height", 0));
-    mu_assert_string_eq("zod-ngine", zod_config_get_string("window.title", ""));
+    zngine_init((zngine_init_params){0});
+    mu_assert_int_eq(800, zngine_config_get_int("window.width", 0));
+    mu_assert_int_eq(600, zngine_config_get_int("window.height", 0));
+    mu_assert_string_eq("zod-ngine", zngine_config_get_string("window.title", ""));
 }
 
 MU_TEST(test_init_before_init_hook_fires) {
     reset();
-    zod_ngine_init((zod_engine_init_params){
+    zngine_init((zngine_init_params){
          .dispatch = {.before_init = stub_before_init},
     });
     mu_check(before_init_called);
@@ -110,7 +110,7 @@ MU_TEST(test_init_before_init_hook_fires) {
 
 MU_TEST(test_init_after_init_hook_fires) {
     reset();
-    zod_ngine_init((zod_engine_init_params){
+    zngine_init((zngine_init_params){
          .dispatch = {.after_init = stub_after_init},
     });
     mu_check(after_init_called);
@@ -118,7 +118,7 @@ MU_TEST(test_init_after_init_hook_fires) {
 
 MU_TEST(test_init_hook_order) {
     reset();
-    zod_ngine_init((zod_engine_init_params){
+    zngine_init((zngine_init_params){
          .dispatch =
               {
                    .before_init = order_before_init,
@@ -131,7 +131,7 @@ MU_TEST(test_init_hook_order) {
 
 MU_TEST(test_init_missing_config_path_returns_true_no_load_config_from_file) {
     reset();
-    bool ok = zod_ngine_init((zod_engine_init_params){
+    bool ok = zngine_init((zngine_init_params){
          .config_setup = {.load_config_func = stub_load_config, .config_path = NULL},
     });
     mu_check(ok);
@@ -141,7 +141,7 @@ MU_TEST(test_init_missing_config_path_returns_true_no_load_config_from_file) {
 MU_TEST(test_init_config_load_failure_returns_false) {
     reset();
     load_config_return_val = false;
-    bool ok                = zod_ngine_init((zod_engine_init_params){
+    bool ok                = zngine_init((zngine_init_params){
          .config_setup = {.load_config_func = stub_load_config,
                           .config_path      = "/dev/null"},
     });
@@ -152,7 +152,7 @@ MU_TEST(test_init_config_load_failure_returns_false) {
 MU_TEST(test_init_config_load_receives_correct_args) {
     reset();
     load_config_return_val = true;
-    zod_ngine_init((zod_engine_init_params){
+    zngine_init((zngine_init_params){
          .config_setup = {.load_config_func = stub_load_config,
                           .config_path      = "/dev/null"},
     });
@@ -164,7 +164,7 @@ MU_TEST(test_init_config_load_receives_correct_args) {
 MU_TEST(test_init_load_args_failure_continues) {
     reset();
     load_args_return_val = false;
-    bool ok              = zod_ngine_init((zod_engine_init_params){
+    bool ok              = zngine_init((zngine_init_params){
          .dispatch = {.load_args = stub_load_args},
     });
     mu_check(ok);
@@ -173,15 +173,15 @@ MU_TEST(test_init_load_args_failure_continues) {
 
 MU_TEST(test_init_stores_config_in_ctx) {
     reset();
-    zod_ngine_init((zod_engine_init_params){0});
-    mu_assert_int_eq(800, zod_config_get_int("window.width", 0));
+    zngine_init((zngine_init_params){0});
+    mu_assert_int_eq(800, zngine_config_get_int("window.width", 0));
 }
 
 MU_TEST(test_init_config_load_failure_stops_before_load_args) {
     reset();
     load_config_return_val = false;
     load_args_return_val   = false;
-    bool ok                = zod_ngine_init((zod_engine_init_params){
+    bool ok                = zngine_init((zngine_init_params){
          .config_setup = {.load_config_func = stub_load_config,
                           .config_path      = "/dev/null"},
          .dispatch     = {.load_args = stub_load_args},
@@ -194,7 +194,7 @@ MU_TEST(test_init_config_load_failure_stops_before_load_args) {
 MU_TEST(test_init_hot_reload_on_failure_no_watcher_attached) {
     reset();
     load_config_return_val = false;
-    bool ok                = zod_ngine_init((zod_engine_init_params){
+    bool ok                = zngine_init((zngine_init_params){
          .config_setup =
               {
                    .load_config_func = stub_load_config,
@@ -210,7 +210,7 @@ MU_TEST(test_init_hot_reload_on_failure_no_watcher_attached) {
 MU_TEST(test_init_hot_reload_on_success_attaches_watcher) {
     reset();
     load_config_return_val = true;
-    zod_ngine_init((zod_engine_init_params){
+    zngine_init((zngine_init_params){
          .config_setup =
               {
                    .load_config_func = stub_load_config,
@@ -239,7 +239,7 @@ MU_TEST(test_hot_reload_invalid_config_exits) {
     touch(HOT_RELOAD_TEST_FILE);
 
     load_config_return_val = true;
-    bool ok                = zod_ngine_init((zod_engine_init_params){
+    bool ok                = zngine_init((zngine_init_params){
          .config_setup =
               {
                    .load_config_func = stub_load_config,
@@ -248,16 +248,16 @@ MU_TEST(test_hot_reload_invalid_config_exits) {
               },
     });
     mu_check(ok);
-    mu_check(!zod_should_exit());
+    mu_check(!zngine_should_exit());
 
     g_ctx.config.reload_config_func = stub_load_config_negative_width;
 
     sleep(1);
     touch(HOT_RELOAD_TEST_FILE);
 
-    mu_check(zod_tick_hot_reload());
-    mu_check(!zod_should_exit());
-    mu_assert_int_eq(800, zod_config_get_int("window.width", -1));
+    mu_check(zngine_tick_hot_reload());
+    mu_check(!zngine_should_exit());
+    mu_assert_int_eq(800, zngine_config_get_int("window.width", -1));
 
     remove(HOT_RELOAD_TEST_FILE);
 }
@@ -265,7 +265,7 @@ MU_TEST(test_hot_reload_invalid_config_exits) {
 MU_TEST(test_stage2_load_success_returns_true) {
     reset();
     load_config_return_val = true;
-    bool ok                = zod_ngine_init((zod_engine_init_params){
+    bool ok                = zngine_init((zngine_init_params){
          .config_setup = {.load_config_func = stub_load_config,
                           .config_path      = "/dev/null"},
     });
@@ -276,7 +276,7 @@ MU_TEST(test_stage2_load_success_returns_true) {
 MU_TEST(test_stage2_load_success_hot_reload_attaches_watcher) {
     reset();
     load_config_return_val = true;
-    zod_ngine_init((zod_engine_init_params){
+    zngine_init((zngine_init_params){
          .config_setup =
               {
                    .load_config_func = stub_load_config,
@@ -291,7 +291,7 @@ MU_TEST(test_stage2_load_success_hot_reload_attaches_watcher) {
 MU_TEST(test_stage2_load_success_no_hot_reload_no_watcher) {
     reset();
     load_config_return_val = true;
-    zod_ngine_init((zod_engine_init_params){
+    zngine_init((zngine_init_params){
          .config_setup =
               {
                    .load_config_func = stub_load_config,
@@ -306,7 +306,7 @@ MU_TEST(test_stage2_load_success_no_hot_reload_no_watcher) {
 MU_TEST(test_stage2_load_fail_no_watcher_attached) {
     reset();
     load_config_return_val = false;
-    bool ok                = zod_ngine_init((zod_engine_init_params){
+    bool ok                = zngine_init((zngine_init_params){
          .config_setup =
               {
                    .load_config_func = stub_load_config,
@@ -322,43 +322,43 @@ MU_TEST(test_stage2_load_fail_no_watcher_attached) {
 MU_TEST(test_stage2_load_fail_presets_survive) {
     reset();
     load_config_return_val = false;
-    zod_ngine_init((zod_engine_init_params){
+    zngine_init((zngine_init_params){
          .config_setup = {.load_config_func = stub_load_config,
                           .config_path      = "/dev/null"},
     });
-    mu_assert_int_eq(800, zod_config_get_int("window.width", 0));
-    mu_assert_int_eq(600, zod_config_get_int("window.height", 0));
-    mu_assert_string_eq("zod-ngine", zod_config_get_string("window.title", ""));
+    mu_assert_int_eq(800, zngine_config_get_int("window.width", 0));
+    mu_assert_int_eq(600, zngine_config_get_int("window.height", 0));
+    mu_assert_string_eq("zod-ngine", zngine_config_get_string("window.title", ""));
 }
 
 MU_TEST(test_init_setter_rejects_negative_width) {
     reset();
-    bool ok = zod_ngine_init((zod_engine_init_params){
+    bool ok = zngine_init((zngine_init_params){
          .config_setup = {.load_config_func = stub_load_config_negative_width,
                           .config_path      = "/dev/null"},
     });
     mu_check(ok);
-    mu_assert_int_eq(800, zod_config_get_int("window.width", -1));
+    mu_assert_int_eq(800, zngine_config_get_int("window.width", -1));
 }
 
 MU_TEST(test_init_setter_rejects_negative_height) {
     reset();
-    bool ok = zod_ngine_init((zod_engine_init_params){
+    bool ok = zngine_init((zngine_init_params){
          .config_setup = {.load_config_func = stub_load_config_negative_height,
                           .config_path      = "/dev/null"},
     });
     mu_check(ok);
-    mu_assert_int_eq(600, zod_config_get_int("window.height", -1));
+    mu_assert_int_eq(600, zngine_config_get_int("window.height", -1));
 }
 
 MU_TEST(test_init_setter_rejects_negative_target_fps) {
     reset();
-    bool ok = zod_ngine_init((zod_engine_init_params){
+    bool ok = zngine_init((zngine_init_params){
          .config_setup = {.load_config_func = stub_load_config_negative_fps,
                           .config_path      = "/dev/null"},
     });
     mu_check(ok);
-    mu_assert_int_eq(60, zod_config_get_int("engine.target_fps", -1));
+    mu_assert_int_eq(60, zngine_config_get_int("engine.target_fps", -1));
 }
 
 MU_TEST_SUITE(zod_ngine_init_validation_suite) {

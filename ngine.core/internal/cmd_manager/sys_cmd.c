@@ -6,7 +6,7 @@
 #include "../../zod_ngine.h"
 #include "../engine_context/engine_context_internal.h"
 
-command_execute_result sys_cmd_help(int argc, char **argv) {
+command_execute_result sys_cmd_priv_help(int argc, char **argv) {
     (void)argc;
     (void)argv;
     return (command_execute_result){
@@ -15,7 +15,7 @@ command_execute_result sys_cmd_help(int argc, char **argv) {
     };
 }
 
-command_execute_result sys_cmd_reload_config(int argc, char **argv) {
+command_execute_result sys_cmd_priv_reload_config(int argc, char **argv) {
     (void)argv;
     if (argc > 0) {
         return (command_execute_result){
@@ -24,14 +24,14 @@ command_execute_result sys_cmd_reload_config(int argc, char **argv) {
         };
     }
 
-    if (!config_reload_from_file(&g_ctx.config)) {
+    if (!config_priv_reload_from_file(&g_ctx.config)) {
         return (command_execute_result){
              .type      = COMMAND_RESULT_ERROR,
              .value.str = "reload-config: failed to reload. See log for details",
         };
     }
 
-    zod_ngine_apply_config(true);
+    zngine_apply_config(true);
     return (command_execute_result){
          .type      = COMMAND_RESULT_STRING,
          .value.str = "config reloaded",

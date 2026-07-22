@@ -17,21 +17,21 @@ typedef struct {
 
     void (*before_destroy)(void *user_data);
     void (*after_destroy)(void *user_data);
-} zod_engine_dispatch;
+} zngine_dispatch;
 
 typedef struct {
     void (*init_config)(cvar_table *cvars);
     void (*apply_config)(void);
-} zod_extension;
+} zngine_extension;
 
-// Must be called before zod_ngine_init() so init_config runs in time to
+// Must be called before zngine_init() so init_config runs in time to
 // register the extension's constraints before the config file loads.
-void zod_register_extension(zod_extension ext);
+void zngine_register_extension(zngine_extension ext);
 
 // Runs every registered extension's init_config against `cvars`. Called by
-// zod_ngine_init and by config_reload_from_file (config.c) — not meant for
+// zngine_init and by config_reload_from_file (config.c) — not meant for
 // application code.
-void zod_run_extension_init_config(cvar_table *cvars);
+void zngine_run_extension_init_config(cvar_table *cvars);
 
 typedef struct {
     const char            *config_path;
@@ -39,38 +39,38 @@ typedef struct {
     const cvar_constraint *constraints;
     size_t                 constraints_count;
     bool (*load_config_func)(const char *filepath, cvar_table *cvars);
-} zod_config_setup;
+} zngine_config_setup;
 
 typedef struct {
     int          argc;
     const char **argv;
 
-    zod_config_setup config_setup;
+    zngine_config_setup config_setup;
 
-    zod_engine_dispatch dispatch;
+    zngine_dispatch dispatch;
 
     void *user_data;
-} zod_engine_init_params;
+} zngine_init_params;
 
 //
 // Engine lifecycle
 //
-bool zod_ngine_init(const zod_engine_init_params params);
-void zod_ngine_destroy(void);
+bool zngine_init(const zngine_init_params params);
+void zngine_destroy(void);
 
-void zod_ngine_apply_config(bool adjust_config);
+void zngine_apply_config(bool adjust_config);
 
 //
 // Config accessors
 //
-int         zod_config_get_int(const char *name, int fallback);
-float       zod_config_get_float(const char *name, float fallback);
-bool        zod_config_get_bool(const char *name, bool fallback);
-const char *zod_config_get_string(const char *name, const char *fallback);
-bool        zod_config_set_int(const char *name, int value);
-bool        zod_config_set_float(const char *name, float value);
-bool        zod_config_set_bool(const char *name, bool value);
-bool        zod_config_set_string(const char *name, const char *value);
+int         zngine_config_get_int(const char *name, int fallback);
+float       zngine_config_get_float(const char *name, float fallback);
+bool        zngine_config_get_bool(const char *name, bool fallback);
+const char *zngine_config_get_string(const char *name, const char *fallback);
+bool        zngine_config_set_int(const char *name, int value);
+bool        zngine_config_set_float(const char *name, float value);
+bool        zngine_config_set_bool(const char *name, bool value);
+bool        zngine_config_set_string(const char *name, const char *value);
 
 //
 // Clock accessors
@@ -81,22 +81,22 @@ bool        zod_config_set_string(const char *name, const char *value);
 //   delta      — unscaled delta time (always ticks, use for UI/menus)
 //   time_scale — multiplier applied to delta: 1.0 = normal, 0.5 = half speed
 //   frame_time — elapsed time of the current frame (unscaled, now - last)
-float    zod_clock_dt(void);
-float    zod_clock_delta(void);
-double   zod_clock_now(void);
-float    zod_clock_frame_time(void);
-uint32_t zod_clock_frame(void);
-bool     zod_clock_paused(void);
-void     zod_clock_set_time_scale(float scale);
-void     zod_clock_set_paused(bool paused);
-void     zod_clock_update(void);
-void     zod_clock_sleep_to_target_fps(void);
+float    zngine_clock_dt(void);
+float    zngine_clock_delta(void);
+double   zngine_clock_now(void);
+float    zngine_clock_frame_time(void);
+uint32_t zngine_clock_frame(void);
+bool     zngine_clock_paused(void);
+void     zngine_clock_set_time_scale(float scale);
+void     zngine_clock_set_paused(bool paused);
+void     zngine_clock_update(void);
+void     zngine_clock_sleep_to_target_fps(void);
 
 //
 // Render accessors
 //
-void zod_begin_drawing(void);
-void zod_end_drawing(void);
+void zngine_begin_drawing(void);
+void zngine_end_drawing(void);
 
 //
 // Font accessors
@@ -104,30 +104,30 @@ void zod_end_drawing(void);
 
 // Borrowed pointer into the engine's own primary_font storage — valid for the
 // engine's lifetime, do not free. Reflects whatever was most recently loaded by
-// zod_ngine_apply_config's load_font (initial load or config hot-reload).
-const simple_font *zod_font_primary_get(void);
+// zngine_apply_config's load_font (initial load or config hot-reload).
+const simple_font *zngine_font_primary_get(void);
 
 //
 // Input accessors
 //
-void zod_input_update(void);
-bool zod_input_key_down(zod_key_t key);
-bool zod_input_key_pressed(zod_key_t key);
-bool zod_input_key_released(zod_key_t key);
+void zngine_input_update(void);
+bool zngine_input_key_down(zod_key_t key);
+bool zngine_input_key_pressed(zod_key_t key);
+bool zngine_input_key_released(zod_key_t key);
 
 //
 // Command Manager accessors
 //
-bool zod_command_register(command_group group, const char *name,
+bool zngine_command_register(command_group group, const char *name,
                           command_execute_result (*handler)(int argc, char **argv));
-bool zod_command_unregister(command_group group, const char *name);
-command_execute_result zod_sys_command_execute(const char *name, int argc, char **argv);
-command_execute_result zod_user_command_execute(const char *name, int argc, char **argv);
+bool zngine_command_unregister(command_group group, const char *name);
+command_execute_result zngine_sys_command_execute(const char *name, int argc, char **argv);
+command_execute_result zngine_user_command_execute(const char *name, int argc, char **argv);
 
 // Utils
-bool zod_should_exit(void);
-void zod_request_exit(void);
+bool zngine_should_exit(void);
+void zngine_request_exit(void);
 
-bool zod_tick_hot_reload(void);
+bool zngine_tick_hot_reload(void);
 
 #endif

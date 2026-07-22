@@ -318,7 +318,7 @@ MU_TEST(test_unregister_null_name) {
 
 MU_TEST(test_execute_null_command) {
     command_execute_result res = command_execute(NULL, 0, NULL);
-    mu_check(res.type == COMMAND_RESULT_ERROR);
+    mu_check(res.type == COMMAND_RESULT_COMMAND_NOT_FOUND);
     mu_check(res.value.str != NULL);
 }
 
@@ -534,7 +534,7 @@ MU_TEST(test_stress_game_session) {
     command *missing = command_table_get(&table, COMMAND_GROUP_SYSTEM, "does_not_exist");
     mu_check(missing == NULL);
     command_execute_result unknown_res = command_execute(missing, 0, NULL);
-    mu_check(unknown_res.type == COMMAND_RESULT_ERROR);
+    mu_check(unknown_res.type == COMMAND_RESULT_COMMAND_NOT_FOUND);
 
     // duplicate registration mid-load-simulation — rejected, table size untouched
     mu_check(command_table_register(&table, COMMAND_GROUP_SYSTEM, "game_cmd_0",

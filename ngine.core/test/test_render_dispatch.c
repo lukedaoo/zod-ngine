@@ -8,7 +8,7 @@
 #include "../index.h"
 
 MU_TEST(test_context_create_returns_non_null) {
-    void *render_context = render_backend_context_create(NULL);
+    void *render_context = render_backend_priv_context_create(NULL);
     mu_check(render_context != NULL);
 }
 

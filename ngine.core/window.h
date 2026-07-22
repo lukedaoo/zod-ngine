@@ -5,9 +5,9 @@
 
 typedef struct window window;
 
-window window_create(const char *title, int width, int height, uint32_t flags);
-void   window_destroy(window *window);
+window window_priv_create(const char *title, int width, int height, uint32_t flags);
+void   window_priv_destroy(window *window);
 
-bool window_apply_config(window *window);
+bool window_priv_apply_config(window *window);
 
 #endif

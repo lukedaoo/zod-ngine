@@ -20,10 +20,10 @@
 #define ZOD_MAX_EXTENSIONS 2
 #endif
 
-static zod_extension g_extensions[ZOD_MAX_EXTENSIONS];
+static zngine_extension g_extensions[ZOD_MAX_EXTENSIONS];
 static size_t        g_extensions_count = 0;
 
-void zod_register_extension(zod_extension ext) {
+void zngine_register_extension(zngine_extension ext) {
     if (g_extensions_count >= ZOD_MAX_EXTENSIONS) {
         log_error("engine.register_extension: max %d extensions already registered",
                   ZOD_MAX_EXTENSIONS);
@@ -32,7 +32,7 @@ void zod_register_extension(zod_extension ext) {
     g_extensions[g_extensions_count++] = ext;
 }
 
-void zod_run_extension_init_config(cvar_table *cvars) {
+void zngine_run_extension_init_config(cvar_table *cvars) {
     for (size_t i = 0; i < g_extensions_count; ++i)
         if (g_extensions[i].init_config) g_extensions[i].init_config(cvars);
 }
@@ -46,11 +46,11 @@ static void load_font() {
     render_text_invalidate();
 }
 
-bool zod_ngine_init(const zod_engine_init_params params) {
+bool zngine_init(const zngine_init_params params) {
     const int                 argc         = params.argc;
     const char              **argv         = params.argv;
-    const zod_config_setup    config_setup = params.config_setup;
-    const zod_engine_dispatch dispatch     = params.dispatch;
+    const zngine_config_setup    config_setup = params.config_setup;
+    const zngine_dispatch dispatch     = params.dispatch;
 
     void *user_data = params.user_data;
 
@@ -60,20 +60,20 @@ bool zod_ngine_init(const zod_engine_init_params params) {
 
     {
         // command manager
-        cmd_manager_init(&g_ctx.cmd_manager);
+        cmd_manager_priv_init(&g_ctx.cmd_manager);
         log_debug("cmd_manager.init: ready");
     }
 
     {
-        config_init(&g_ctx.config);
-        zod_run_extension_init_config(&g_ctx.config.cvars);
-        config_add_user_constraints(&g_ctx.config, config_setup.constraints,
+        config_priv_init(&g_ctx.config);
+        zngine_run_extension_init_config(&g_ctx.config.cvars);
+        config_priv_add_user_constraints(&g_ctx.config, config_setup.constraints,
                                     config_setup.constraints_count);
 
         if (config_setup.load_config_func && config_setup.config_path) {
             if (!config_setup.load_config_func(config_setup.config_path,
                                                &g_ctx.config.cvars)) {
-                zod_set_error("failed to load config '%s'", config_setup.config_path);
+                zngine_set_error("failed to load config '%s'", config_setup.config_path);
                 log_fatal("config.init: failed to load '%s'", config_setup.config_path);
                 return false;
             }
@@ -98,20 +98,20 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         }
     }
 
-    if (!config_validate(&g_ctx.config)) {
-        zod_set_error("invalid config — see log for details");
+    if (!config_priv_validate(&g_ctx.config)) {
+        zngine_set_error("invalid config — see log for details");
         return false;
     }
 
-    config_adjust(&g_ctx.config);
+    config_priv_adjust(&g_ctx.config);
 #ifdef DEBUG
-    config_print(&g_ctx.config);
+    config_priv_print(&g_ctx.config);
 #endif
 
 #ifndef NGINE_UNIT_TEST
     {
         if (!SDL_Init(SDL_INIT_VIDEO)) {
-            zod_set_error("SDL_Init failed: %s", SDL_GetError());
+            zngine_set_error("SDL_Init failed: %s", SDL_GetError());
             log_fatal("engine.init: SDL_Init failed — %s, check SDL installation",
                       SDL_GetError());
             return false;
@@ -130,15 +130,15 @@ bool zod_ngine_init(const zod_engine_init_params params) {
         if (cvar_get_bool(&g_ctx.config.cvars, "window.transparent",
                           DEFAULT_CONFIG_WINDOW_TRANSPARENT))
             flags |= SDL_WINDOW_TRANSPARENT;
-        g_ctx.window = window_create(title, w, h, flags);
-        zod_ngine_apply_config(false);
+        g_ctx.window = window_priv_create(title, w, h, flags);
+        zngine_apply_config(false);
     }
 #endif
 
     {
         int target_fps = cvar_get_int(&g_ctx.config.cvars, "engine.target_fps",
                                       DEFAULT_CONFIG_TARGET_FPS);
-        clock_init((uint32_t)target_fps);
+        clock_priv_init((uint32_t)target_fps);
         log_debug("clock.init: target fps = %d", target_fps);
     }
 
@@ -148,21 +148,21 @@ bool zod_ngine_init(const zod_engine_init_params params) {
     return true;
 }
 
-void zod_ngine_destroy(void) {
+void zngine_destroy(void) {
     log_debug("engine.destroy: shutting down");
-    engine_context_destroy();
+    engine_context_priv_destroy();
 }
 
-void zod_ngine_apply_config(bool adjust_config) {
-    if (adjust_config) config_adjust(&g_ctx.config);
+void zngine_apply_config(bool adjust_config) {
+    if (adjust_config) config_priv_adjust(&g_ctx.config);
 
     log_set_level(cvar_get_int(&g_ctx.config.cvars, "log.level", LOG_TRACE));
 
     int target_fps = cvar_get_int(&g_ctx.config.cvars, "engine.target_fps",
                                   DEFAULT_CONFIG_TARGET_FPS);
-    clock_change_target_fps(target_fps >= 0 ? (uint32_t)target_fps
+    clock_priv_change_target_fps(target_fps >= 0 ? (uint32_t)target_fps
                                             : DEFAULT_CONFIG_TARGET_FPS);
-    window_apply_config(&g_ctx.window);
+    window_priv_apply_config(&g_ctx.window);
 
     load_font();
 
@@ -170,47 +170,47 @@ void zod_ngine_apply_config(bool adjust_config) {
         if (g_extensions[i].apply_config) g_extensions[i].apply_config();
 }
 
-bool zod_should_exit(void) { return g_ctx.should_exit; }
-void zod_request_exit(void) { g_ctx.should_exit = true; }
+bool zngine_should_exit(void) { return g_ctx.should_exit; }
+void zngine_request_exit(void) { g_ctx.should_exit = true; }
 
-bool zod_tick_hot_reload(void) {
+bool zngine_tick_hot_reload(void) {
     if (!g_ctx.config.config_file_watcher) return false;
     if (file_watcher_check(g_ctx.config.config_file_watcher) != FILE_CHANGED)
         return false;
     log_info("config.watcher: '%s' changed, reloading",
              g_ctx.config.config_file_watcher->path);
-    if (!config_reload_from_file(&g_ctx.config)) {
+    if (!config_priv_reload_from_file(&g_ctx.config)) {
         log_warn("config.watcher: reload failed — keeping previous config");
         return false;
     }
-    zod_ngine_apply_config(true);
+    zngine_apply_config(true);
 #if DEBUG
-    config_print(&g_ctx.config);
+    config_priv_print(&g_ctx.config);
 #endif
     return true;
 }
 
-void zod_begin_drawing(void) { render_begin(); }
-void zod_end_drawing(void) { render_end(); }
+void zngine_begin_drawing(void) { render_priv_begin(); }
+void zngine_end_drawing(void) { render_priv_end(); }
 
-const simple_font *zod_font_primary_get(void) { return &g_ctx.primary_font; }
+const simple_font *zngine_font_primary_get(void) { return &g_ctx.primary_font; }
 
-bool zod_command_register(command_group group, const char *name,
+bool zngine_command_register(command_group group, const char *name,
                           command_execute_result (*handler)(int argc, char **argv)) {
-    return cmd_manager_register(&g_ctx.cmd_manager, group, name, handler);
+    return cmd_manager_priv_register(&g_ctx.cmd_manager, group, name, handler);
 }
 
-bool zod_command_unregister(command_group group, const char *name) {
-    return cmd_manager_unregister(&g_ctx.cmd_manager, group, name);
+bool zngine_command_unregister(command_group group, const char *name) {
+    return cmd_manager_priv_unregister(&g_ctx.cmd_manager, group, name);
 }
 
-command_execute_result zod_sys_command_execute(const char *name, int argc, char **argv) {
-    return cmd_manager_execute(&g_ctx.cmd_manager, COMMAND_GROUP_SYSTEM, name, argc,
+command_execute_result zngine_sys_command_execute(const char *name, int argc, char **argv) {
+    return cmd_manager_priv_execute(&g_ctx.cmd_manager, COMMAND_GROUP_SYSTEM, name, argc,
                                argv);
 }
 
-command_execute_result zod_user_command_execute(const char *name, int argc, char **argv) {
-    return cmd_manager_execute(&g_ctx.cmd_manager, COMMAND_GROUP_USER_DEFINED, name, argc,
+command_execute_result zngine_user_command_execute(const char *name, int argc, char **argv) {
+    return cmd_manager_priv_execute(&g_ctx.cmd_manager, COMMAND_GROUP_USER_DEFINED, name, argc,
                                argv);
 }
 #endif

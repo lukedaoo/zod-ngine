@@ -113,31 +113,30 @@ static console_state g_console;
 // Caches console.enabled from cvars into g_console.enabled — read once here
 // instead of looking the cvar up on every grave-key press. Called at engine
 // init and again on config hot-reload, same as window_apply_config.
-void console_apply_config(void);
+void console_priv_apply_config(void);
 
 // row_height is the per-line pitch in px (font_size * CONSOLE_LINE_HEIGHT_RATIO).
 // overhead is the fixed chrome outside the row grid (top_pad + input_gap) —
-// must be added here too since console_platform_draw subtracts the same
+// must be added here too since console_priv_platform_draw subtracts the same
 // overhead before dividing by row_height, or visible_lines rows wouldn't
 // actually fit in the returned height.
-int console_panel_height(int window_height, int visible_lines, int row_height,
+int console_priv_panel_height(int window_height, int visible_lines, int row_height,
                          int overhead);
 
 // First index of g_console.lines to draw, given how many lines fit in the
 // panel — clips to the most recent lines_that_fit entries.
-int console_visible_line_start(int count, int lines_that_fit);
+int console_priv_visible_line_start(int count, int lines_that_fit);
 
-void console_input_append(char c);
-void console_input_backspace(void);
-void console_input_move_left(void);
-void console_input_move_right(void);
-void console_input_submit(void);
+void console_priv_input_append(char c);
+void console_priv_input_backspace(void);
+void console_priv_input_move_left(void);
+void console_priv_input_move_right(void);
+void console_priv_input_submit(void);
 
-void console_platform_draw(int width, int height);
+void console_priv_platform_draw(int width, int height);
 
-void console_write_line(color4f color, const char *text);
-void console_write_multiple_lines(color4f color, const char *text);
-void console_log_hook(int level, const char *message);
-void console_clear();
-void console_cmd_register();
+void console_priv_write_line(color4f color, const char *text);
+void console_priv_write_multiple_lines(color4f color, const char *text);
+void console_priv_log_hook(int level, const char *message);
+void console_priv_clear();
 #endif

@@ -38,18 +38,18 @@ bool load_args(const int argc, const char **argv, cvar_table *cvars) {
 void after_init(void *user_data) {
     (void)user_data;
     log_debug("engine.after_init: window=%dx%d title='%s' vsync=%d log_level=%d",
-              zod_config_get_int("window.width", 800),
-              zod_config_get_int("window.height", 600),
-              zod_config_get_string("window.title", "zod-ngine"),
-              zod_config_get_bool("window.vsync", true),
-              zod_config_get_int("log.level", 0));
+              zngine_config_get_int("window.width", 800),
+              zngine_config_get_int("window.height", 600),
+              zngine_config_get_string("window.title", "zod-ngine"),
+              zngine_config_get_bool("window.vsync", true),
+              zngine_config_get_int("log.level", 0));
     log_debug("engine.after_init: game.difficulty=%d",
-              zod_config_get_int("game.difficulty", 1));
+              zngine_config_get_int("game.difficulty", 1));
 }
 
 int main(const int argc, const char **argv) {
     log_debug("zod-ngine run-tree: starting");
-    const zod_engine_dispatch dispatch = {
+    const zngine_dispatch dispatch = {
          .before_init = before_init,
          .load_args   = load_args,
          .after_init  = after_init,
@@ -60,7 +60,7 @@ int main(const int argc, const char **argv) {
           .expected = CVAR_INT,
           .range    = {.has_min = true, .min.i = 1, .has_max = true, .max.i = 5}}};
 
-    const zod_engine_init_params params = {
+    const zngine_init_params params = {
          .argc         = argc,
          .argv         = argv,
          .config_setup = {.config_path       = CONFIG_PATH,
@@ -72,66 +72,66 @@ int main(const int argc, const char **argv) {
     };
 
 #if ZOD_CONSOLE_ENABLED
-    console_ext_install();
+    zconsole_ext_install();
 #endif
 
-    if (!zod_ngine_init(params)) return 1;
+    if (!zngine_init(params)) return 1;
     render_text_init();
 
     uint32_t fps_frames = 0;
     float    fps_accum  = 0.0f;
 
-    while (!zod_should_exit()) {
-        zod_clock_update();
+    while (!zngine_should_exit()) {
+        zngine_clock_update();
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_EVENT_QUIT) zod_request_exit();
+            if (e.type == SDL_EVENT_QUIT) zngine_request_exit();
 #if ZOD_CONSOLE_ENABLED
             if (e.type == SDL_EVENT_TEXT_INPUT) {
                 if (strcmp(e.text.text, "~") == 0) continue;
-                console_handle_event((console_input_event){.kind = CONSOLE_INPUT_TEXT,
+                zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT,
                                                            .text = e.text.text});
             } else if (e.type == SDL_EVENT_KEY_DOWN) {
                 if (e.key.key == SDLK_BACKSPACE) {
-                    console_handle_event(
-                         (console_input_event){.kind = CONSOLE_INPUT_BACKSPACE});
+                    zconsole_handle_event(
+                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_BACKSPACE});
                 } else if (e.key.key == SDLK_RETURN || e.key.key == SDLK_KP_ENTER) {
-                    console_handle_event(
-                         (console_input_event){.kind = CONSOLE_INPUT_SUBMIT});
+                    zconsole_handle_event(
+                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_SUBMIT});
                 } else if (e.key.key == SDLK_LEFT) {
-                    console_handle_event(
-                         (console_input_event){.kind = CONSOLE_INPUT_LEFT});
+                    zconsole_handle_event(
+                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_LEFT});
                 } else if (e.key.key == SDLK_RIGHT) {
-                    console_handle_event(
-                         (console_input_event){.kind = CONSOLE_INPUT_RIGHT});
+                    zconsole_handle_event(
+                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_RIGHT});
                 }
             }
 #endif
         }
-        zod_input_update();
-        zod_tick_hot_reload();
+        zngine_input_update();
+        zngine_tick_hot_reload();
 
 #if ZOD_CONSOLE_ENABLED
-        if (zod_input_key_pressed(SDL_SCANCODE_GRAVE)) console_toggle();
+        if (zngine_input_key_pressed(SDL_SCANCODE_GRAVE)) zconsole_toggle();
 #endif
 
-        zod_begin_drawing();
+        zngine_begin_drawing();
 #if ZOD_CONSOLE_ENABLED
-        console_draw();
+        zconsole_draw();
 #endif
         render_text_flush();
 
         fps_frames++;
-        fps_accum += zod_clock_delta();
+        fps_accum += zngine_clock_delta();
         if (fps_accum >= 1.0f) {
-            log_debug("engine.fps: %u, dt: %f", fps_frames, (double)zod_clock_dt());
+            log_debug("engine.fps: %u, dt: %f", fps_frames, (double)zngine_clock_dt());
             fps_frames = 0;
             fps_accum -= 1.0f;
         }
-        zod_end_drawing();
-        zod_clock_sleep_to_target_fps();
+        zngine_end_drawing();
+        zngine_clock_sleep_to_target_fps();
     }
     render_text_destroy();
-    zod_ngine_destroy();
+    zngine_destroy();
     return 0;
 }

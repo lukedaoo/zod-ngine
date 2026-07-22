@@ -20,7 +20,7 @@
 #define WINDOW_SDL_FLAG SDL_WINDOW_VULKAN
 #endif
 
-window window_create(const char *title, int width, int height, uint32_t flags) {
+window window_priv_create(const char *title, int width, int height, uint32_t flags) {
     if (width <= 0 || height <= 0) {
         log_error(
              "window.create: invalid size %dx%d rejected — width and height must be > 0",
@@ -35,18 +35,18 @@ window window_create(const char *title, int width, int height, uint32_t flags) {
     log_info("window.create: title='%s' size=%dx%d, backend=%s", title, width, height,
              RENDER_BACKEND == RENDER_BACKEND_OPENGL ? "opengl" : "vulkan");
     window.backend.type    = RENDER_BACKEND;
-    window.backend.context = render_backend_context_create(window.handle);
-    render_backend_init(window.backend.context, width, height);
+    window.backend.context = render_backend_priv_context_create(window.handle);
+    render_backend_priv_init(window.backend.context, width, height);
     return window;
 }
 
-void window_destroy(window *window) {
+void window_priv_destroy(window *window) {
     if (!window) return;
-    render_backend_shutdown(window->backend.context);
+    render_backend_priv_shutdown(window->backend.context);
     SDL_DestroyWindow(window->handle);
 }
 
-bool window_apply_config(window *window) {
+bool window_priv_apply_config(window *window) {
     if (!window || !window->backend.context) return false;
 
     bool ok = true;
@@ -80,7 +80,7 @@ bool window_apply_config(window *window) {
             SDL_SetWindowSize(window->handle, w, h);
             window->width  = w;
             window->height = h;
-            render_backend_resize(window->backend.context, w, h);
+            render_backend_priv_resize(window->backend.context, w, h);
             log_debug("window.apply_config: resized to %dx%d", w, h);
         }
     }

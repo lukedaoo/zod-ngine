@@ -10,6 +10,7 @@
 #include "ngine.core/internal/engine_context/engine_context_internal.h"
 #include "ngine.core/zod_ngine.h"
 #include "console_internal.h"
+#include "console_cmd_internal.h"
 
 #if ZOD_CONSOLE_ENABLED
 
@@ -19,11 +20,11 @@ static const color4f g_console_log_colors[] = {
      [LOG_ERROR] = COLOR4F_RED,  [LOG_FATAL] = COLOR4F_MAGENTA,
 };
 
-void console_log_hook(int level, const char *message) {
+void console_priv_log_hook(int level, const char *message) {
     color4f color = (level >= LOG_TRACE && level <= LOG_FATAL)
                          ? g_console_log_colors[level]
                          : g_console.output_text_color;
-    console_write_line(color, message);
+    console_priv_write_line(color, message);
 }
 
 static const cvar_constraint g_console_constraints[] = {
@@ -47,11 +48,7 @@ static const cvar_constraint g_console_constraints[] = {
 };
 
 static void console_init_config(cvar_table *cvars) {
-    // @todo: make it as command
-    // log_unregister_hook(console_log_hook);
-    // log_register_hook(console_log_hook);
-
-    console_cmd_register();
+    console_cmd_priv_register();
 
     cvar_set_int(cvars, "console.visible_lines", DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
     cvar_set_bool(cvars, "console.enabled", DEFAULT_CONFIG_CONSOLE_ENABLED);
@@ -80,14 +77,14 @@ static void console_init_config(cvar_table *cvars) {
                     sizeof(g_console_constraints) / sizeof(g_console_constraints[0]));
 }
 
-void console_ext_install(void) {
-    zod_register_extension((zod_extension){
+void zconsole_ext_install(void) {
+    zngine_register_extension((zngine_extension){
          .init_config  = console_init_config,
-         .apply_config = console_apply_config,
+         .apply_config = console_priv_apply_config,
     });
 }
 
-void console_apply_config(void) {
+void console_priv_apply_config(void) {
     g_console.visible_lines = cvar_get_int(&g_ctx.config.cvars, "console.visible_lines",
                                            DEFAULT_CONFIG_CONSOLE_VISIBLE_LINES);
     g_console.enabled       = cvar_get_bool(&g_ctx.config.cvars, "console.enabled",
@@ -126,7 +123,7 @@ void console_apply_config(void) {
                                 DEFAULT_CONFIG_CONSOLE_BACKGROUND_COLOR));
 }
 
-bool console_toggle(void) {
+bool zconsole_toggle(void) {
     if (!g_console.enabled) return g_console.visible;
 
     g_console.visible = !g_console.visible;
@@ -142,26 +139,26 @@ bool console_toggle(void) {
     return g_console.visible;
 }
 
-bool console_visible(void) { return g_console.visible; }
+bool zconsole_visible(void) { return g_console.visible; }
 
-void console_handle_event(console_input_event event) {
+void zconsole_handle_event(zconsole_input_event event) {
     if (!g_console.visible) return;
 
     switch (event.kind) {
-        case CONSOLE_INPUT_TEXT:
-            for (const char *p = event.text; p && *p; p++) console_input_append(*p);
+        case ZCONSOLE_INPUT_TEXT:
+            for (const char *p = event.text; p && *p; p++) console_priv_input_append(*p);
             break;
-        case CONSOLE_INPUT_BACKSPACE:
-            console_input_backspace();
+        case ZCONSOLE_INPUT_BACKSPACE:
+            console_priv_input_backspace();
             break;
-        case CONSOLE_INPUT_SUBMIT:
-            console_input_submit();
+        case ZCONSOLE_INPUT_SUBMIT:
+            console_priv_input_submit();
             break;
-        case CONSOLE_INPUT_LEFT:
-            console_input_move_left();
+        case ZCONSOLE_INPUT_LEFT:
+            console_priv_input_move_left();
             break;
-        case CONSOLE_INPUT_RIGHT:
-            console_input_move_right();
+        case ZCONSOLE_INPUT_RIGHT:
+            console_priv_input_move_right();
             break;
     }
 }
@@ -186,7 +183,7 @@ static void console_write_v(color4f color, const char *fmt, va_list args) {
 
 // text is written verbatim (no % expansion) — safe for log messages that may
 // contain literal '%' characters.
-void console_write_line(color4f color, const char *text) {
+void console_priv_write_line(color4f color, const char *text) {
     console_evict_line_if_full();
 
     snprintf(g_console.lines[g_console.count], CONSOLE_MAX_LINE_LEN, "%s", text);
@@ -194,7 +191,7 @@ void console_write_line(color4f color, const char *text) {
     g_console.count++;
 }
 
-void console_write_multiple_lines(color4f color, const char *text) {
+void console_priv_write_multiple_lines(color4f color, const char *text) {
     const char *start = text;
     for (const char *p = text;; p++) {
         if (*p == '\n' || *p == '\0') {
@@ -204,39 +201,39 @@ void console_write_multiple_lines(color4f color, const char *text) {
             char buf[CONSOLE_MAX_LINE_LEN];
             memcpy(buf, start, copy_len);
             buf[copy_len] = '\0';
-            console_write_line(color, buf);
+            console_priv_write_line(color, buf);
             if (*p == '\0') break;
             start = p + 1;
         }
     }
 }
 
-void console_write(const char *fmt, ...) {
+void zconsole_write(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     console_write_v(g_console.output_text_color, fmt, args);
     va_end(args);
 }
 
-void console_write_color(color4f color, const char *fmt, ...) {
+void zconsole_write_color(color4f color, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     console_write_v(color, fmt, args);
     va_end(args);
 }
 
-int console_panel_height(int window_height, int visible_lines, int row_height,
+int console_priv_panel_height(int window_height, int visible_lines, int row_height,
                          int overhead) {
     int desired = visible_lines * row_height + overhead;
     return desired < window_height ? desired : window_height;
 }
 
-int console_visible_line_start(int count, int lines_that_fit) {
+int console_priv_visible_line_start(int count, int lines_that_fit) {
     int start = count - lines_that_fit;
     return start > 0 ? start : 0;
 }
 
-void console_input_append(char c) {
+void console_priv_input_append(char c) {
     if (g_console.input_len >= CONSOLE_INPUT_MAX_LEN - 1) return;
     memmove(&g_console.input[g_console.cursor_pos + 1],
             &g_console.input[g_console.cursor_pos],
@@ -246,7 +243,7 @@ void console_input_append(char c) {
     g_console.cursor_pos++;
 }
 
-void console_input_backspace(void) {
+void console_priv_input_backspace(void) {
     if (g_console.cursor_pos == 0) return;
     memmove(&g_console.input[g_console.cursor_pos - 1],
             &g_console.input[g_console.cursor_pos],
@@ -255,15 +252,15 @@ void console_input_backspace(void) {
     g_console.cursor_pos--;
 }
 
-void console_input_move_left(void) {
+void console_priv_input_move_left(void) {
     if (g_console.cursor_pos > 0) g_console.cursor_pos--;
 }
 
-void console_input_move_right(void) {
+void console_priv_input_move_right(void) {
     if (g_console.cursor_pos < g_console.input_len) g_console.cursor_pos++;
 }
 
-void console_input_submit(void) {
+void console_priv_input_submit(void) {
     if (g_console.input_len == 0) return;
 
     //
@@ -276,42 +273,42 @@ void console_input_submit(void) {
     while (argc < COMMAND_MAX_ARGC && (tok = strtok(NULL, " "))) argv[argc++] = tok;
 
     // user-defined commands can shadow system ones — try user first.
-    command_execute_result result = zod_user_command_execute(name, argc, argv);
+    command_execute_result result = zngine_user_command_execute(name, argc, argv);
     if (result.type == COMMAND_RESULT_COMMAND_NOT_FOUND)
-        result = zod_sys_command_execute(name, argc, argv);
+        result = zngine_sys_command_execute(name, argc, argv);
 
     if (result.type == COMMAND_RESULT_ERROR) {
-        console_write_color(COLOR4F_RED, "ERROR: %s", result.value.str);
+        zconsole_write_color(COLOR4F_RED, "ERROR: %s", result.value.str);
     } else if (result.type == COMMAND_RESULT_COMMAND_NOT_FOUND) {
-        console_write_color(COLOR4F_RED, "ERROR: invalid command: %s", name);
+        zconsole_write_color(COLOR4F_RED, "ERROR: invalid command: %s", name);
     } else if (result.type == COMMAND_RESULT_STRING) {
-        console_write_multiple_lines(g_console.output_text_color, result.value.str);
+        console_priv_write_multiple_lines(g_console.output_text_color, result.value.str);
     }
     g_console.input[0]   = '\0';
     g_console.input_len  = 0;
     g_console.cursor_pos = 0;
 }
 
-bool console_draw(void) {
+bool zconsole_draw(void) {
     if (!g_console.visible) return true;
 
     int row_height = (int)(g_console.font_size * CONSOLE_LINE_HEIGHT_RATIO);
     int overhead   = (int)(g_console.top_pad + g_console.input_gap);
     // +1 reserves a row for the input line so visible_lines rows of
-    // scrollback actually fit — console_platform_draw's lines_fit already
+    // scrollback actually fit — console_priv_platform_draw's lines_fit already
     // budgets one row for input (scrollback_rows = lines_fit - 1).
-    int height = console_panel_height(g_ctx.window.height, g_console.visible_lines + 1,
+    int height = console_priv_panel_height(g_ctx.window.height, g_console.visible_lines + 1,
                                       row_height, overhead);
-    console_platform_draw(g_ctx.window.width, height);
+    console_priv_platform_draw(g_ctx.window.width, height);
     return true;
 }
 
-bool console_destroy(void) {
-    log_unregister_hook(console_log_hook);
+bool zconsole_destroy(void) {
+    log_unregister_hook(console_priv_log_hook);
     return true;
 }
 
-void console_clear() {
+void console_priv_clear() {
     g_console.count      = 0;
     g_console.cursor_pos = 0;
     g_console.input_len  = 0;
@@ -324,18 +321,18 @@ void console_clear() {
 
 #else
 
-void console_ext_install(void) {}
-void console_apply_config(void) {}
-bool console_toggle(void) { return false; }
-bool console_visible(void) { return false; }
-void console_handle_event(console_input_event event) { (void)event; }
-void console_write(const char *fmt, ...) { (void)fmt; }
-void console_write_color(color4f color, const char *fmt, ...) {
+void zconsole_ext_install(void) {}
+void console_priv_apply_config(void) {}
+bool zconsole_toggle(void) { return false; }
+bool zconsole_visible(void) { return false; }
+void zconsole_handle_event(zconsole_input_event event) { (void)event; }
+void zconsole_write(const char *fmt, ...) { (void)fmt; }
+void zconsole_write_color(color4f color, const char *fmt, ...) {
     (void)color;
     (void)fmt;
 }
-bool console_draw(void) { return true; }
-bool console_destroy(void) { return true; }
+bool zconsole_draw(void) { return true; }
+bool zconsole_destroy(void) { return true; }
 
 #endif
 

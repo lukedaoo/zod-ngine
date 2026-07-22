@@ -7,7 +7,7 @@
 #include "../engine_context/engine_context_internal.h"
 #include "input_internal.h"
 
-void input_update(void) {
+void input_priv_update(void) {
     memcpy(g_ctx.input.prev, g_ctx.input.curr, sizeof(g_ctx.input.prev));
 
     int         num_keys = 0;
@@ -18,16 +18,16 @@ void input_update(void) {
     memcpy(g_ctx.input.curr, state, n * sizeof(bool));
 }
 
-bool input_key_down(zod_key_t key) {
+bool input_priv_key_down(zod_key_t key) {
     return (key < SDL_SCANCODE_COUNT) ? g_ctx.input.curr[key] : false;
 }
 
-bool input_key_pressed(zod_key_t key) {
+bool input_priv_key_pressed(zod_key_t key) {
     return (key < SDL_SCANCODE_COUNT) ? (g_ctx.input.curr[key] && !g_ctx.input.prev[key])
                                       : false;
 }
 
-bool input_key_released(zod_key_t key) {
+bool input_priv_key_released(zod_key_t key) {
     return (key < SDL_SCANCODE_COUNT) ? (!g_ctx.input.curr[key] && g_ctx.input.prev[key])
                                       : false;
 }

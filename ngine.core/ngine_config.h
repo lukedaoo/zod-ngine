@@ -40,7 +40,7 @@
 // #define DEFAULT_CONFIG_WINDOW_CLEAR_COLOR 0x141A1AFF
 
 // ------- Extensions
-// zod_ngine.c — max extensions zod_register_extension can hold (fixed-size
+// zod_ngine.c — max extensions zngine_register_extension can hold (fixed-size
 // array, no dynamic allocation)
 // @default 8
 // #define ZOD_MAX_EXTENSIONS 8

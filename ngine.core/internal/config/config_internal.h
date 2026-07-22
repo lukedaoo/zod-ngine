@@ -50,6 +50,6 @@ struct config {
     bool (*reload_config_func)(const char *filepath, cvar_table *cvars);
 };
 
-void config_seed_preset(config *cfg);
+void config_priv_seed_preset(config *cfg);
 
 #endif

@@ -20,11 +20,11 @@ typedef struct render_backend {
     void                *context;
 } render_backend;
 
-void *render_backend_context_create(SDL_Window *window);
-void  render_backend_init(void *render_context, int width, int height);
-void  render_backend_resize(void *render_context, int width, int height);
-void  render_backend_begin(void *render_context);
-void  render_backend_end(void *render_context);
-void  render_backend_shutdown(void *render_context);
+void *render_backend_priv_context_create(SDL_Window *window);
+void  render_backend_priv_init(void *render_context, int width, int height);
+void  render_backend_priv_resize(void *render_context, int width, int height);
+void  render_backend_priv_begin(void *render_context);
+void  render_backend_priv_end(void *render_context);
+void  render_backend_priv_shutdown(void *render_context);
 
 #endif

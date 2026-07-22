@@ -7,9 +7,9 @@ struct cmd_manager {
     command_table table;
 };
 
-void cmd_manager_register_default_system_commands(cmd_manager *mgr);
+void cmd_manager_priv_register_default_system_commands(cmd_manager *mgr);
 // --- System commands ---
-command_execute_result sys_cmd_help(int argc, char **argv);
-command_execute_result sys_cmd_reload_config(int argc, char **argv);
+command_execute_result sys_cmd_priv_help(int argc, char **argv);
+command_execute_result sys_cmd_priv_reload_config(int argc, char **argv);
 
 #endif
