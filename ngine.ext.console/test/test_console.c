@@ -109,12 +109,12 @@ MU_TEST(test_visible_lines_plus_one_yields_exact_scrollback_rows) {
     // extra +1 reserves the input row) so scrollback_rows comes out to
     // exactly visible_lines, not visible_lines-1 — this is the formula
     // zconsole_draw and console_priv_platform_draw's lines_fit must agree on.
-    int visible_lines = 5;
-    int row_height    = 20;
-    int overhead      = 10;
-    int height =
+    int   visible_lines = 5;
+    float row_height    = 20.0f;
+    float overhead      = 10.0f;
+    int   height =
          console_priv_panel_height(10000, visible_lines + 1, row_height, overhead);
-    int lines_fit       = (height - overhead) / row_height;
+    int lines_fit       = (int)(((float)height - overhead) / row_height);
     int scrollback_rows = lines_fit - 1;
     mu_assert_int_eq(visible_lines, scrollback_rows);
 }

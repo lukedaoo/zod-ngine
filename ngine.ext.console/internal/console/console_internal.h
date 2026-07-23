@@ -100,18 +100,18 @@ typedef struct console_state {
     int     input_len;
     int     cursor_pos;
 
-    char    history[CONSOLE_MAX_HISTORY][CONSOLE_INPUT_MAX_LEN];
-    int     history_count;
-    int     history_next_write;
+    char history[CONSOLE_MAX_HISTORY][CONSOLE_INPUT_MAX_LEN];
+    int  history_count;
+    int  history_next_write;
     // 0 = not navigating (also the correct value on zero-init, so no explicit
     // reset is needed at startup) — N>=1 = viewing the N-th most recent entry.
-    int     history_index;
-    char    history_draft[CONSOLE_INPUT_MAX_LEN];
+    int  history_index;
+    char history_draft[CONSOLE_INPUT_MAX_LEN];
 
     // Lines scrolled up from the bottom (0 = pinned to newest). Loosely clamped
     // to [0, count] here; console_priv_visible_line_start does the tight clamp
     // against however many lines actually fit on screen right now.
-    int     scroll_offset;
+    int scroll_offset;
 
     float   text_pad_x;
     float   top_pad;
@@ -142,8 +142,8 @@ void console_priv_apply_config(void);
 // must be added here too since console_priv_platform_draw subtracts the same
 // overhead before dividing by row_height, or visible_lines rows wouldn't
 // actually fit in the returned height.
-int console_priv_panel_height(int window_height, int visible_lines, int row_height,
-                         int overhead);
+int console_priv_panel_height(int window_height, int visible_lines, float row_height,
+                              float overhead);
 
 // First index of g_console.lines to draw, given how many lines fit in the
 // panel and how far scrolled up from the bottom — clips to the most recent
@@ -163,7 +163,7 @@ void console_priv_history_next(void);
 void console_priv_scroll_up(void);
 void console_priv_scroll_down(void);
 
-void console_priv_platform_draw(int width, int height);
+void console_priv_platform_draw(int width, int height, int lines_fit);
 
 void console_priv_write_line(color4f color, const char *text);
 void console_priv_write_multiple_lines(color4f color, const char *text);

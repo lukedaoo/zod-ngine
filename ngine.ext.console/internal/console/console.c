@@ -1,5 +1,6 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -247,10 +248,10 @@ void zconsole_write_color(color4f color, const char *fmt, ...) {
     va_end(args);
 }
 
-int console_priv_panel_height(int window_height, int visible_lines, int row_height,
-                              int overhead) {
-    int desired = visible_lines * row_height + overhead;
-    return desired < window_height ? desired : window_height;
+int console_priv_panel_height(int window_height, int visible_lines, float row_height,
+                              float overhead) {
+    float desired = (float)visible_lines * row_height + overhead;
+    return (int)fminf(desired, (float)window_height);
 }
 
 int console_priv_visible_line_start(int count, int lines_that_fit, int scroll_offset) {
@@ -382,14 +383,19 @@ void console_priv_input_submit(void) {
 bool zconsole_draw(void) {
     if (!g_console.visible) return true;
 
-    int row_height = (int)(g_console.font_size * CONSOLE_LINE_HEIGHT_RATIO);
-    int overhead   = (int)(g_console.top_pad + g_console.input_gap);
-    // +1 reserves a row for the input line so visible_lines rows of
-    // scrollback actually fit — console_priv_platform_draw's lines_fit already
-    // budgets one row for input (scrollback_rows = lines_fit - 1).
-    int height = console_priv_panel_height(
-         g_ctx.window.height, g_console.visible_lines + 1, row_height, overhead);
-    console_priv_platform_draw(g_ctx.window.width, height);
+    float row_height = g_console.font_size * CONSOLE_LINE_HEIGHT_RATIO;
+    float overhead    = g_console.top_pad + g_console.input_gap;
+    // +1 reserves a row for the input line so visible_lines rows of scrollback
+    // actually fit (lines_fit below budgets one row for input: scrollback_rows =
+    // lines_fit - 1).
+    int requested_rows = g_console.visible_lines + 1;
+    int height          = console_priv_panel_height(g_ctx.window.height, requested_rows,
+                                                    row_height, overhead);
+    int lines_fit = height >= g_ctx.window.height
+                         ? (int)(((float)height - overhead) / row_height)
+                         : requested_rows;
+
+    console_priv_platform_draw(g_ctx.window.width, height, lines_fit);
     return true;
 }
 

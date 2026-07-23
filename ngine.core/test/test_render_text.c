@@ -54,7 +54,7 @@ MU_TEST(test_clip_quad_trims_right_edge_and_remaps_u) {
     mu_check(ok);
     mu_check(CLOSE(x0, 10.0f) && CLOSE(x1, 20.0f));
     mu_check(CLOSE(u0, 0.1f) && CLOSE(u1, 0.2f));
-    mu_check(CLOSE(v0, 0.2f) && CLOSE(v1, 0.5f));  
+    mu_check(CLOSE(v0, 0.2f) && CLOSE(v1, 0.5f));
 }
 
 MU_TEST(test_clip_quad_trims_bottom_edge_and_remaps_v) {

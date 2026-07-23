@@ -214,7 +214,7 @@ static int console_input_scroll_start(const char *input, int cursor_pos,
     return start;
 }
 
-void console_priv_platform_draw(int width, int height) {
+void console_priv_platform_draw(int width, int height, int lines_fit) {
     if (!console_gl_state.ready) console_platform_init();
 
     const simple_font *font  = zngine_font_primary_get();
@@ -224,8 +224,6 @@ void console_priv_platform_draw(int width, int height) {
          console_line_offset(font, scale, g_console.font_size, row_height) +
          g_console.top_pad;
 
-    int lines_fit =
-         (int)(((float)height - g_console.top_pad - g_console.input_gap) / row_height);
     int scrollback_rows = lines_fit > 0 ? lines_fit - 1 : 0;
 
     console_platform_draw_panel(width, height);
@@ -239,9 +237,6 @@ void console_priv_platform_draw(int width, int height) {
         console_platform_draw_input_box(box_x, row_top, box_w, row_height);
     }
 
-    // Scrollback text is clipped on the CPU (per-glyph, geometry + UV trimmed to
-    // the rect) rather than via glScissor — never renders at/past row_top (the
-    // input box's own row) or past the panel bottom, regardless of scrollback_rows.
     float scrollback_clip_bottom = lines_fit > 0 ? row_top : (float)height;
     int   start = console_priv_visible_line_start(g_console.count, scrollback_rows,
                                                   g_console.scroll_offset);
@@ -292,11 +287,15 @@ void console_priv_platform_draw(int width, int height) {
         } else {
             cursor_x += 1.0f;
         }
-        float caret_w      = g_console.font_size * 0.4f;
-        float caret_height = g_console.font_size * 0.7f;
-        float caret_top    = row_top + (row_height - caret_height) * 0.5f;
-        console_queue_rect(cursor_x, caret_top, caret_w, caret_height,
-                           g_console.cursor_color);
+        float caret_w = g_console.font_size * 0.4f;
+
+        caret_w = fminf(caret_w, clip_right - cursor_x);
+        if (caret_w > 0.0f) {
+            float caret_height = g_console.font_size * 0.7f;
+            float caret_top    = row_top + (row_height - caret_height) * 0.5f;
+            console_queue_rect(cursor_x, caret_top, caret_w, caret_height,
+                               g_console.cursor_color);
+        }
         console_flush_rects();
     }
 }
@@ -305,9 +304,10 @@ void console_priv_platform_draw(int width, int height) {
 
 #else
 
-void console_priv_platform_draw(int width, int height) {
+void console_priv_platform_draw(int width, int height, int lines_fit) {
     (void)width;
     (void)height;
+    (void)lines_fit;
 }
 
 #endif
