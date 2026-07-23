@@ -22,6 +22,14 @@
 
 #define RENDER_TEXT_VERTS_PER_QUAD 6
 
+// A real font's space glyph is typographically narrow (often under 1/4 of the
+// font size), which can render as an all-but-invisible gap — floor it to a
+// fraction of font size so a single space stays visually noticeable. Letters
+// are untouched; this only widens the (otherwise ink-less) space glyph's step.
+#ifndef RENDER_TEXT_MIN_SPACE_ADVANCE_RATIO
+#define RENDER_TEXT_MIN_SPACE_ADVANCE_RATIO 0.35f
+#endif
+
 typedef struct render_text_vertex {
     float x, y;
     float u, v;
@@ -224,6 +232,10 @@ static void render_text_draw_weighted_clipped(float x, float y, const char *str,
 
     simple_font_atlas atlas            = simple_font_get_atlas(font);
     int               fallback_advance = simple_font_get_advance(font);
+    // fallback_advance is the font's own baked "em" unit (independent of the
+    // requested font_size), so scale * fallback_advance reconstructs font_size.
+    float min_space_advance =
+         RENDER_TEXT_MIN_SPACE_ADVANCE_RATIO * scale * (float)fallback_advance;
 
     float cursor_x = x;
     for (const char *p = str; *p; p++) {
@@ -261,7 +273,8 @@ static void render_text_draw_weighted_clipped(float x, float y, const char *str,
                     render_text_state.quad_count++;
                 }
             }
-            cursor_x += (float)g->advance * scale;
+            cursor_x += *p == ' ' ? fmaxf((float)g->advance * scale, min_space_advance)
+                                  : (float)g->advance * scale;
         } else {
             cursor_x += (float)fallback_advance * scale;
         }
@@ -347,10 +360,13 @@ void render_text_invalidate(void) {}
 static float render_text_measure_width(const char *str, float scale,
                                        const simple_font *font) {
     int   fallback_advance = simple_font_get_advance(font);
-    float width            = 0.0f;
+    float min_space_advance =
+         RENDER_TEXT_MIN_SPACE_ADVANCE_RATIO * scale * (float)fallback_advance;
+    float width = 0.0f;
     for (const char *p = str; *p; p++) {
-        const simple_font_glyph *g = simple_font_get_glyph(font, *p);
-        width += (float)(g ? g->advance : fallback_advance) * scale;
+        const simple_font_glyph *g   = simple_font_get_glyph(font, *p);
+        float                    adv = (float)(g ? g->advance : fallback_advance) * scale;
+        width += *p == ' ' ? fmaxf(adv, min_space_advance) : adv;
     }
     return width;
 }

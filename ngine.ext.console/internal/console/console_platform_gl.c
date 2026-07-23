@@ -187,15 +187,29 @@ static float console_line_offset(const simple_font *font, float scale, float fon
     return visual_top + (float)simple_font_get_baseline(font) * scale;
 }
 
+// Mirrors RENDER_TEXT_MIN_SPACE_ADVANCE_RATIO in render_text.c — must match
+// the actual glyph-draw stepping there, or the cursor/scroll math computed
+// here would drift from where the input text is really drawn.
+#ifndef CONSOLE_MIN_SPACE_ADVANCE_RATIO
+#define CONSOLE_MIN_SPACE_ADVANCE_RATIO 0.35f
+#endif
+
+static float console_glyph_advance(const simple_font_glyph *g, char c,
+                                   int fallback_advance, float scale) {
+    float adv = (float)(g ? g->advance : fallback_advance) * scale;
+    if (c != ' ') return adv;
+    return fmaxf(adv, CONSOLE_MIN_SPACE_ADVANCE_RATIO * scale * (float)fallback_advance);
+}
+
 static float console_measure_text_width(const char *str, int n, const simple_font *font,
                                         float scale) {
-    int fallback_advance = simple_font_get_advance(font);
-    int width            = 0;
+    int   fallback_advance = simple_font_get_advance(font);
+    float width            = 0.0f;
     for (int i = 0; i < n; i++) {
         const simple_font_glyph *g = simple_font_get_glyph(font, str[i]);
-        width += g ? g->advance : fallback_advance;
+        width += console_glyph_advance(g, str[i], fallback_advance, scale);
     }
-    return (float)width * scale;
+    return width;
 }
 
 static int console_input_scroll_start(const char *input, int cursor_pos,
@@ -205,8 +219,8 @@ static int console_input_scroll_start(const char *input, int cursor_pos,
     float used             = 0.0f;
     int   start            = cursor_pos;
     while (start > 0) {
-        const simple_font_glyph *g   = simple_font_get_glyph(font, input[start - 1]);
-        float                    adv = (float)(g ? g->advance : fallback_advance) * scale;
+        const simple_font_glyph *g = simple_font_get_glyph(font, input[start - 1]);
+        float adv = console_glyph_advance(g, input[start - 1], fallback_advance, scale);
         if (used + adv > available_width) break;
         used += adv;
         start--;
@@ -243,8 +257,8 @@ void console_priv_platform_draw(int width, int height, int lines_fit) {
     for (int i = start; i < g_console.count; i++) {
         render_text_draw_clipped(
              g_console.text_pad_x, (float)(i - start) * row_height + line_offset,
-             g_console.lines[i], scale, g_console.lines_color[i], font, 0.05f, 0.0f, 0.0f,
-             (float)width, scrollback_clip_bottom);
+             g_console.lines[i], scale, g_console.lines_color[i], font, 0.025f, 0.0f,
+             0.0f, (float)width, scrollback_clip_bottom);
     }
 
     console_flush_rects();
