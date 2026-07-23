@@ -5,7 +5,7 @@
 
 void zconsole_input_handle(const SDL_Event *e) {
     if (e->type == SDL_EVENT_TEXT_INPUT) {
-        if (strcmp(e->text.text, "~") == 0) return;
+        if (strcmp(e->text.text, "~") == 0 || strcmp(e->text.text, "`") == 0) return;
         zconsole_handle_event(
              (zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = e->text.text});
     } else if (e->type == SDL_EVENT_KEY_DOWN) {

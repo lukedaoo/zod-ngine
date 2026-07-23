@@ -102,8 +102,7 @@ int main(const int argc, const char **argv) {
 
         zngine_begin_drawing();
 #if ZOD_CONSOLE_ENABLED
-        bool resizing = zngine_clock_now() - last_resize_time < CONSOLE_RESIZE_SETTLE_SEC;
-        if (!resizing) zconsole_draw();
+        zconsole_draw();
 #endif
         render_text_flush();
 
