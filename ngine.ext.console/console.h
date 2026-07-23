@@ -1,6 +1,7 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
+#include <SDL3/SDL.h>
 #include <ngine.lib/types.h>
 
 typedef enum zconsole_input_kind {
@@ -17,10 +18,12 @@ typedef enum zconsole_input_kind {
 
 typedef struct zconsole_input_event {
     zconsole_input_kind kind;
-    const char        *text;  // only valid when kind == ZCONSOLE_INPUT_TEXT
+    const char         *text;  // only valid when kind == ZCONSOLE_INPUT_TEXT
 } zconsole_input_event;
 
 void zconsole_ext_install(void);
+
+void zconsole_input_handle(const SDL_Event *event);
 
 bool zconsole_toggle(void);
 bool zconsole_draw(void);

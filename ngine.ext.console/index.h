@@ -13,6 +13,7 @@
 #include "internal/console/console.c"
 #include "internal/console/console_cmd.c"
 #include "internal/console/console_cmd_handler.c"
+#include "internal/console/console_input_handler.c"
 #endif
 
 #endif

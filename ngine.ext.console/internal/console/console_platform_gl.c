@@ -187,9 +187,6 @@ static float console_line_offset(const simple_font *font, float scale, float fon
     return visual_top + (float)simple_font_get_baseline(font) * scale;
 }
 
-// Mirrors RENDER_TEXT_MIN_SPACE_ADVANCE_RATIO in render_text.c — must match
-// the actual glyph-draw stepping there, or the cursor/scroll math computed
-// here would drift from where the input text is really drawn.
 #ifndef CONSOLE_MIN_SPACE_ADVANCE_RATIO
 #define CONSOLE_MIN_SPACE_ADVANCE_RATIO 0.35f
 #endif

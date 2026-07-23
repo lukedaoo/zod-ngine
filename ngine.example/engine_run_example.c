@@ -90,37 +90,7 @@ int main(const int argc, const char **argv) {
                 zngine_window_notify_resized(e.window.data1, e.window.data2);
             }
 #if ZOD_CONSOLE_ENABLED
-            if (e.type == SDL_EVENT_TEXT_INPUT) {
-                if (strcmp(e.text.text, "~") == 0) continue;
-                zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT,
-                                                             .text = e.text.text});
-            } else if (e.type == SDL_EVENT_KEY_DOWN) {
-                if (e.key.key == SDLK_BACKSPACE) {
-                    zconsole_handle_event(
-                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_BACKSPACE});
-                } else if (e.key.key == SDLK_RETURN || e.key.key == SDLK_KP_ENTER) {
-                    zconsole_handle_event(
-                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_SUBMIT});
-                } else if (e.key.key == SDLK_LEFT) {
-                    zconsole_handle_event(
-                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_LEFT});
-                } else if (e.key.key == SDLK_RIGHT) {
-                    zconsole_handle_event(
-                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_RIGHT});
-                } else if (e.key.key == SDLK_UP) {
-                    zconsole_handle_event(
-                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_HISTORY_PREV});
-                } else if (e.key.key == SDLK_DOWN) {
-                    zconsole_handle_event(
-                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_HISTORY_NEXT});
-                } else if (e.key.key == SDLK_PAGEUP) {
-                    zconsole_handle_event(
-                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_SCROLL_UP});
-                } else if (e.key.key == SDLK_PAGEDOWN) {
-                    zconsole_handle_event(
-                         (zconsole_input_event){.kind = ZCONSOLE_INPUT_SCROLL_DOWN});
-                }
-            }
+            zconsole_input_handle(&e);
 #endif
         }
         zngine_input_update();
@@ -132,7 +102,8 @@ int main(const int argc, const char **argv) {
 
         zngine_begin_drawing();
 #if ZOD_CONSOLE_ENABLED
-        zconsole_draw();
+        bool resizing = zngine_clock_now() - last_resize_time < CONSOLE_RESIZE_SETTLE_SEC;
+        if (!resizing) zconsole_draw();
 #endif
         render_text_flush();
 
