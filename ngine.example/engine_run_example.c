@@ -49,6 +49,8 @@ void after_init(void *user_data) {
 
 int main(const int argc, const char **argv) {
     log_debug("zod-ngine run-tree: starting");
+    event_table event_table = {0};
+    event_table_init(&event_table);
     const zngine_dispatch dispatch = {
          .before_init = before_init,
          .load_args   = load_args,

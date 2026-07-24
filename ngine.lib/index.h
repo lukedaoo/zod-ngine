@@ -25,6 +25,9 @@
 // command
 #include "command.h"
 
+// event
+#include "event.h"
+
 // io
 #include "file_watcher.h"
 

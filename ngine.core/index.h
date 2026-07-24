@@ -23,6 +23,7 @@
 
 #define ARRAY_LIST_IMPLEMENTATION
 #define COMMAND_IMPLEMENTATION
+#define EVENT_IMPLEMENTATION
 #include <ngine.lib/index.h>
 
 #endif
