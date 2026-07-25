@@ -76,6 +76,7 @@ static void reset(void) {
     if (g_ctx.config.config_file_watcher)
         file_watcher_close(g_ctx.config.config_file_watcher);
     cmd_manager_priv_destroy(&g_ctx.cmd_manager);
+    event_manager_priv_destroy(&g_ctx.event_manager);
     g_ctx                      = (engine_context){0};
     before_init_called         = false;
     after_init_called          = false;

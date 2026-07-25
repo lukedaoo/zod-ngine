@@ -8,6 +8,7 @@
 
 #include "../../config.h"
 #include "../../cmd_manager.h"
+#include "../../event_manager.h"
 #include "../../render.h"
 #include "../../render_text.h"
 #include "../../zod_error.h"
@@ -21,7 +22,7 @@
 #endif
 
 static zngine_extension g_extensions[ZOD_MAX_EXTENSIONS];
-static size_t        g_extensions_count = 0;
+static size_t           g_extensions_count = 0;
 
 void zngine_register_extension(zngine_extension ext) {
     if (g_extensions_count >= ZOD_MAX_EXTENSIONS) {
@@ -49,14 +50,20 @@ static void load_font() {
 bool zngine_init(const zngine_init_params params) {
     const int                 argc         = params.argc;
     const char              **argv         = params.argv;
-    const zngine_config_setup    config_setup = params.config_setup;
-    const zngine_dispatch dispatch     = params.dispatch;
+    const zngine_config_setup config_setup = params.config_setup;
+    const zngine_dispatch     dispatch     = params.dispatch;
 
     void *user_data = params.user_data;
 
     if (dispatch.before_init) dispatch.before_init(user_data);
 
     log_info("\nengine.init: starting");
+
+    {
+        // event manager
+        event_manager_priv_init(&g_ctx.event_manager);
+        log_debug("event_manager.init: ready");
+    }
 
     {
         // command manager
@@ -68,7 +75,7 @@ bool zngine_init(const zngine_init_params params) {
         config_priv_init(&g_ctx.config);
         zngine_run_extension_init_config(&g_ctx.config.cvars);
         config_priv_add_user_constraints(&g_ctx.config, config_setup.constraints,
-                                    config_setup.constraints_count);
+                                         config_setup.constraints_count);
 
         if (config_setup.load_config_func && config_setup.config_path) {
             if (!config_setup.load_config_func(config_setup.config_path,
@@ -164,17 +171,13 @@ void zngine_apply_config(bool adjust_config) {
     int target_fps = cvar_get_int(&g_ctx.config.cvars, "engine.target_fps",
                                   DEFAULT_CONFIG_TARGET_FPS);
     clock_priv_change_target_fps(target_fps >= 0 ? (uint32_t)target_fps
-                                            : DEFAULT_CONFIG_TARGET_FPS);
+                                                 : DEFAULT_CONFIG_TARGET_FPS);
     window_priv_apply_config(&g_ctx.window);
 
     load_font();
 
     for (size_t i = 0; i < g_extensions_count; ++i)
         if (g_extensions[i].apply_config) g_extensions[i].apply_config();
-}
-
-void zngine_window_notify_resized(int width, int height) {
-    window_priv_notify_resized(&g_ctx.window, width, height);
 }
 
 bool zngine_should_exit(void) { return g_ctx.should_exit; }
@@ -191,6 +194,12 @@ bool zngine_tick_hot_reload(void) {
         return false;
     }
     zngine_apply_config(true);
+
+    event_context ctx = {.identifier   = {.category = EVENT_TAG_SYSTEM_CONFIG,
+                                          .event_id = SYS_EVENT_ON_CONFIG_RELOAD_FULL},
+                         .payload      = NULL,
+                         .payload_size = 0};
+    event_manager_priv_publish(&g_ctx.event_manager, &ctx);
 #if DEBUG
     config_priv_print(&g_ctx.config);
 #endif
@@ -203,7 +212,7 @@ void zngine_end_drawing(void) { render_priv_end(); }
 const simple_font *zngine_font_primary_get(void) { return &g_ctx.primary_font; }
 
 bool zngine_command_register(command_group group, const char *name,
-                          command_execute_result (*handler)(int argc, char **argv)) {
+                             command_execute_result (*handler)(int argc, char **argv)) {
     return cmd_manager_priv_register(&g_ctx.cmd_manager, group, name, handler);
 }
 
@@ -211,13 +220,38 @@ bool zngine_command_unregister(command_group group, const char *name) {
     return cmd_manager_priv_unregister(&g_ctx.cmd_manager, group, name);
 }
 
-command_execute_result zngine_sys_command_execute(const char *name, int argc, char **argv) {
+command_execute_result zngine_sys_command_execute(const char *name, int argc,
+                                                  char **argv) {
     return cmd_manager_priv_execute(&g_ctx.cmd_manager, COMMAND_GROUP_SYSTEM, name, argc,
-                               argv);
+                                    argv);
 }
 
-command_execute_result zngine_user_command_execute(const char *name, int argc, char **argv) {
-    return cmd_manager_priv_execute(&g_ctx.cmd_manager, COMMAND_GROUP_USER_DEFINED, name, argc,
-                               argv);
+command_execute_result zngine_user_command_execute(const char *name, int argc,
+                                                   char **argv) {
+    return cmd_manager_priv_execute(&g_ctx.cmd_manager, COMMAND_GROUP_USER_DEFINED, name,
+                                    argc, argv);
+}
+
+bool zngine_event_subscribe(const event_category category, const int event_id,
+                            const event_callback callback, void *userdata,
+                            const event_userdata_destroy destroy_fn) {
+    return event_manager_priv_subscribe(&g_ctx.event_manager, category, event_id,
+                                        callback, userdata, destroy_fn);
+}
+
+bool zngine_event_unsubscribe(const event_category category, const int event_id,
+                              const event_callback callback, void *userdata) {
+    return event_manager_priv_unsubscribe(&g_ctx.event_manager, category, event_id,
+                                          callback, userdata);
+}
+
+bool zngine_event_unsubscribe_by_event_identifier(const event_category category,
+                                                  const int            event_id) {
+    return event_manager_priv_unsubscribe_by_event_identifier(&g_ctx.event_manager,
+                                                              category, event_id);
+}
+
+void zngine_event_publish(event_context *ctx) {
+    event_manager_priv_publish(&g_ctx.event_manager, ctx);
 }
 #endif

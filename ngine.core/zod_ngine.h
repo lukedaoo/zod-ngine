@@ -7,6 +7,7 @@
 #include <ngine.lib/cvar_load.h>
 #include <ngine.lib/simple_font.h>
 #include <ngine.lib/command.h>
+#include <ngine.lib/event.h>
 
 #include "input.h"
 
@@ -59,11 +60,6 @@ bool zngine_init(const zngine_init_params params);
 void zngine_destroy(void);
 
 void zngine_apply_config(bool adjust_config);
-
-// Call from the app's event loop on SDL_EVENT_WINDOW_RESIZED so the
-// viewport tracks interactive drag-resizes (only fires when window.resizable
-// is set).
-void zngine_window_notify_resized(int width, int height);
 
 //
 // Config accessors
@@ -130,6 +126,18 @@ command_execute_result zngine_sys_command_execute(const char *name, int argc,
                                                   char **argv);
 command_execute_result zngine_user_command_execute(const char *name, int argc,
                                                    char **argv);
+
+//
+// Event Manager accessors
+//
+bool zngine_event_subscribe(const event_category category, const int event_id,
+                            const event_callback callback, void *userdata,
+                            const event_userdata_destroy destroy_fn);
+bool zngine_event_unsubscribe(const event_category category, const int event_id,
+                              const event_callback callback, void *userdata);
+bool zngine_event_unsubscribe_by_event_identifier(const event_category category,
+                                                  const int            event_id);
+void zngine_event_publish(event_context *ctx);
 
 // Utils
 bool zngine_should_exit(void);

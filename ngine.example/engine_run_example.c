@@ -6,6 +6,15 @@
 
 #define CONFIG_PATH "run-tree/data/engine.scf"
 
+// app_event_ids range [100-200]
+enum { APP_EVENT_TICK = 100 } app_event_ids;
+
+static event_callback_result on_app_tick(event_context *ctx, void *userdata) {
+    const uint32_t *frame = (const uint32_t *)ctx->payload;
+    log_debug("app.on_tick: frame=%u userdata=%p", *frame, userdata);
+    return (event_callback_result){.type = EVENT_CALLBACK_RESULT_VOID};
+}
+
 void before_init(void *user_data) {
     (void)user_data;
     log_debug("engine.before_init: called");
@@ -49,8 +58,6 @@ void after_init(void *user_data) {
 
 int main(const int argc, const char **argv) {
     log_debug("zod-ngine run-tree: starting");
-    event_table event_table = {0};
-    event_table_init(&event_table);
     const zngine_dispatch dispatch = {
          .before_init = before_init,
          .load_args   = load_args,
@@ -80,6 +87,10 @@ int main(const int argc, const char **argv) {
     if (!zngine_init(params)) return 1;
     render_text_init();
 
+    int app_userdata = 42;
+    zngine_event_subscribe(EVENT_TAG_APPLICATION, APP_EVENT_TICK, on_app_tick,
+                           &app_userdata, NULL);
+
     uint32_t fps_frames = 0;
     float    fps_accum  = 0.0f;
 
@@ -89,7 +100,14 @@ int main(const int argc, const char **argv) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) zngine_request_exit();
             if (e.type == SDL_EVENT_WINDOW_RESIZED) {
-                zngine_window_notify_resized(e.window.data1, e.window.data2);
+                sys_event_resize_payload payload = {.width  = e.window.data1,
+                                                    .height = e.window.data2};
+                event_context            ctx     = {
+                     .identifier   = {.category = EVENT_TAG_SYSTEM_WINDOW,
+                                      .event_id = SYS_EVENT_ON_RESIZE_WINDOW},
+                     .payload      = &payload,
+                     .payload_size = sizeof(payload)};
+                zngine_event_publish(&ctx);
             }
 #if ZOD_CONSOLE_ENABLED
             zconsole_input_handle(&e);
@@ -119,6 +137,8 @@ int main(const int argc, const char **argv) {
         zngine_end_drawing();
         zngine_clock_sleep_to_target_fps();
     }
+    zngine_event_unsubscribe(EVENT_TAG_APPLICATION, APP_EVENT_TICK, on_app_tick,
+                             &app_userdata);
     render_text_destroy();
     zngine_destroy();
     return 0;

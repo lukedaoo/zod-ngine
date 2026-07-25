@@ -8,6 +8,7 @@ void engine_context_priv_destroy(void) {
     window_priv_destroy(&g_ctx.window);
     config_priv_destroy(&g_ctx.config);
     cmd_manager_priv_destroy(&g_ctx.cmd_manager);
+    event_manager_priv_destroy(&g_ctx.event_manager);
 }
 
 engine_context g_ctx = {0};

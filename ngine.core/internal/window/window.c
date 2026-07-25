@@ -128,13 +128,4 @@ bool window_priv_apply_config(window *window) {
     return ok;
 }
 
-void window_priv_notify_resized(window *window, int width, int height) {
-    if (!window || width <= 0 || height <= 0) return;
-    if (width == window->width && height == window->height) return;
-    window->width  = width;
-    window->height = height;
-    render_backend_priv_resize(window->backend.context, width, height);
-    log_debug("window.notify_resized: %dx%d", width, height);
-}
-
 #endif

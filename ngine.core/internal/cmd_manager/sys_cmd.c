@@ -28,6 +28,13 @@ command_execute_result sys_cmd_priv_reload_config_file(int argc, char **argv) {
     }
 
     zngine_apply_config(true);
+
+    event_context ctx = {.identifier   = {.category = EVENT_TAG_SYSTEM_CONFIG,
+                                          .event_id = SYS_EVENT_ON_CONFIG_RELOAD_FULL},
+                         .payload      = NULL,
+                         .payload_size = 0};
+    event_manager_priv_publish(&g_ctx.event_manager, &ctx);
+
     return (command_execute_result){
          .type      = COMMAND_RESULT_STRING,
          .value.str = "config reloaded",
@@ -163,6 +170,13 @@ command_execute_result sys_cmd_priv_set_config(int argc, char **argv) {
     }
 
     zngine_apply_config(true);
+
+    event_context ctx = {.identifier   = {.category = EVENT_TAG_SYSTEM_CONFIG,
+                                          .event_id = SYS_EVENT_ON_CONFIG_RELOAD_SINGLE},
+                         .payload      = (void *)name,
+                         .payload_size = strlen(name) + 1};
+    event_manager_priv_publish(&g_ctx.event_manager, &ctx);
+
     return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
 }
 // get-config

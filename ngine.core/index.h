@@ -43,6 +43,8 @@
 
 #include "cmd_manager.h"
 
+#include "event_manager.h"
+
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
 #include "internal/config/config.c"
@@ -67,6 +69,9 @@
 
 #include "internal/cmd_manager/sys_cmd.c"
 #include "internal/cmd_manager/cmd_manager.c"
+
+#include "internal/event_manager/sys_event.c"
+#include "internal/event_manager/event_manager.c"
 
 #include "internal/error/zod_error.c"
 
