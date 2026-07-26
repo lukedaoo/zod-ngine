@@ -66,6 +66,7 @@
 #include "internal/zod_ngine/zod_ngine_config.c"
 #include "internal/zod_ngine/zod_ngine_clock.c"
 #include "internal/zod_ngine/zod_ngine_input.c"
+#include "internal/zod_ngine/zod_ngine_window.c"
 #include "internal/render/render_text.c"
 #include "internal/render/render_sprite.c"
 

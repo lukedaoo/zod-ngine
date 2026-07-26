@@ -35,6 +35,6 @@ output_text_color          0x808080FF     ; scrollback line color. Hex format: 0
 input_text_color           0xFFFFFFFF     ; input line + cursor color. Hex format: 0xRRGGBBAA
 input_box_color            0xFF223366     ; input box border color. Hex format: 0xRRGGBBAA
 input_box_background_color 0x00000080     ; input box fill color. Hex format: 0xRRGGBBAA
-background_color           0x114455D9     ; panel background color. Hex format: 0xRRGGBBAA
+background_color           0x114455FF     ; panel background color. Hex format: 0xRRGGBBAA
 cursor_color               0xFFD400FF     ; cursor color. Hex format: 0xRRGGBBAA
 

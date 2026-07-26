@@ -99,6 +99,14 @@ void     zngine_clock_sleep_to_target_fps(void);
 void zngine_begin_drawing(void);
 void zngine_end_drawing(void);
 
+// Live window size in pixels — reflects the current mode (windowed at any
+// requested resolution, or fullscreen at the display's actual resolution),
+// updated on resize/fullscreen toggle. Use this instead of hardcoding a
+// canvas size so layout code adapts to whatever window.width/height (or
+// fullscreen) is actually configured.
+int zngine_window_width(void);
+int zngine_window_height(void);
+
 //
 // Font accessors
 //

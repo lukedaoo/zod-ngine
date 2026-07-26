@@ -24,6 +24,7 @@ typedef struct {
 
 static const build_target BUILD_TARGETS[] = {
      {"engine", "ngine.example/engine_run_example.c", "engine_run", true},
+     {"beatup", "ngine.example/beatup.c", "beatup_run", true},
 };
 static const size_t BUILD_TARGETS_COUNT =
      sizeof(BUILD_TARGETS) / sizeof(BUILD_TARGETS[0]);
@@ -449,17 +450,27 @@ static const char *parse_backend_flag(int argc, char **argv) {
     return "opengl";
 }
 
+// argv[at] is a target name (not a flag, not "debug"/"release") if it matches
+// a row in BUILD_TARGETS[] — lets `run`/`build-debug`/`build-release` take an
+// optional target before the rest of their own args, defaulting to "engine".
+static const char *parse_target_flag(int argc, char **argv, int at) {
+    if (argc > at && find_target(argv[at])) return argv[at];
+    return "engine";
+}
+
 int main(int argc, char **argv) {
     NOB_GO_REBUILD_URSELF(argc, argv);
 
     if (argc > 1 && strcmp(argv[1], "help") == 0) {
-        nob_log(NOB_INFO, "usage: ./nob [command] [options]");
+        nob_log(NOB_INFO, "usage: ./nob [command] [target] [options]");
+        nob_log(NOB_INFO, "  target: engine (default) | beatup");
         nob_log(NOB_INFO, "  (none)                        build engine debug");
-        nob_log(NOB_INFO, "  run [debug|release] [--backend=opengl|vulkan]");
+        nob_log(NOB_INFO,
+                "  run [target] [debug|release] [--backend=opengl|vulkan]");
         nob_log(NOB_INFO, "                                build and run");
-        nob_log(NOB_INFO, "  build-debug [--backend=opengl|vulkan]");
+        nob_log(NOB_INFO, "  build-debug [target] [--backend=opengl|vulkan]");
         nob_log(NOB_INFO, "                                build with debug symbols");
-        nob_log(NOB_INFO, "  build-release [--backend=opengl|vulkan]");
+        nob_log(NOB_INFO, "  build-release [target] [--backend=opengl|vulkan]");
         nob_log(NOB_INFO, "                                build with optimizations");
         nob_log(NOB_INFO,
                 "  test [dir|file]               run tests (ngine.lib, ngine.core, or "
@@ -495,14 +506,17 @@ int main(int argc, char **argv) {
     }
 
     if (argc > 1 && strcmp(argv[1], "run") == 0) {
-        const char *mode = argc > 2 ? argv[2] : "debug";
-        return run_run(true, "engine", mode, parse_backend_flag(argc, argv));
+        const char *target  = parse_target_flag(argc, argv, 2);
+        bool        has_tgt = strcmp(target, "engine") != 0;
+        const char *mode    = argc > (has_tgt ? 3 : 2) ? argv[has_tgt ? 3 : 2] : "debug";
+        return run_run(true, target, mode, parse_backend_flag(argc, argv));
     }
 
     if (argc > 1 &&
         (strcmp(argv[1], "build-debug") == 0 || strcmp(argv[1], "build-release") == 0)) {
-        const char *mode = strcmp(argv[1], "build-release") == 0 ? "release" : "debug";
-        return run_run(false, "engine", mode, parse_backend_flag(argc, argv));
+        const char *mode   = strcmp(argv[1], "build-release") == 0 ? "release" : "debug";
+        const char *target = parse_target_flag(argc, argv, 2);
+        return run_run(false, target, mode, parse_backend_flag(argc, argv));
     }
 
     if (argc > 1) {
