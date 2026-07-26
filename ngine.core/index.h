@@ -40,6 +40,7 @@
 #include "zod_error.h"
 #include "zod_ngine.h"
 #include "render_text.h"
+#include "render_sprite.h"
 
 #include "cmd_manager.h"
 
@@ -66,6 +67,7 @@
 #include "internal/zod_ngine/zod_ngine_clock.c"
 #include "internal/zod_ngine/zod_ngine_input.c"
 #include "internal/render/render_text.c"
+#include "internal/render/render_sprite.c"
 
 #include "internal/cmd_manager/sys_cmd.c"
 #include "internal/cmd_manager/cmd_manager.c"
