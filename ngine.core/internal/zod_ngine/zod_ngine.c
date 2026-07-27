@@ -47,6 +47,37 @@ static void load_font() {
     render_text_invalidate();
 }
 
+#ifdef ZNGINE_RESOLUTION_LIST
+// Snap requested window size to the nearest compile-time preset (by squared
+// distance). See ZNGINE_RESOLUTION_LIST in config_internal.h.
+static void zngine_snap_resolution(int *w, int *h) {
+    static const struct {
+        int w, h;
+    } presets[] = {
+#define ZR_ENTRY(W, H) {(W), (H)},
+         ZNGINE_RESOLUTION_LIST(ZR_ENTRY)
+#undef ZR_ENTRY
+    };
+    int  best   = 0;
+    long best_d = -1;
+    for (size_t i = 0; i < sizeof(presets) / sizeof(presets[0]); i++) {
+        long dw = (long)*w - presets[i].w;
+        long dh = (long)*h - presets[i].h;
+        long d  = dw * dw + dh * dh;
+        if (best_d < 0 || d < best_d) {
+            best_d = d;
+            best   = (int)i;
+        }
+    }
+    if (presets[best].w != *w || presets[best].h != *h) {
+        log_info("engine.init: resolution %dx%d unsupported, using %dx%d", *w, *h,
+                 presets[best].w, presets[best].h);
+        *w = presets[best].w;
+        *h = presets[best].h;
+    }
+}
+#endif
+
 bool zngine_init(const zngine_init_params params) {
     const int                 argc         = params.argc;
     const char              **argv         = params.argv;
@@ -137,9 +168,15 @@ bool zngine_init(const zngine_init_params params) {
         if (cvar_get_bool(&g_ctx.config.cvars, "window.transparent",
                           DEFAULT_CONFIG_WINDOW_TRANSPARENT))
             flags |= SDL_WINDOW_TRANSPARENT;
+
+#ifdef ZNGINE_RESOLUTION_LIST
+        // Compile-time locked: snap to nearest preset, force non-resizable.
+        zngine_snap_resolution(&w, &h);
+#else
         if (cvar_get_bool(&g_ctx.config.cvars, "window.resizable",
                           DEFAULT_CONFIG_WINDOW_RESIZABLE))
             flags |= SDL_WINDOW_RESIZABLE;
+#endif
         g_ctx.window = window_priv_create(title, w, h, flags);
         zngine_apply_config(false);
     }

@@ -42,6 +42,13 @@
 #define DEFAULT_CONFIG_WINDOW_RESIZABLE false
 #endif
 
+// Compile-time resolution lock. Ship a game restricted to fixed resolutions by
+// defining ZNGINE_RESOLUTION_LIST as an X-macro at build time, e.g.:
+//   -D'ZNGINE_RESOLUTION_LIST(X)=X(1280, 720) X(1600, 900) X(1920, 1080)'
+// When defined: the requested window.width/height is snapped to the nearest
+// listed preset at creation, and the window is forced non-resizable regardless
+// of the window.resizable cvar. When undefined: any size is allowed (dev).
+
 #ifndef DEFAULT_CONFIG_LOG_LEVEL
 // LOG_TRACE = 0,
 // LOG_DEBUG = 1,

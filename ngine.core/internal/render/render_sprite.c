@@ -218,6 +218,7 @@ void render_sprite_draw(sprite_texture tex, float x, float y, float w, float h,
     render_sprite_state.quad_count++;
 
     if (tex.draw_box) {
+        if (tex.box_color == 0) tex.box_color = 0xFF0000FF;  // red
         color4f box_tint = color4f_from_u32(tex.box_color);
         render_sprite_draw(render_sprite_state.white_tex, x, y, w, 1.0f, box_tint);
         render_sprite_draw(render_sprite_state.white_tex, x, y + h - 1.0f, w, 1.0f,

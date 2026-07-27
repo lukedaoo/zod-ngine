@@ -7,7 +7,7 @@
 #define CONFIG_PATH "run-tree/data/engine.scf"
 
 // app_event_ids range [100-200]
-enum { APP_EVENT_TICK = 100 } app_event_ids;
+enum : uint8_t { APP_EVENT_TICK = 100 } app_event_ids;
 
 static event_callback_result on_app_tick(event_context *ctx, void *userdata) {
     const uint32_t *frame = (const uint32_t *)ctx->payload;
