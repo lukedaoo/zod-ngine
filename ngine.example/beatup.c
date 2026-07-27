@@ -81,17 +81,29 @@ static float beatup_landing_x(bool right_side) {
 }
 
 static void beatup_layout_init(void) {
-    beatup_lane_l      = sprite_texture_load(BEATUP_ASSET_DIR "laneL.png");
-    beatup_lane_r      = sprite_texture_load(BEATUP_ASSET_DIR "laneR.png");
-    beatup_landing_l   = sprite_texture_load(BEATUP_ASSET_DIR "landingL.png");
+    beatup_lane_l           = sprite_texture_load(BEATUP_ASSET_DIR "laneL.png");
+    beatup_lane_l.draw_box  = true;
+    beatup_lane_l.box_color = 0xFF0000FF;
+
+    beatup_lane_r           = sprite_texture_load(BEATUP_ASSET_DIR "laneR.png");
+    beatup_lane_r.draw_box  = true;
+    beatup_lane_r.box_color = 0xFF0000FF;
+
+    beatup_landing_l           = sprite_texture_load(BEATUP_ASSET_DIR "landingL.png");
+    beatup_landing_l.draw_box  = true;
+    beatup_landing_l.box_color = 0xFF0000FF;
+
     beatup_landing_r   = sprite_texture_load(BEATUP_ASSET_DIR "landingR.png");
     beatup_space_frame = sprite_texture_load(BEATUP_ASSET_DIR "space_frame.png");
     beatup_marker      = sprite_texture_load(BEATUP_ASSET_DIR "space_frame_cursor.png");
     for (int i = 0; i < 5; i++)
         beatup_judge_tex[i] = sprite_texture_load(BEATUP_JUDGE_PATHS[i]);
 
-    for (int i = 0; i < 6; i++)
-        beatup_notes[i].tex = sprite_texture_load(beatup_notes[i].path);
+    for (int i = 0; i < 6; i++) {
+        beatup_notes[i].tex           = sprite_texture_load(beatup_notes[i].path);
+        beatup_notes[i].tex.draw_box  = true;
+        beatup_notes[i].tex.box_color = 0xFF0000FF;
+    }
     // for (int i = 0; i < 6; i++)
     //     beatup_letter_tex[i] = sprite_texture_load(BEATUP_LETTERS[i]);
 }

@@ -37,6 +37,8 @@ static struct {
 
     render_sprite_vertex vertices[RENDER_SPRITE_MAX_QUADS * RENDER_SPRITE_VERTS_PER_QUAD];
     int                  quad_count;
+
+    sprite_texture white_tex;  // 1x1 solid texture used to render debug boxes
 } render_sprite_state;
 
 static const char *RENDER_SPRITE_VERT_SRC =
@@ -122,11 +124,13 @@ void render_sprite_init(void) {
 
     render_sprite_state.quad_count     = 0;
     render_sprite_state.active_texture = 0;
+    render_sprite_state.white_tex      = sprite_texture_solid(255, 255, 255, 255);
 
     log_debug("render_sprite.init: ready");
 }
 
 void render_sprite_destroy(void) {
+    sprite_texture_unload(&render_sprite_state.white_tex);
     glDeleteProgram(render_sprite_state.shader);
     glDeleteVertexArrays(1, &render_sprite_state.vao);
     glDeleteBuffers(1, &render_sprite_state.vbo);
@@ -212,6 +216,16 @@ void render_sprite_draw(sprite_texture tex, float x, float y, float w, float h,
     // clang-format on
 
     render_sprite_state.quad_count++;
+
+    if (tex.draw_box) {
+        color4f box_tint = color4f_from_u32(tex.box_color);
+        render_sprite_draw(render_sprite_state.white_tex, x, y, w, 1.0f, box_tint);
+        render_sprite_draw(render_sprite_state.white_tex, x, y + h - 1.0f, w, 1.0f,
+                           box_tint);
+        render_sprite_draw(render_sprite_state.white_tex, x, y, 1.0f, h, box_tint);
+        render_sprite_draw(render_sprite_state.white_tex, x + w - 1.0f, y, 1.0f, h,
+                           box_tint);
+    }
 }
 
 void render_sprite_flush(void) {

@@ -9,6 +9,8 @@ typedef struct sprite_texture {
     uint32_t id;  // GL texture name; 0 == invalid/failed-to-load
     int      width;
     int      height;
+    bool     draw_box;
+    uint32_t box_color;
 } sprite_texture;
 
 sprite_texture sprite_texture_load(const char *path);
