@@ -24,6 +24,7 @@
 #define ARRAY_LIST_IMPLEMENTATION
 #define COMMAND_IMPLEMENTATION
 #define EVENT_IMPLEMENTATION
+#define ACTION_IMPLEMENTATION
 #include <ngine.lib/index.h>
 
 #endif
@@ -46,6 +47,8 @@
 
 #include "event_manager.h"
 
+#include "action_manager.h"
+
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
 #include "internal/config/config.c"
@@ -67,6 +70,7 @@
 #include "internal/zod_ngine/zod_ngine_clock.c"
 #include "internal/zod_ngine/zod_ngine_input.c"
 #include "internal/zod_ngine/zod_ngine_window.c"
+#include "internal/zod_ngine/zod_ngine_action.c"
 #include "internal/render/render_text.c"
 #include "internal/render/render_sprite.c"
 
@@ -75,6 +79,8 @@
 
 #include "internal/event_manager/sys_event.c"
 #include "internal/event_manager/event_manager.c"
+
+#include "internal/action_manager/action_manager.c"
 
 #include "internal/error/zod_error.c"
 

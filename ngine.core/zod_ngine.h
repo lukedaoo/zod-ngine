@@ -8,6 +8,7 @@
 #include <ngine.lib/simple_font.h>
 #include <ngine.lib/command.h>
 #include <ngine.lib/event.h>
+#include <ngine.lib/action.h>
 
 #include "input.h"
 
@@ -146,6 +147,30 @@ bool zngine_event_unsubscribe(const event_category category, const int event_id,
 bool zngine_event_unsubscribe_by_event_identifier(const event_category category,
                                                   const int            event_id);
 void zngine_event_publish(event_context *ctx);
+
+//
+// Action Manager accessors
+//
+action *zngine_action_resolve_by_name(const action_mode context,
+                                      const action_trigger_type type, const char *name);
+action *zngine_action_resolve_by_key(const action_mode context,
+                                     const action_trigger_type type, const int key);
+
+bool zngine_action_bind(const action_mode context, const action_trigger_type type,
+                        const int key, const char *name, action_executor *executor);
+bool zngine_action_rebind(const action_mode context, const action_trigger_type type,
+                          const int old_key, const int new_key);
+
+bool zngine_action_unbind_by_key(const action_mode context, const action_trigger_type type,
+                                 const int key);
+bool zngine_action_unbind_by_name(const action_mode context,
+                                  const action_trigger_type type, const char *name);
+bool zngine_action_unbind_all(const action_mode context, const action_trigger_type type);
+
+action_execute_result zngine_action_execute(action *action, void *userdata);
+action_execute_result zngine_action_execute_by_name(const action_mode         context,
+                                                    const action_trigger_type type,
+                                                    const char *name, void *userdata);
 
 // Utils
 bool zngine_should_exit(void);

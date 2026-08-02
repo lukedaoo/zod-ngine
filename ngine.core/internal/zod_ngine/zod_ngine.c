@@ -9,6 +9,7 @@
 #include "../../config.h"
 #include "../../cmd_manager.h"
 #include "../../event_manager.h"
+#include "../../action_manager.h"
 #include "../../render.h"
 #include "../../render_text.h"
 #include "../../zod_error.h"
@@ -100,6 +101,12 @@ bool zngine_init(const zngine_init_params params) {
         // command manager
         cmd_manager_priv_init(&g_ctx.cmd_manager);
         log_debug("cmd_manager.init: ready");
+    }
+
+    {
+        // action manager
+        action_manager_priv_init(&g_ctx.action_manager);
+        log_debug("action_manager.init: ready");
     }
 
     {

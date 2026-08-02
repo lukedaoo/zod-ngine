@@ -9,6 +9,19 @@
 // app_event_ids range [100-200]
 enum : uint8_t { APP_EVENT_TICK = 100 } app_event_ids;
 
+#if ZOD_CONSOLE_ENABLED
+enum : uint8_t { INPUT_CONTEXT_GAME = 0 } input_contexts;
+enum : uint8_t { ACTION_TRIGGER_KEY_PRESSED = 0 } action_triggers;
+
+static action_execute_result toggle_console_execute(const action *action,
+                                                    void         *userdata) {
+    (void)action;
+    (void)userdata;
+    zconsole_toggle();
+    return (action_execute_result){.type = ACTION_EXECUTE_RESULT_VOID};
+}
+#endif
+
 static event_callback_result on_app_tick(event_context *ctx, void *userdata) {
     const uint32_t *frame = (const uint32_t *)ctx->payload;
     log_debug("app.on_tick: frame=%u userdata=%p", *frame, userdata);
@@ -91,6 +104,12 @@ int main(const int argc, const char **argv) {
     zngine_event_subscribe(EVENT_TAG_APPLICATION, APP_EVENT_TICK, on_app_tick,
                            &app_userdata, NULL);
 
+#if ZOD_CONSOLE_ENABLED
+    action_executor toggle_console_executor = {.execute = toggle_console_execute};
+    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, SDL_SCANCODE_GRAVE,
+                       "toggle_console", &toggle_console_executor);
+#endif
+
     uint32_t fps_frames = 0;
     float    fps_accum  = 0.0f;
 
@@ -117,7 +136,9 @@ int main(const int argc, const char **argv) {
         zngine_tick_hot_reload();
 
 #if ZOD_CONSOLE_ENABLED
-        if (zngine_input_key_pressed(SDL_SCANCODE_GRAVE)) zconsole_toggle();
+        if (zngine_input_key_pressed(SDL_SCANCODE_GRAVE))
+            zngine_action_execute_by_name(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED,
+                                          "toggle_console", NULL);
 #endif
 
         zngine_begin_drawing();

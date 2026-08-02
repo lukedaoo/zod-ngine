@@ -6,6 +6,7 @@
 #include "../../window.h"
 #include "../../cmd_manager.h"
 #include "../../event_manager.h"
+#include "../../action_manager.h"
 
 #include "../config/config_internal.h"
 #include "../clock/clock_internal.h"
@@ -13,16 +14,18 @@
 #include "../window/window_internal.h"
 #include "../cmd_manager/cmd_manager_internal.h"
 #include "../event_manager/event_manager_internal.h"
+#include "../action_manager/action_manager_internal.h"
 #include "ngine.lib/simple_font.h"
 
 struct engine_context {
-    config        config;
-    engine_clock  clock;
-    input         input;
-    window        window;
-    cmd_manager   cmd_manager;
-    event_manager event_manager;
-    simple_font   primary_font;
+    config         config;
+    engine_clock   clock;
+    input          input;
+    window         window;
+    cmd_manager    cmd_manager;
+    event_manager  event_manager;
+    action_manager action_manager;
+    simple_font    primary_font;
 
     bool should_exit;
 };
