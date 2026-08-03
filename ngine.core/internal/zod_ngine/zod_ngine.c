@@ -255,8 +255,9 @@ void zngine_end_drawing(void) { render_priv_end(); }
 
 const simple_font *zngine_font_primary_get(void) { return &g_ctx.primary_font; }
 
-bool zngine_command_register(command_group group, const char *name,
-                             command_execute_result (*handler)(int argc, char **argv)) {
+command_handle zngine_command_register(command_group group, const char *name,
+                                       command_execute_result (*handler)(int    argc,
+                                                                         char **argv)) {
     return cmd_manager_priv_register(&g_ctx.cmd_manager, group, name, handler);
 }
 
@@ -276,17 +277,15 @@ command_execute_result zngine_user_command_execute(const char *name, int argc,
                                     argc, argv);
 }
 
-bool zngine_event_subscribe(const event_category category, const int event_id,
-                            const event_callback callback, void *userdata,
-                            const event_userdata_destroy destroy_fn) {
+event_handle zngine_event_subscribe(const event_category category, const int event_id,
+                                    const event_callback callback, void *userdata,
+                                    const event_userdata_destroy destroy_fn) {
     return event_manager_priv_subscribe(&g_ctx.event_manager, category, event_id,
                                         callback, userdata, destroy_fn);
 }
 
-bool zngine_event_unsubscribe(const event_category category, const int event_id,
-                              const event_callback callback, void *userdata) {
-    return event_manager_priv_unsubscribe(&g_ctx.event_manager, category, event_id,
-                                          callback, userdata);
+bool zngine_event_unsubscribe(const event_handle handle) {
+    return event_manager_priv_unsubscribe(&g_ctx.event_manager, handle);
 }
 
 bool zngine_event_unsubscribe_by_event_identifier(const event_category category,

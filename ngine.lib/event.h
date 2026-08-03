@@ -1,19 +1,10 @@
 #ifndef EVENT_H
 #define EVENT_H
 
-typedef struct event_table           event_table;
-typedef struct event_context         event_context;
-typedef struct event_callback_result event_callback_result;
-// userdata: caller-owned context handed back unchanged on every invocation.
-// event system only stores and forwards the pointer — never allocates,
-// frees, or dereferences it. Caller must outlive the subscription (or
-// unsubscribe before freeing it).
-typedef event_callback_result (*event_callback)(event_context *ctx, void *userdata);
-// destroy_fn: optional, called exactly once when a listener is removed
-// (unsubscribe or table destroy) — pass NULL to keep borrowing userdata
-// (caller retains ownership, default). Non-NULL transfers ownership to the
-// event system for that one subscription only.
-typedef void (*event_userdata_destroy)(void *userdata);
+#include <stddef.h>
+#include <stdbool.h>
+
+typedef struct event_table event_table;
 
 typedef enum {
     EVENT_TAG_SYSTEM_WINDOW,
@@ -34,14 +25,61 @@ typedef enum {
     EVENT_CALLBACK_RESULT_ERROR,
 } event_callback_result_type;
 
+typedef struct {
+    event_category category;
+    int            event_id;
+} event_identifier;
+
+typedef struct {
+    event_identifier identifier;
+
+    void  *payload;
+    size_t payload_size;
+} event_context;
+
+typedef struct {
+    event_callback_result_type type;
+    union {
+        int         i;
+        float       f;
+        const char *str;
+        void       *ptr;
+    } value;
+} event_callback_result;
+
+// userdata: caller-owned context handed back unchanged on every invocation.
+// event system only stores and forwards the pointer — never allocates,
+// frees, or dereferences it. Caller must outlive the subscription (or
+// unsubscribe before freeing it).
+typedef event_callback_result (*event_callback)(event_context *ctx, void *userdata);
+// destroy_fn: optional, called exactly once when a listener is removed
+// (unsubscribe or table destroy) — pass NULL to keep borrowing userdata
+// (caller retains ownership, default). Non-NULL transfers ownership to the
+// event system for that one subscription only.
+typedef void (*event_userdata_destroy)(void *userdata);
+
+// @info: opaque handle to one subscription. EVENT_HANDLE_INVALID (0) is never
+// a valid handle, so a zero-initialised handle is invalid by default.
+//
+// Lifetime: a handle is valid from the moment it is returned until any of the
+// following occurs: the subscription it names is removed; *any other*
+// subscription in the same table is removed; or the table is destroyed.
+// Removal compacts the underlying storage and shifts the index of every later
+// subscription, so all handles obtained before a removal must be treated as
+// invalid afterwards. A handle is scoped to the table that produced it;
+// passing it to a different table is undefined. The caller does not free
+// handles; the table owns the storage.
+typedef unsigned int event_handle;
+#define EVENT_HANDLE_INVALID 0u
+
 void event_table_init(event_table *event_table);
 void event_table_destroy(event_table *event_table);
-bool event_table_subscribe(event_table *event_table, const event_category category,
-                           const int event_id, const event_callback callback,
-                           void *userdata, const event_userdata_destroy destroy_fn);
-bool event_table_unsubscribe(event_table *event_table, const event_category category,
-                             const int event_id, const event_callback callback,
-                             void *userdata);
+// @info: returns EVENT_HANDLE_INVALID on bad arguments or allocation failure.
+event_handle event_table_subscribe(event_table *event_table,
+                                   const event_category category, const int event_id,
+                                   const event_callback callback, void *userdata,
+                                   const event_userdata_destroy destroy_fn);
+bool event_table_unsubscribe(event_table *event_table, const event_handle handle);
 bool event_table_unsubscribe_by_event_identifier(event_table         *event_table,
                                                  const event_category category,
                                                  const int            event_id);
@@ -61,15 +99,10 @@ void event_table_publish(event_table *event_table, event_context *ctx);
 #include "log.h"
 
 typedef struct {
-    const event_category category;
-    const int            event_id;
-} event_identifier;
-
-typedef struct {
-    const event_identifier       identifier;
-    const event_callback         callback;
-    void                        *listener_data;
-    const event_userdata_destroy destroy_fn;
+    event_identifier       identifier;
+    event_callback         callback;
+    void                  *listener_data;
+    event_userdata_destroy destroy_fn;
 } event_listener;
 
 static void event_listener_release(event_listener *l) {
@@ -80,22 +113,10 @@ struct event_table {
     array_list listeners;
 };
 
-struct event_context {
-    const event_identifier identifier;
-
-    void  *payload;
-    size_t payload_size;
-};
-
-struct event_callback_result {
-    const event_callback_result_type type;
-    union {
-        int         i;
-        float       f;
-        const char *str;
-        void       *ptr;
-    } value;
-};
+static event_listener *event_resolve(const event_table *table, const event_handle handle) {
+    if (!table || handle == EVENT_HANDLE_INVALID) return NULL;
+    return (event_listener *)array_list_get(&table->listeners, (size_t)handle - 1u);
+}
 
 void event_table_init(event_table *event_table) {
     if (!event_table) return;
@@ -113,10 +134,11 @@ void event_table_destroy(event_table *event_table) {
     array_list_deinit(&event_table->listeners);
 }
 
-bool event_table_subscribe(event_table *event_table, const event_category category,
-                           const int event_id, const event_callback callback,
-                           void *userdata, const event_userdata_destroy destroy_fn) {
-    if (!event_table || !callback) return false;
+event_handle event_table_subscribe(event_table *event_table,
+                                   const event_category category, const int event_id,
+                                   const event_callback callback, void *userdata,
+                                   const event_userdata_destroy destroy_fn) {
+    if (!event_table || !callback) return EVENT_HANDLE_INVALID;
 
     event_identifier identifier = {
          .category = category,
@@ -130,47 +152,32 @@ bool event_table_subscribe(event_table *event_table, const event_category catego
          .destroy_fn    = destroy_fn  //
     };
 
-    bool ok = array_list_append(&event_table->listeners, &listener);
+    const size_t index = event_table->listeners.header.size;
+    if (!array_list_append(&event_table->listeners, &listener)) {
 #if EVENT_LOG_ENABLED
-    log_debug("event.subscribe: category=%d event_id=%d userdata=%p ok=%d", category,
-              event_id, userdata, ok);
+        log_debug("event.subscribe: append failed category=%d event_id=%d", category,
+                  event_id);
 #endif
-    return ok;
+        return EVENT_HANDLE_INVALID;
+    }
+
+#if EVENT_LOG_ENABLED
+    log_debug("event.subscribe: category=%d event_id=%d userdata=%p handle=%u", category,
+              event_id, userdata, (unsigned int)(index + 1u));
+#endif
+    return (event_handle)(index + 1u);
 }
 
-bool event_table_unsubscribe(event_table *event_table, const event_category category,
-                             const int event_id, const event_callback callback,
-                             void *userdata) {
-    if (!event_table || !callback) return false;
+bool event_table_unsubscribe(event_table *event_table, const event_handle handle) {
+    event_listener *l = event_resolve(event_table, handle);
+    if (!l) return false;
 
-    event_identifier identifier = {
-         .category = category,
-         .event_id = event_id  //
-    };
-
-    event_listener input_listener = {
-         .identifier    = identifier,
-         .callback      = callback,
-         .listener_data = userdata,
-         .destroy_fn    = NULL  //
-    };
-    for (size_t i = 0; i < event_table->listeners.header.size; i++) {
-        event_listener *l = (event_listener *)array_list_get(&event_table->listeners, i);
-        if (!l) continue;
-        if (l->identifier.category == input_listener.identifier.category &&
-            l->identifier.event_id == input_listener.identifier.event_id &&
-            l->callback == input_listener.callback &&
-            l->listener_data == input_listener.listener_data) {
-            event_listener_release(l);
-            array_list_remove(&event_table->listeners, i);
 #if EVENT_LOG_ENABLED
-            log_debug("event.unsubscribe: category=%d event_id=%d userdata=%p", category,
-                      event_id, userdata);
+    log_debug("event.unsubscribe: handle=%u category=%d event_id=%d", handle,
+              l->identifier.category, l->identifier.event_id);
 #endif
-            return true;
-        }
-    }
-    return false;
+    event_listener_release(l);
+    return array_list_remove(&event_table->listeners, (size_t)handle - 1u);
 }
 
 bool event_table_unsubscribe_by_event_identifier(event_table         *event_table,

@@ -6,23 +6,26 @@
 void action_manager_priv_init(action_manager *mgr) { action_init(&mgr->table); }
 void action_manager_priv_destroy(action_manager *mgr) { action_destroy(&mgr->table); }
 
-action *action_manager_priv_resolve_by_name(const action_manager     *mgr,
-                                            const action_mode         context,
-                                            const action_trigger_type type,
-                                            const char               *name) {
+action_handle action_manager_priv_resolve_by_name(const action_manager     *mgr,
+                                                  const action_mode         context,
+                                                  const action_trigger_type type,
+                                                  const char               *name) {
+    if (!mgr) return ACTION_HANDLE_INVALID;
     return action_resolve_by_name(&mgr->table, context, type, name);
 }
 
-action *action_manager_priv_resolve_by_key(const action_manager     *mgr,
-                                           const action_mode         context,
-                                           const action_trigger_type type,
-                                           const int                 key) {
+action_handle action_manager_priv_resolve_by_key(const action_manager     *mgr,
+                                                 const action_mode         context,
+                                                 const action_trigger_type type,
+                                                 const int                 key) {
+    if (!mgr) return ACTION_HANDLE_INVALID;
     return action_resolve_by_key(&mgr->table, context, type, key);
 }
 
-bool action_manager_priv_bind(action_manager *mgr, const action_mode context,
-                              const action_trigger_type type, const int key,
-                              const char *name, action_executor *executor) {
+action_handle action_manager_priv_bind(action_manager *mgr, const action_mode context,
+                                       const action_trigger_type type, const int key,
+                                       const char *name, action_executor *executor) {
+    if (!mgr) return ACTION_HANDLE_INVALID;
     return action_bind(&mgr->table, context, type, key, name, executor);
 }
 
@@ -48,8 +51,11 @@ bool action_manager_priv_unbind_all(action_manager *mgr, const action_mode conte
     return action_unbind_all(&mgr->table, context, type);
 }
 
-action_execute_result action_manager_priv_execute(action *action, void *userdata) {
-    return action_execute(action, userdata);
+action_execute_result action_manager_priv_execute(action_manager     *mgr,
+                                                  const action_handle handle,
+                                                  void               *userdata) {
+    if (!mgr) return (action_execute_result){.type = ACTION_EXECUTE_RESULT_VOID};
+    return action_execute(&mgr->table, handle, userdata);
 }
 
 action_execute_result action_manager_priv_execute_by_name(action_manager   *mgr,

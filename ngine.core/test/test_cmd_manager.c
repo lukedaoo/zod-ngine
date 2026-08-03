@@ -27,16 +27,15 @@ MU_TEST_SUITE(cmd_manager_init_suite) { MU_RUN_TEST(test_destroy_null_safe); }
 MU_TEST(test_register_user_defined_command) {
     cmd_manager mgr = {0};
     cmd_manager_priv_init(&mgr);
-    bool ok =
+    command_handle h =
          cmd_manager_priv_register(&mgr, COMMAND_GROUP_USER_DEFINED, "foo", mock_handler);
-    mu_check(ok == true);
-    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_USER_DEFINED, "foo") != NULL);
+    mu_check(h != COMMAND_HANDLE_INVALID);
     cmd_manager_priv_destroy(&mgr);
 }
 
 MU_TEST(test_register_null_mgr_safe) {
     mu_check(cmd_manager_priv_register(NULL, COMMAND_GROUP_SYSTEM, "foo", mock_handler) ==
-             false);
+             COMMAND_HANDLE_INVALID);
 }
 
 MU_TEST(test_unregister_removes_command) {
@@ -45,7 +44,8 @@ MU_TEST(test_unregister_removes_command) {
     cmd_manager_priv_register(&mgr, COMMAND_GROUP_USER_DEFINED, "foo", mock_handler);
     mu_check(cmd_manager_priv_unregister(&mgr, COMMAND_GROUP_USER_DEFINED, "foo") ==
              true);
-    mu_check(command_table_get(&mgr.table, COMMAND_GROUP_USER_DEFINED, "foo") == NULL);
+    mu_check(cmd_manager_priv_execute(&mgr, COMMAND_GROUP_USER_DEFINED, "foo", 0, NULL)
+                  .type == COMMAND_RESULT_COMMAND_NOT_FOUND);
     cmd_manager_priv_destroy(&mgr);
 }
 

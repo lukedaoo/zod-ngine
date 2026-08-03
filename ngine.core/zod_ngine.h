@@ -128,8 +128,9 @@ bool zngine_input_key_released(zod_key_t key);
 //
 // Command Manager accessors
 //
-bool zngine_command_register(command_group group, const char *name,
-                             command_execute_result (*handler)(int argc, char **argv));
+command_handle zngine_command_register(command_group group, const char *name,
+                                       command_execute_result (*handler)(int argc,
+                                                                         char **argv));
 bool zngine_command_unregister(command_group group, const char *name);
 command_execute_result zngine_sys_command_execute(const char *name, int argc,
                                                   char **argv);
@@ -139,11 +140,10 @@ command_execute_result zngine_user_command_execute(const char *name, int argc,
 //
 // Event Manager accessors
 //
-bool zngine_event_subscribe(const event_category category, const int event_id,
-                            const event_callback callback, void *userdata,
-                            const event_userdata_destroy destroy_fn);
-bool zngine_event_unsubscribe(const event_category category, const int event_id,
-                              const event_callback callback, void *userdata);
+event_handle zngine_event_subscribe(const event_category category, const int event_id,
+                                    const event_callback callback, void *userdata,
+                                    const event_userdata_destroy destroy_fn);
+bool zngine_event_unsubscribe(const event_handle handle);
 bool zngine_event_unsubscribe_by_event_identifier(const event_category category,
                                                   const int            event_id);
 void zngine_event_publish(event_context *ctx);
@@ -151,13 +151,16 @@ void zngine_event_publish(event_context *ctx);
 //
 // Action Manager accessors
 //
-action *zngine_action_resolve_by_name(const action_mode context,
-                                      const action_trigger_type type, const char *name);
-action *zngine_action_resolve_by_key(const action_mode context,
-                                     const action_trigger_type type, const int key);
+action_handle zngine_action_resolve_by_name(const action_mode         context,
+                                            const action_trigger_type type,
+                                            const char               *name);
+action_handle zngine_action_resolve_by_key(const action_mode         context,
+                                           const action_trigger_type type,
+                                           const int                 key);
 
-bool zngine_action_bind(const action_mode context, const action_trigger_type type,
-                        const int key, const char *name, action_executor *executor);
+action_handle zngine_action_bind(const action_mode context,
+                                 const action_trigger_type type, const int key,
+                                 const char *name, action_executor *executor);
 bool zngine_action_rebind(const action_mode context, const action_trigger_type type,
                           const int old_key, const int new_key);
 
@@ -167,7 +170,7 @@ bool zngine_action_unbind_by_name(const action_mode context,
                                   const action_trigger_type type, const char *name);
 bool zngine_action_unbind_all(const action_mode context, const action_trigger_type type);
 
-action_execute_result zngine_action_execute(action *action, void *userdata);
+action_execute_result zngine_action_execute(const action_handle handle, void *userdata);
 action_execute_result zngine_action_execute_by_name(const action_mode         context,
                                                     const action_trigger_type type,
                                                     const char *name, void *userdata);

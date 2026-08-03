@@ -4,19 +4,22 @@
 #include "../../action_manager.h"
 #include "../engine_context/engine_context_internal.h"
 
-action *zngine_action_resolve_by_name(const action_mode context,
-                                      const action_trigger_type type, const char *name) {
+action_handle zngine_action_resolve_by_name(const action_mode         context,
+                                            const action_trigger_type type,
+                                            const char               *name) {
     return action_manager_priv_resolve_by_name(&g_ctx.action_manager, context, type,
                                                name);
 }
 
-action *zngine_action_resolve_by_key(const action_mode context,
-                                     const action_trigger_type type, const int key) {
+action_handle zngine_action_resolve_by_key(const action_mode         context,
+                                           const action_trigger_type type,
+                                           const int                 key) {
     return action_manager_priv_resolve_by_key(&g_ctx.action_manager, context, type, key);
 }
 
-bool zngine_action_bind(const action_mode context, const action_trigger_type type,
-                        const int key, const char *name, action_executor *executor) {
+action_handle zngine_action_bind(const action_mode         context,
+                                 const action_trigger_type type, const int key,
+                                 const char *name, action_executor *executor) {
     return action_manager_priv_bind(&g_ctx.action_manager, context, type, key, name,
                                     executor);
 }
@@ -27,12 +30,12 @@ bool zngine_action_rebind(const action_mode context, const action_trigger_type t
                                       new_key);
 }
 
-bool zngine_action_unbind_by_key(const action_mode context, const action_trigger_type type,
-                                 const int key) {
+bool zngine_action_unbind_by_key(const action_mode         context,
+                                 const action_trigger_type type, const int key) {
     return action_manager_priv_unbind_by_key(&g_ctx.action_manager, context, type, key);
 }
 
-bool zngine_action_unbind_by_name(const action_mode context,
+bool zngine_action_unbind_by_name(const action_mode         context,
                                   const action_trigger_type type, const char *name) {
     return action_manager_priv_unbind_by_name(&g_ctx.action_manager, context, type, name);
 }
@@ -41,8 +44,8 @@ bool zngine_action_unbind_all(const action_mode context, const action_trigger_ty
     return action_manager_priv_unbind_all(&g_ctx.action_manager, context, type);
 }
 
-action_execute_result zngine_action_execute(action *action, void *userdata) {
-    return action_manager_priv_execute(action, userdata);
+action_execute_result zngine_action_execute(const action_handle handle, void *userdata) {
+    return action_manager_priv_execute(&g_ctx.action_manager, handle, userdata);
 }
 
 action_execute_result zngine_action_execute_by_name(const action_mode         context,

@@ -1,27 +1,29 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
 #include <assert.h>
+#include <stddef.h>
 
 #include "../../cmd_manager.h"
 #include "cmd_manager_internal.h"
 
 void cmd_manager_priv_register_default_system_commands(cmd_manager *mgr) {
-    command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "reload-config-file",
-                           sys_cmd_priv_reload_config_file);
+    static const struct {
+        const char *name;
+        command_execute_result (*handler)(int argc, char **argv);
+    } defaults[] = {
+         {"reload-config-file", sys_cmd_priv_reload_config_file},
+         {"show-commands", sys_cmd_priv_show_commands},
+         {"set-config", sys_cmd_priv_set_config},
+         {"get-config", sys_cmd_priv_get_config},
+         {"list-config", sys_cmd_priv_list_config},
+    };
 
-    command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "show-commands",
-                           sys_cmd_priv_show_commands);
-
-    command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "set-config",
-                           sys_cmd_priv_set_config);
-
-    command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "get-config",
-                           sys_cmd_priv_get_config);
-
-    command_table_register(&mgr->table, COMMAND_GROUP_SYSTEM, "list-config",
-                           sys_cmd_priv_list_config);
-
-    assert(mgr->table.system_commands.header.size == 5 && "expected 5 system commands");
+    for (size_t i = 0; i < sizeof(defaults) / sizeof(defaults[0]); ++i) {
+        const command_handle h = command_table_register(
+             &mgr->table, COMMAND_GROUP_SYSTEM, defaults[i].name, defaults[i].handler);
+        assert(h != COMMAND_HANDLE_INVALID && "system command registration failed");
+        (void)h;
+    }
 }
 
 void cmd_manager_priv_init(cmd_manager *mgr) {
@@ -31,8 +33,11 @@ void cmd_manager_priv_init(cmd_manager *mgr) {
 
 void cmd_manager_priv_destroy(cmd_manager *mgr) { command_table_destroy(&mgr->table); }
 
-bool cmd_manager_priv_register(cmd_manager *mgr, command_group group, const char *name,
-                               command_execute_result (*handler)(int argc, char **argv)) {
+command_handle cmd_manager_priv_register(cmd_manager *mgr, command_group group,
+                                         const char *name,
+                                         command_execute_result (*handler)(int    argc,
+                                                                           char **argv)) {
+    if (!mgr) return COMMAND_HANDLE_INVALID;
     return command_table_register(&mgr->table, group, name, handler);
 }
 

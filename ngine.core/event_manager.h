@@ -19,18 +19,17 @@ typedef struct {
     int height;
 } sys_event_resize_payload;
 
-void event_manager_priv_init(event_manager *mgr);
-void event_manager_priv_destroy(event_manager *mgr);
-bool event_manager_priv_subscribe(event_manager *mgr, const event_category category,
-                                  const int event_id, const event_callback callback,
-                                  void                        *userdata,
-                                  const event_userdata_destroy destroy_fn);
+void         event_manager_priv_init(event_manager *mgr);
+void         event_manager_priv_destroy(event_manager *mgr);
+event_handle event_manager_priv_subscribe(event_manager       *mgr,
+                                          const event_category category,
+                                          const int            event_id,
+                                          const event_callback callback, void *userdata,
+                                          const event_userdata_destroy destroy_fn);
 bool event_manager_priv_unsubscribe_by_event_identifier(event_manager       *mgr,
                                                         const event_category category,
                                                         const int            event_id);
-bool event_manager_priv_unsubscribe(event_manager *mgr, const event_category category,
-                                    const int event_id, const event_callback callback,
-                                    void *userdata);
+bool event_manager_priv_unsubscribe(event_manager *mgr, const event_handle handle);
 
 void event_manager_priv_publish(event_manager *mgr, event_context *ctx);
 

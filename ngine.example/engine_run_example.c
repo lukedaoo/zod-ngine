@@ -13,9 +13,10 @@ enum : uint8_t { APP_EVENT_TICK = 100 } app_event_ids;
 enum : uint8_t { INPUT_CONTEXT_GAME = 0 } input_contexts;
 enum : uint8_t { ACTION_TRIGGER_KEY_PRESSED = 0 } action_triggers;
 
-static action_execute_result toggle_console_execute(const action *action,
-                                                    void         *userdata) {
-    (void)action;
+static action_execute_result toggle_console_execute(const action_table *table,
+                                                    action_handle self, void *userdata) {
+    (void)table;
+    (void)self;
     (void)userdata;
     zconsole_toggle();
     return (action_execute_result){.type = ACTION_EXECUTE_RESULT_VOID};
@@ -100,9 +101,9 @@ int main(const int argc, const char **argv) {
     if (!zngine_init(params)) return 1;
     render_text_init();
 
-    int app_userdata = 42;
-    zngine_event_subscribe(EVENT_TAG_APPLICATION, APP_EVENT_TICK, on_app_tick,
-                           &app_userdata, NULL);
+    int                app_userdata    = 42;
+    const event_handle app_tick_handle = zngine_event_subscribe(
+         EVENT_TAG_APPLICATION, APP_EVENT_TICK, on_app_tick, &app_userdata, NULL);
 
 #if ZOD_CONSOLE_ENABLED
     action_executor toggle_console_executor = {.execute = toggle_console_execute};
@@ -158,8 +159,7 @@ int main(const int argc, const char **argv) {
         zngine_end_drawing();
         zngine_clock_sleep_to_target_fps();
     }
-    zngine_event_unsubscribe(EVENT_TAG_APPLICATION, APP_EVENT_TICK, on_app_tick,
-                             &app_userdata);
+    zngine_event_unsubscribe(app_tick_handle);
     render_text_destroy();
     zngine_destroy();
     return 0;
