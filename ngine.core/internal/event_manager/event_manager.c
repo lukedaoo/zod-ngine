@@ -9,18 +9,19 @@ void event_manager_priv_init(event_manager *mgr) {
 }
 void event_manager_priv_destroy(event_manager *mgr) { event_table_destroy(&mgr->table); }
 
-bool event_manager_priv_subscribe(event_manager *mgr, const event_category category,
-                                  const int event_id, const event_callback callback,
-                                  void                        *userdata,
-                                  const event_userdata_destroy destroy_fn) {
+event_handle event_manager_priv_subscribe(event_manager       *mgr,
+                                          const event_category category,
+                                          const int            event_id,
+                                          const event_callback callback, void *userdata,
+                                          const event_userdata_destroy destroy_fn) {
+    if (!mgr) return EVENT_HANDLE_INVALID;
     return event_table_subscribe(&mgr->table, category, event_id, callback, userdata,
                                  destroy_fn);
 }
 
-bool event_manager_priv_unsubscribe(event_manager *mgr, const event_category category,
-                                    const int event_id, const event_callback callback,
-                                    void *userdata) {
-    return event_table_unsubscribe(&mgr->table, category, event_id, callback, userdata);
+bool event_manager_priv_unsubscribe(event_manager *mgr, const event_handle handle) {
+    if (!mgr) return false;
+    return event_table_unsubscribe(&mgr->table, handle);
 }
 
 bool event_manager_priv_unsubscribe_by_event_identifier(event_manager       *mgr,

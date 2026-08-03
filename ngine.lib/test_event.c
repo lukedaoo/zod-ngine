@@ -120,10 +120,10 @@ MU_TEST(test_unsubscribe_removes_exact_match) {
     event_table_init(&table);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec, NULL);
+    event_handle h =
+         event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec, NULL);
 
-    mu_check(
-         event_table_unsubscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec));
+    mu_check(event_table_unsubscribe(&table, h));
     mu_assert_int_eq(0, (int)table.listeners.header.size);
 
     event_table_destroy(&table);
@@ -136,8 +136,7 @@ MU_TEST(test_unsubscribe_no_match_returns_false) {
     spy_record rec = spy_record_new();
     event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec, NULL);
 
-    mu_check(
-         !event_table_unsubscribe(&table, EVENT_TAG_SYSTEM_INPUT, 2, spy_callback, &rec));
+    mu_check(!event_table_unsubscribe(&table, 9999u));
     mu_assert_int_eq(1, (int)table.listeners.header.size);
 
     event_table_destroy(&table);
@@ -147,26 +146,13 @@ MU_TEST(test_unsubscribe_empty_table_returns_false) {
     event_table table;
     event_table_init(&table);
 
-    spy_record rec = spy_record_new();
-    mu_check(
-         !event_table_unsubscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec));
+    mu_check(!event_table_unsubscribe(&table, 1u));
 
     event_table_destroy(&table);
 }
 
 MU_TEST(test_unsubscribe_null_table_returns_false) {
-    spy_record rec = spy_record_new();
-    mu_check(
-         !event_table_unsubscribe(NULL, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec));
-}
-
-MU_TEST(test_unsubscribe_null_callback_returns_false) {
-    event_table table;
-    event_table_init(&table);
-
-    mu_check(!event_table_unsubscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, NULL, NULL));
-
-    event_table_destroy(&table);
+    mu_check(!event_table_unsubscribe(NULL, 1u));
 }
 
 MU_TEST(test_unsubscribe_one_leaves_others_intact) {
@@ -175,11 +161,11 @@ MU_TEST(test_unsubscribe_one_leaves_others_intact) {
 
     spy_record rec_a = spy_record_new();
     spy_record rec_b = spy_record_new();
-    event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec_a, NULL);
+    event_handle a   = event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback,
+                                             &rec_a, NULL);
     event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec_b, NULL);
 
-    mu_check(event_table_unsubscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback,
-                                     &rec_a));
+    mu_check(event_table_unsubscribe(&table, a));
     mu_assert_int_eq(1, (int)table.listeners.header.size);
 
     event_context ctx = {
@@ -199,12 +185,12 @@ MU_TEST(test_unsubscribe_matches_only_target_callback) {
 
     spy_record rec_a = spy_record_new();
     spy_record rec_b = spy_record_new();
-    event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec_a, NULL);
+    event_handle a   = event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback,
+                                             &rec_a, NULL);
     event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback_b, &rec_b,
                           NULL);
 
-    mu_check(event_table_unsubscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback,
-                                     &rec_a));
+    mu_check(event_table_unsubscribe(&table, a));
     mu_assert_int_eq(1, (int)table.listeners.header.size);
 
     event_context ctx = {
@@ -293,11 +279,10 @@ MU_TEST(test_unsubscribe_calls_destroy_fn) {
     event_table_init(&table);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec,
-                          spy_destroy);
+    event_handle h = event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback,
+                                           &rec, spy_destroy);
 
-    mu_check(
-         event_table_unsubscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec));
+    mu_check(event_table_unsubscribe(&table, h));
     mu_check(rec.destroyed);
 
     event_table_destroy(&table);
@@ -308,10 +293,10 @@ MU_TEST(test_unsubscribe_no_destroy_fn_leaves_userdata_alone) {
     event_table_init(&table);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec, NULL);
+    event_handle h =
+         event_table_subscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec, NULL);
 
-    mu_check(
-         event_table_unsubscribe(&table, EVENT_TAG_SYSTEM_INPUT, 1, spy_callback, &rec));
+    mu_check(event_table_unsubscribe(&table, h));
     mu_check(!rec.destroyed);
     event_table_destroy(&table);
 }
@@ -500,8 +485,9 @@ MU_TEST(test_integration_unsubscribe_then_publish_does_not_fire) {
     event_table_init(&table);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, EVENT_TAG_APPLICATION, 7, spy_callback, &rec, NULL);
-    event_table_unsubscribe(&table, EVENT_TAG_APPLICATION, 7, spy_callback, &rec);
+    event_handle h =
+         event_table_subscribe(&table, EVENT_TAG_APPLICATION, 7, spy_callback, &rec, NULL);
+    event_table_unsubscribe(&table, h);
 
     event_context ctx = {.identifier = {.category = EVENT_TAG_APPLICATION, .event_id = 7},
                          .payload    = NULL,
@@ -519,8 +505,9 @@ MU_TEST(test_integration_full_flow) {
     mu_assert_int_eq(0, (int)table.listeners.header.size);
 
     spy_record rec = spy_record_new();
-    mu_check(event_table_subscribe(&table, EVENT_TAG_APPLICATION, 9, spy_callback, &rec,
-                                   NULL));
+    event_handle h  = event_table_subscribe(&table, EVENT_TAG_APPLICATION, 9, spy_callback,
+                                            &rec, NULL);
+    mu_check(h != EVENT_HANDLE_INVALID);
 
     int           payload = 5;
     event_context ctx = {.identifier = {.category = EVENT_TAG_APPLICATION, .event_id = 9},
@@ -530,8 +517,7 @@ MU_TEST(test_integration_full_flow) {
     mu_assert_int_eq(1, rec.call_count);
     mu_check(rec.last_payload == &payload);
 
-    mu_check(
-         event_table_unsubscribe(&table, EVENT_TAG_APPLICATION, 9, spy_callback, &rec));
+    mu_check(event_table_unsubscribe(&table, h));
     event_table_publish(&table, &ctx);
     mu_assert_int_eq(1, rec.call_count);
 
@@ -561,6 +547,94 @@ MU_TEST(test_integration_different_categories_do_not_cross_trigger) {
     event_table_destroy(&table);
 }
 
+MU_TEST(test_handle_subscribe_returns_valid_handle) {
+    event_table table;
+    event_table_init(&table);
+    event_handle h = event_table_subscribe(&table, EVENT_TAG_APPLICATION, 7, spy_callback,
+                                           NULL, NULL);
+    mu_check(h != EVENT_HANDLE_INVALID);
+    event_table_destroy(&table);
+}
+
+MU_TEST(test_handle_subscribe_null_callback_returns_invalid) {
+    event_table table;
+    event_table_init(&table);
+    mu_check(event_table_subscribe(&table, EVENT_TAG_APPLICATION, 7, NULL, NULL, NULL) ==
+             EVENT_HANDLE_INVALID);
+    event_table_destroy(&table);
+}
+
+// Adapted from the brief: spy_callback casts userdata to spy_record* and
+// writes several of its fields, so passing a bare `&calls` int pointer (as
+// the brief literally shows) would be an out-of-bounds write. Use a real
+// spy_record and read call_count from it instead.
+MU_TEST(test_handle_unsubscribe_stops_delivery) {
+    event_table table;
+    event_table_init(&table);
+    spy_record   rec = spy_record_new();
+    event_handle h   = event_table_subscribe(&table, EVENT_TAG_APPLICATION, 7, spy_callback,
+                                             &rec, NULL);
+    event_context ctx = {.identifier   = {.category = EVENT_TAG_APPLICATION, .event_id = 7},
+                         .payload      = NULL,
+                         .payload_size = 0};
+    event_table_publish(&table, &ctx);
+    mu_assert_int_eq(1, rec.call_count);
+
+    mu_check(event_table_unsubscribe(&table, h) == true);
+    event_table_publish(&table, &ctx);
+    mu_assert_int_eq(1, rec.call_count);
+    event_table_destroy(&table);
+}
+
+MU_TEST(test_handle_unsubscribe_zero_returns_false) {
+    event_table table;
+    event_table_init(&table);
+    event_table_subscribe(&table, EVENT_TAG_APPLICATION, 7, spy_callback, NULL, NULL);
+    mu_check(event_table_unsubscribe(&table, EVENT_HANDLE_INVALID) == false);
+    event_table_destroy(&table);
+}
+
+MU_TEST(test_handle_unsubscribe_out_of_range_returns_false) {
+    event_table table;
+    event_table_init(&table);
+    event_table_subscribe(&table, EVENT_TAG_APPLICATION, 7, spy_callback, NULL, NULL);
+    mu_check(event_table_unsubscribe(&table, 9999u) == false);
+    event_table_destroy(&table);
+}
+
+MU_TEST(test_handle_unsubscribe_twice_returns_false) {
+    event_table table;
+    event_table_init(&table);
+    event_handle h = event_table_subscribe(&table, EVENT_TAG_APPLICATION, 7, spy_callback,
+                                           NULL, NULL);
+    mu_check(event_table_unsubscribe(&table, h) == true);
+    mu_check(event_table_unsubscribe(&table, h) == false);
+    event_table_destroy(&table);
+}
+
+MU_TEST(test_handle_subscriptions_are_distinct) {
+    event_table table;
+    event_table_init(&table);
+    event_handle a = event_table_subscribe(&table, EVENT_TAG_APPLICATION, 7, spy_callback,
+                                           NULL, NULL);
+    event_handle b = event_table_subscribe(&table, EVENT_TAG_APPLICATION, 7,
+                                           spy_callback_b, NULL, NULL);
+    mu_check(a != b);
+    mu_check(a != EVENT_HANDLE_INVALID);
+    mu_check(b != EVENT_HANDLE_INVALID);
+    event_table_destroy(&table);
+}
+
+MU_TEST_SUITE(event_handle_suite) {
+    MU_RUN_TEST(test_handle_subscribe_returns_valid_handle);
+    MU_RUN_TEST(test_handle_subscribe_null_callback_returns_invalid);
+    MU_RUN_TEST(test_handle_unsubscribe_stops_delivery);
+    MU_RUN_TEST(test_handle_unsubscribe_zero_returns_false);
+    MU_RUN_TEST(test_handle_unsubscribe_out_of_range_returns_false);
+    MU_RUN_TEST(test_handle_unsubscribe_twice_returns_false);
+    MU_RUN_TEST(test_handle_subscriptions_are_distinct);
+}
+
 MU_TEST_SUITE(event_suite) {
     MU_RUN_TEST(test_init_creates_empty_table);
     MU_RUN_TEST(test_init_null_table_safe);
@@ -576,7 +650,6 @@ MU_TEST_SUITE(event_suite) {
     MU_RUN_TEST(test_unsubscribe_no_match_returns_false);
     MU_RUN_TEST(test_unsubscribe_empty_table_returns_false);
     MU_RUN_TEST(test_unsubscribe_null_table_returns_false);
-    MU_RUN_TEST(test_unsubscribe_null_callback_returns_false);
     MU_RUN_TEST(test_unsubscribe_one_leaves_others_intact);
     MU_RUN_TEST(test_unsubscribe_matches_only_target_callback);
 
@@ -607,6 +680,7 @@ MU_TEST_SUITE(event_suite) {
 
 int main(void) {
     MU_RUN_SUITE(event_suite);
+    MU_RUN_SUITE(event_handle_suite);
     MU_REPORT();
     return MU_EXIT_CODE;
 }

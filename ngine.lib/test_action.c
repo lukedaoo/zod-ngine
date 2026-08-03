@@ -11,15 +11,17 @@ enum { TYPE_KEYDOWN = 1, TYPE_KEYUP = 2 };
 
 typedef struct {
     int                   call_count;
-    const action         *last_action;
+    action_handle         last_self;
     void                 *last_userdata;
     action_execute_result result;
 } spy_record;
 
-static action_execute_result spy_execute(const action *action, void *userdata) {
+static action_execute_result spy_execute(const action_table *table, action_handle self,
+                                         void *userdata) {
+    (void)table;
     spy_record *rec = (spy_record *)userdata;
     rec->call_count++;
-    rec->last_action   = action;
+    rec->last_self     = self;
     rec->last_userdata = userdata;
     return rec->result;
 }
@@ -27,7 +29,7 @@ static action_execute_result spy_execute(const action *action, void *userdata) {
 static spy_record spy_record_new(void) {
     return (spy_record){
          .call_count    = 0,
-         .last_action   = NULL,
+         .last_self     = ACTION_HANDLE_INVALID,
          .last_userdata = NULL,
          .result        = {.type = ACTION_EXECUTE_RESULT_VOID}  //
     };
@@ -36,7 +38,7 @@ static spy_record spy_record_new(void) {
 static spy_record spy_record_with_result(action_execute_result result) {
     return (spy_record){
          .call_count    = 0,
-         .last_action   = NULL,
+         .last_self     = ACTION_HANDLE_INVALID,
          .last_userdata = NULL,
          .result        = result  //
     };
@@ -62,7 +64,8 @@ MU_TEST(test_bind_adds_action) {
     action_init(&table);
 
     action_executor exec = spy_executor_new();
-    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec));
+    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec) !=
+             ACTION_HANDLE_INVALID);
     mu_assert_int_eq(1, (int)table.actions.header.size);
 
     action_destroy(&table);
@@ -73,8 +76,10 @@ MU_TEST(test_bind_rejects_duplicate_key) {
     action_init(&table);
 
     action_executor exec = spy_executor_new();
-    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec));
-    mu_check(!action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "duck", &exec));
+    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec) !=
+             ACTION_HANDLE_INVALID);
+    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "duck", &exec) ==
+             ACTION_HANDLE_INVALID);
     mu_assert_int_eq(1, (int)table.actions.header.size);
 
     action_destroy(&table);
@@ -85,8 +90,10 @@ MU_TEST(test_bind_allows_same_key_different_context) {
     action_init(&table);
 
     action_executor exec = spy_executor_new();
-    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec));
-    mu_check(action_bind(&table, CTX_MENU, TYPE_KEYDOWN, 'A', "select", &exec));
+    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec) !=
+             ACTION_HANDLE_INVALID);
+    mu_check(action_bind(&table, CTX_MENU, TYPE_KEYDOWN, 'A', "select", &exec) !=
+             ACTION_HANDLE_INVALID);
     mu_assert_int_eq(2, (int)table.actions.header.size);
 
     action_destroy(&table);
@@ -101,7 +108,8 @@ MU_TEST(test_bind_rejects_name_too_long) {
     memset(long_name, 'x', sizeof(long_name) - 1);
     long_name[sizeof(long_name) - 1] = '\0';
 
-    mu_check(!action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', long_name, &exec));
+    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', long_name, &exec) ==
+             ACTION_HANDLE_INVALID);
     mu_assert_int_eq(0, (int)table.actions.header.size);
 
     action_destroy(&table);
@@ -109,14 +117,16 @@ MU_TEST(test_bind_rejects_name_too_long) {
 
 MU_TEST(test_bind_null_table_returns_false) {
     action_executor exec = spy_executor_new();
-    mu_check(!action_bind(NULL, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec));
+    mu_check(action_bind(NULL, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec) ==
+             ACTION_HANDLE_INVALID);
 }
 
 MU_TEST(test_bind_null_executor_returns_false) {
     action_table table;
     action_init(&table);
 
-    mu_check(!action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", NULL));
+    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", NULL) ==
+             ACTION_HANDLE_INVALID);
     mu_assert_int_eq(0, (int)table.actions.header.size);
 
     action_destroy(&table);
@@ -129,7 +139,8 @@ MU_TEST(test_resolve_by_name_finds_match) {
     action_executor exec = spy_executor_new();
     action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
 
-    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "jump") != NULL);
+    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "jump") !=
+             ACTION_HANDLE_INVALID);
 
     action_destroy(&table);
 }
@@ -141,13 +152,15 @@ MU_TEST(test_resolve_by_name_no_match_returns_null) {
     action_executor exec = spy_executor_new();
     action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
 
-    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "duck") == NULL);
+    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "duck") ==
+             ACTION_HANDLE_INVALID);
 
     action_destroy(&table);
 }
 
 MU_TEST(test_resolve_by_name_null_table_returns_null) {
-    mu_check(action_resolve_by_name(NULL, CTX_GAME, TYPE_KEYDOWN, "jump") == NULL);
+    mu_check(action_resolve_by_name(NULL, CTX_GAME, TYPE_KEYDOWN, "jump") ==
+             ACTION_HANDLE_INVALID);
 }
 
 MU_TEST(test_resolve_by_key_finds_match) {
@@ -157,7 +170,8 @@ MU_TEST(test_resolve_by_key_finds_match) {
     action_executor exec = spy_executor_new();
     action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
 
-    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A') != NULL);
+    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A') !=
+             ACTION_HANDLE_INVALID);
 
     action_destroy(&table);
 }
@@ -169,13 +183,15 @@ MU_TEST(test_resolve_by_key_no_match_returns_null) {
     action_executor exec = spy_executor_new();
     action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
 
-    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'B') == NULL);
+    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'B') ==
+             ACTION_HANDLE_INVALID);
 
     action_destroy(&table);
 }
 
 MU_TEST(test_resolve_by_key_null_table_returns_null) {
-    mu_check(action_resolve_by_key(NULL, CTX_GAME, TYPE_KEYDOWN, 'A') == NULL);
+    mu_check(action_resolve_by_key(NULL, CTX_GAME, TYPE_KEYDOWN, 'A') ==
+             ACTION_HANDLE_INVALID);
 }
 
 MU_TEST(test_rebind_changes_key) {
@@ -186,8 +202,10 @@ MU_TEST(test_rebind_changes_key) {
     action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
 
     mu_check(action_rebind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', 'B'));
-    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A') == NULL);
-    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'B') != NULL);
+    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A') ==
+             ACTION_HANDLE_INVALID);
+    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'B') !=
+             ACTION_HANDLE_INVALID);
 
     action_destroy(&table);
 }
@@ -237,7 +255,8 @@ MU_TEST(test_unbind_by_key_leaves_others_intact) {
 
     mu_check(action_unbind_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A'));
     mu_assert_int_eq(1, (int)table.actions.header.size);
-    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'B') != NULL);
+    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'B') !=
+             ACTION_HANDLE_INVALID);
 
     action_destroy(&table);
 }
@@ -282,7 +301,8 @@ MU_TEST(test_unbind_by_name_leaves_others_intact) {
 
     mu_check(action_unbind_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "jump"));
     mu_assert_int_eq(1, (int)table.actions.header.size);
-    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "duck") != NULL);
+    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "duck") !=
+             ACTION_HANDLE_INVALID);
 
     action_destroy(&table);
 }
@@ -317,9 +337,12 @@ MU_TEST(test_unbind_all_filters_by_context_and_type) {
 
     mu_check(action_unbind_all(&table, CTX_GAME, TYPE_KEYDOWN));
     mu_assert_int_eq(2, (int)table.actions.header.size);
-    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "jump") == NULL);
-    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYUP, "land") != NULL);
-    mu_check(action_resolve_by_name(&table, CTX_MENU, TYPE_KEYDOWN, "select") != NULL);
+    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "jump") ==
+             ACTION_HANDLE_INVALID);
+    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYUP, "land") !=
+             ACTION_HANDLE_INVALID);
+    mu_check(action_resolve_by_name(&table, CTX_MENU, TYPE_KEYDOWN, "select") !=
+             ACTION_HANDLE_INVALID);
 
     action_destroy(&table);
 }
@@ -338,7 +361,7 @@ MU_TEST(test_unbind_all_null_table_returns_false) {
 }
 
 MU_TEST(test_execute_null_action_returns_void_result) {
-    action_execute_result res = action_execute(NULL, NULL);
+    action_execute_result res = action_execute(NULL, ACTION_HANDLE_INVALID, NULL);
     mu_check(res.type == ACTION_EXECUTE_RESULT_VOID);
 }
 
@@ -350,11 +373,11 @@ MU_TEST(test_execute_calls_executor_with_action_and_userdata) {
     action_executor exec = spy_executor_new();
     action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
 
-    action *bound = action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A');
-    action_execute(bound, &rec);
+    action_handle bound = action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A');
+    action_execute(&table, bound, &rec);
 
     mu_assert_int_eq(1, rec.call_count);
-    mu_check(rec.last_action == bound);
+    mu_check(rec.last_self == bound);
     mu_check(rec.last_userdata == &rec);
 
     action_destroy(&table);
@@ -369,8 +392,8 @@ MU_TEST(test_execute_returns_executor_result) {
     action_executor       exec = spy_executor_new();
     action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
 
-    action *bound = action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A');
-    action_execute_result got = action_execute(bound, &rec);
+    action_handle          bound = action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A');
+    action_execute_result got   = action_execute(&table, bound, &rec);
 
     mu_check(got.type == ACTION_EXECUTE_RESULT_INT);
     mu_assert_int_eq(7, got.value.i);
@@ -427,8 +450,8 @@ MU_TEST(test_integration_multiple_actions_resolve_and_execute_correct_target) {
     mu_assert_int_eq(0, rec_jump.call_count);
     mu_assert_int_eq(1, rec_duck.call_count);
 
-    action *duck_by_name = action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "duck");
-    action *duck_by_key  = action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'B');
+    action_handle duck_by_name = action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "duck");
+    action_handle duck_by_key  = action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'B');
     mu_check(duck_by_name == duck_by_key);
 
     action_destroy(&table);
@@ -441,17 +464,19 @@ MU_TEST(test_integration_full_flow) {
 
     spy_record      rec  = spy_record_new();
     action_executor exec = spy_executor_new();
-    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec));
+    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec) !=
+             ACTION_HANDLE_INVALID);
 
-    action *bound = action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "jump");
+    action_handle bound = action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "jump");
     mu_check(bound == action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A'));
 
     action_execute_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "jump", &rec);
     mu_assert_int_eq(1, rec.call_count);
-    mu_check(rec.last_action == bound);
+    mu_check(rec.last_self == bound);
 
     mu_check(action_rebind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', 'B'));
-    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A') == NULL);
+    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A') ==
+             ACTION_HANDLE_INVALID);
     mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'B') == bound);
 
     action_execute_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "jump", &rec);
@@ -466,6 +491,114 @@ MU_TEST(test_integration_full_flow) {
     mu_assert_int_eq(2, rec.call_count);
 
     action_destroy(&table);
+}
+
+MU_TEST(test_handle_bind_returns_valid_handle) {
+    action_table table;
+    action_init(&table);
+    action_executor exec = spy_executor_new();
+    action_handle   h =
+         action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
+    mu_check(h != ACTION_HANDLE_INVALID);
+    action_destroy(&table);
+}
+
+MU_TEST(test_handle_bind_duplicate_key_returns_invalid) {
+    action_table table;
+    action_init(&table);
+    action_executor exec = spy_executor_new();
+    action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
+    mu_check(action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "duck", &exec) ==
+             ACTION_HANDLE_INVALID);
+    action_destroy(&table);
+}
+
+MU_TEST(test_handle_resolve_by_name_and_key_agree) {
+    action_table table;
+    action_init(&table);
+    action_executor exec  = spy_executor_new();
+    action_handle   bound = action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
+    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "jump") == bound);
+    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A') == bound);
+    action_destroy(&table);
+}
+
+MU_TEST(test_handle_resolve_missing_returns_invalid) {
+    action_table table;
+    action_init(&table);
+    mu_check(action_resolve_by_name(&table, CTX_GAME, TYPE_KEYDOWN, "nope") ==
+             ACTION_HANDLE_INVALID);
+    mu_check(action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'Z') ==
+             ACTION_HANDLE_INVALID);
+    action_destroy(&table);
+}
+
+MU_TEST(test_handle_execute_passes_self_back) {
+    action_table table;
+    action_init(&table);
+    action_executor exec  = spy_executor_new();
+    spy_record      rec   = spy_record_new();
+    action_handle   bound = action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
+    action_execute(&table, bound, &rec);
+    mu_assert_int_eq(1, rec.call_count);
+    mu_check(rec.last_self == bound);
+    action_destroy(&table);
+}
+
+MU_TEST(test_handle_execute_zero_is_void) {
+    action_table table;
+    action_init(&table);
+    action_executor exec = spy_executor_new();
+    spy_record      rec  = spy_record_new();
+    action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
+    action_execute_result res = action_execute(&table, ACTION_HANDLE_INVALID, &rec);
+    mu_assert_int_eq(ACTION_EXECUTE_RESULT_VOID, res.type);
+    mu_assert_int_eq(0, rec.call_count);
+    action_destroy(&table);
+}
+
+MU_TEST(test_handle_execute_out_of_range_is_void) {
+    action_table table;
+    action_init(&table);
+    action_executor exec = spy_executor_new();
+    spy_record      rec  = spy_record_new();
+    action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
+    action_execute_result res = action_execute(&table, 9999u, &rec);
+    mu_assert_int_eq(ACTION_EXECUTE_RESULT_VOID, res.type);
+    mu_assert_int_eq(0, rec.call_count);
+    action_destroy(&table);
+}
+
+MU_TEST(test_handle_execute_null_table_is_void) {
+    action_execute_result res = action_execute(NULL, 1u, NULL);
+    mu_assert_int_eq(ACTION_EXECUTE_RESULT_VOID, res.type);
+}
+
+MU_TEST(test_handle_invalidated_by_unrelated_unbind) {
+    action_table table;
+    action_init(&table);
+    action_executor exec = spy_executor_new();
+    action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'A', "jump", &exec);
+    action_handle duck_before =
+         action_bind(&table, CTX_GAME, TYPE_KEYDOWN, 'B', "duck", &exec);
+    action_unbind_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'A');
+    action_handle duck_after = action_resolve_by_key(&table, CTX_GAME, TYPE_KEYDOWN, 'B');
+    // documented behaviour: unbinding compacts storage, so earlier handles shift
+    mu_check(duck_before != duck_after);
+    mu_check(duck_after != ACTION_HANDLE_INVALID);
+    action_destroy(&table);
+}
+
+MU_TEST_SUITE(action_handle_suite) {
+    MU_RUN_TEST(test_handle_bind_returns_valid_handle);
+    MU_RUN_TEST(test_handle_bind_duplicate_key_returns_invalid);
+    MU_RUN_TEST(test_handle_resolve_by_name_and_key_agree);
+    MU_RUN_TEST(test_handle_resolve_missing_returns_invalid);
+    MU_RUN_TEST(test_handle_execute_passes_self_back);
+    MU_RUN_TEST(test_handle_execute_zero_is_void);
+    MU_RUN_TEST(test_handle_execute_out_of_range_is_void);
+    MU_RUN_TEST(test_handle_execute_null_table_is_void);
+    MU_RUN_TEST(test_handle_invalidated_by_unrelated_unbind);
 }
 
 MU_TEST_SUITE(action_suite) {
@@ -519,6 +652,7 @@ MU_TEST_SUITE(action_suite) {
 
 int main(void) {
     MU_RUN_SUITE(action_suite);
+    MU_RUN_SUITE(action_handle_suite);
     MU_REPORT();
     return MU_EXIT_CODE;
 }

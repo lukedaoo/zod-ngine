@@ -26,8 +26,21 @@ typedef struct {
     } value;
 } command_execute_result;
 
-typedef struct command       command;
 typedef struct command_table command_table;
+
+// @info: opaque handle to a registered command. COMMAND_HANDLE_INVALID (0) is
+// never a valid handle, so a zero-initialised handle is invalid by default.
+//
+// Lifetime: a handle is valid from the moment it is returned until any of the
+// following occurs: the command it names is unregistered; *any other* command
+// in the same table is unregistered; or the table is destroyed. Unregistering
+// compacts the underlying storage and shifts the index of every later command,
+// so all handles obtained before a removal must be treated as invalid
+// afterwards — re-resolve with command_table_get. A handle is scoped to the
+// table that produced it; passing it to a different table is undefined. The
+// caller does not free handles; the table owns the storage.
+typedef unsigned int command_handle;
+#define COMMAND_HANDLE_INVALID 0u
 
 void command_table_init(command_table *table);
 void command_table_init_with_capacity(command_table *table,
@@ -38,22 +51,30 @@ void command_table_reserve_system_commands(command_table *table, const size_t ad
 // @info: reserve capacity for at least `additional` more user-defined commands.
 void command_table_reserve_user_defined_commands(command_table *table,
                                                  const size_t   additional);
-bool command_table_register(command_table *table, command_group group, const char *name,
-                            command_execute_result (*handler)(int argc, char **argv));
-bool command_table_unregister(command_table *table, command_group group,
-                              const char *name);
-void command_table_destroy(command_table *table);
+// @info: returns COMMAND_HANDLE_INVALID on bad arguments or duplicate name.
+command_handle command_table_register(command_table *table, command_group group,
+                                      const char *name,
+                                      command_execute_result (*handler)(int    argc,
+                                                                        char **argv));
+bool           command_table_unregister(command_table *table, command_group group,
+                                        const char *name);
+void           command_table_destroy(command_table *table);
 
-command *command_table_get(const command_table *table, const command_group group,
-                           const char *name);
+// @info: returns COMMAND_HANDLE_INVALID when no such command exists.
+command_handle command_table_get(const command_table *table, const command_group group,
+                                 const char *name);
 command_execute_result command_execute_by_name(const command_table *table,
                                                const command_group  group,
                                                const char *name, int argc, char **argv);
-command_execute_result command_execute(command *command, int argc, char **argv);
+command_execute_result command_execute(const command_table *table,
+                                       const command_handle handle, int argc,
+                                       char **argv);
 
 #ifdef COMMAND_IMPLEMENTATION
 
 #include "collections/array_list.h"
+
+#include <string.h>
 
 #ifndef COMMAND_LOG_ENABLED
 #define COMMAND_LOG_ENABLED 0
@@ -93,6 +114,41 @@ struct command_table {
     array_list system_commands;
     array_list user_defined_commands;
 };
+
+typedef struct command command;
+
+// @info: handle layout — ((index + 1) << 1) | group. Group occupies the low
+// bit so that handle 0 stays reserved for COMMAND_HANDLE_INVALID.
+static command_handle command_handle_make(const size_t index, const command_group group) {
+    return (command_handle)(((index + 1u) << 1u) | (unsigned int)group);
+}
+
+static command_group command_handle_group(const command_handle handle) {
+    return (command_group)(handle & 1u);
+}
+
+static size_t command_handle_index(const command_handle handle) {
+    return (size_t)(handle >> 1u) - 1u;
+}
+
+static const array_list *command_table_list(const command_table *table,
+                                            const command_group  group) {
+    return group == COMMAND_GROUP_SYSTEM ? &table->system_commands
+                                         : &table->user_defined_commands;
+}
+
+static array_list *command_table_list_mut(command_table      *table,
+                                          const command_group group) {
+    return group == COMMAND_GROUP_SYSTEM ? &table->system_commands
+                                         : &table->user_defined_commands;
+}
+
+static command *command_resolve(const command_table *table, const command_handle handle) {
+    if (!table || handle == COMMAND_HANDLE_INVALID) return NULL;
+    return (command *)array_list_get(
+         command_table_list(table, command_handle_group(handle)),
+         command_handle_index(handle));
+}
 
 void command_table_init(command_table *table) {
     command_table_init_with_capacity(table, COMMAND_TABLE_SYSTEM_COMMAND_INIT_SIZE,
@@ -138,27 +194,28 @@ void command_table_reserve_user_defined_commands(command_table *table,
                        table->user_defined_commands.header.size + additional);
 }
 
-static command *command_table_get_by_name(const array_list *list, const char *name) {
+#define COMMAND_INDEX_NONE ((size_t)-1)
+
+static size_t command_index_by_name(const array_list *list, const char *name) {
     for (size_t i = 0; i < list->header.size; i++) {
         command *cmd = (command *)array_list_get(list, i);
-        if (strcmp(cmd->name, name) == 0) return cmd;
+        if (strcmp(cmd->name, name) == 0) return i;
     }
-    return NULL;
+    return COMMAND_INDEX_NONE;
 }
 
-bool command_table_register(command_table *table, command_group group, const char *name,
-                            command_execute_result (*handler)(int argc, char **argv)) {
-    if (!table || !name || !handler) return false;
+command_handle command_table_register(command_table *table, command_group group,
+                                      const char *name,
+                                      command_execute_result (*handler)(int    argc,
+                                                                        char **argv)) {
+    if (!table || !name || !handler) return COMMAND_HANDLE_INVALID;
 
-    command *existing = command_table_get_by_name(group == COMMAND_GROUP_SYSTEM
-                                                       ? &table->system_commands
-                                                       : &table->user_defined_commands,
-                                                  name);
-    if (existing) {
+    array_list *list = command_table_list_mut(table, group);
+    if (command_index_by_name(list, name) != COMMAND_INDEX_NONE) {
 #if COMMAND_LOG_ENABLED
         log_error("command.register: command %s already exists", name);
 #endif
-        return false;
+        return COMMAND_HANDLE_INVALID;
     }
 
     command command = {0};
@@ -166,67 +223,52 @@ bool command_table_register(command_table *table, command_group group, const cha
     command.group   = group;
     command.handler = handler;
 
-    bool result = false;
-    if (group == COMMAND_GROUP_SYSTEM) {
-        result = array_list_append(&table->system_commands, &command);
-    } else if (group == COMMAND_GROUP_USER_DEFINED) {
-        result = array_list_append(&table->user_defined_commands, &command);
-    }
-    if (result) {
+    const size_t index = list->header.size;
+    if (!array_list_append(list, &command)) return COMMAND_HANDLE_INVALID;
+
 #if COMMAND_LOG_ENABLED
-        log_info("command.register: command %s registered", name);
+    log_info("command.register: command %s registered", name);
 #endif
-    }
-    return result;
+    return command_handle_make(index, group);
 }
 
-command *command_table_get(const command_table *table, const command_group group,
-                           const char *name) {
-    if (!table || !name) return NULL;
-    if (group == COMMAND_GROUP_SYSTEM) {
-        return command_table_get_by_name(&table->system_commands, name);
-    } else if (group == COMMAND_GROUP_USER_DEFINED) {
-        return command_table_get_by_name(&table->user_defined_commands, name);
-    }
-    return NULL;
+command_handle command_table_get(const command_table *table, const command_group group,
+                                 const char *name) {
+    if (!table || !name) return COMMAND_HANDLE_INVALID;
+    const size_t index = command_index_by_name(command_table_list(table, group), name);
+    if (index == COMMAND_INDEX_NONE) return COMMAND_HANDLE_INVALID;
+    return command_handle_make(index, group);
 }
 
 bool command_table_unregister(command_table *table, command_group group,
                               const char *name) {
     if (!table || !name) return false;
-    if (group == COMMAND_GROUP_SYSTEM) {
-        for (size_t i = 0; i < table->system_commands.header.size; i++) {
-            command *cmd = (command *)array_list_get(&table->system_commands, i);
-            if (strcmp(cmd->name, name) == 0)
-                return array_list_remove(&table->system_commands, i);
-        }
-    } else if (group == COMMAND_GROUP_USER_DEFINED) {
-        for (size_t i = 0; i < table->user_defined_commands.header.size; i++) {
-            command *cmd = (command *)array_list_get(&table->user_defined_commands, i);
-            if (strcmp(cmd->name, name) == 0)
-                return array_list_remove(&table->user_defined_commands, i);
-        }
-    }
-    return false;
+    array_list  *list  = command_table_list_mut(table, group);
+    const size_t index = command_index_by_name(list, name);
+    if (index == COMMAND_INDEX_NONE) return false;
+    return array_list_remove(list, index);
 }
 
 command_execute_result command_execute_by_name(const command_table *table,
                                                const command_group  group,
                                                const char *name, int argc, char **argv) {
-    command *cmd = command_table_get(table, group, name);
-    if (!cmd) {
+    const command_handle handle = command_table_get(table, group, name);
+    if (handle == COMMAND_HANDLE_INVALID) {
         return (command_execute_result){
              .type      = COMMAND_RESULT_COMMAND_NOT_FOUND,
              .value.str = "command.execute_by_name: command does not exist"  //
         };
     }
-    return cmd->handler(argc, argv);
+    return command_execute(table, handle, argc, argv);
 }
 
-command_execute_result command_execute(command *cmd, int argc, char **argv) {
+command_execute_result command_execute(const command_table *table,
+                                       const command_handle handle, int argc,
+                                       char **argv) {
+    command *cmd = command_resolve(table, handle);
     if (!cmd) {
 #if COMMAND_LOG_ENABLED
-        log_error("command.execute: command is NULL");
+        log_error("command.execute: invalid handle %u", handle);
 #endif
         return (command_execute_result){
              .type      = COMMAND_RESULT_COMMAND_NOT_FOUND,

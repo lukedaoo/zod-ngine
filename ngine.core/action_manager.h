@@ -7,17 +7,18 @@ typedef struct action_manager action_manager;
 void action_manager_priv_init(action_manager *mgr);
 void action_manager_priv_destroy(action_manager *mgr);
 
-action *action_manager_priv_resolve_by_name(const action_manager     *mgr,
-                                            const action_mode         context,
-                                            const action_trigger_type type,
-                                            const char               *name);
-action *action_manager_priv_resolve_by_key(const action_manager     *mgr,
-                                           const action_mode         context,
-                                           const action_trigger_type type, const int key);
+action_handle action_manager_priv_resolve_by_name(const action_manager     *mgr,
+                                                  const action_mode         context,
+                                                  const action_trigger_type type,
+                                                  const char               *name);
+action_handle action_manager_priv_resolve_by_key(const action_manager     *mgr,
+                                                 const action_mode         context,
+                                                 const action_trigger_type type,
+                                                 const int                 key);
 
-bool action_manager_priv_bind(action_manager *mgr, const action_mode context,
-                              const action_trigger_type type, const int key,
-                              const char *name, action_executor *executor);
+action_handle action_manager_priv_bind(action_manager *mgr, const action_mode context,
+                                       const action_trigger_type type, const int key,
+                                       const char *name, action_executor *executor);
 
 bool action_manager_priv_rebind(action_manager *mgr, const action_mode context,
                                 const action_trigger_type type, const int old_key,
@@ -30,7 +31,9 @@ bool action_manager_priv_unbind_by_name(action_manager *mgr, const action_mode c
 bool action_manager_priv_unbind_all(action_manager *mgr, const action_mode context,
                                     const action_trigger_type type);
 
-action_execute_result action_manager_priv_execute(action *action, void *userdata);
+action_execute_result action_manager_priv_execute(action_manager     *mgr,
+                                                  const action_handle handle,
+                                                  void               *userdata);
 action_execute_result action_manager_priv_execute_by_name(action_manager   *mgr,
                                                           const action_mode context,
                                                           const action_trigger_type type,
