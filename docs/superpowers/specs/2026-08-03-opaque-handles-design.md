@@ -153,9 +153,6 @@ command_execute_result command_execute_by_name(const command_table *table,
                                                command_group        group,
                                                const char *name,
                                                int argc, char **argv);
-
-const char    *command_get_name (const command_table *table, command_handle handle);
-command_group  command_get_group(const command_table *table, command_handle handle);
 ```
 
 `command_table_register` changes from returning `bool` to returning a handle;
@@ -229,18 +226,14 @@ action_execute_result action_execute_by_name(action_table       *table,
                                              action_mode         context,
                                              action_trigger_type type,
                                              const char *name, void *userdata);
-
-const char          *action_get_name   (const action_table *table, action_handle handle);
-int                  action_get_key    (const action_table *table, action_handle handle);
-action_mode          action_get_context(const action_table *table, action_handle handle);
-action_trigger_type  action_get_type   (const action_table *table, action_handle handle);
 ```
 
 The executor callback changes from `(const action *action, void *userdata)` to
-`(const action_table *table, action_handle self, void *userdata)`. A callback
-that needs its own binding information calls the public accessors with the table
-and `self` it was given. The table pointer is required because handles are
-scoped to a single table.
+`(const action_table *table, action_handle self, void *userdata)`. `self` is an
+identity token, not an accessor into the record: a callback can compare it
+against handles it already holds, or pass it back to `action_execute` or an
+unbind function. The table pointer is required because handles are scoped to a
+single table.
 
 `action_bind` changes from returning `bool` to returning a handle.
 `action_rebind`, `action_unbind_by_key`, `action_unbind_by_name`,
@@ -255,21 +248,26 @@ The contract is identical across all three modules.
 | --- | --- |
 | Lookup miss, or registration/binding failure | `*_HANDLE_INVALID` (`0u`) |
 | `*_execute` with an invalid handle | The module's existing not-found or VOID result; no crash |
-| Accessor returning a pointer, invalid handle | `NULL` |
-| Accessor returning `int`, invalid handle | `-1` |
-| Accessor returning an enum or typedef'd int, invalid handle | `0` |
 
 No assertions and no aborts. This matches the existing NULL-tolerant style of
 all three modules, where every public entry point already guards against a
 `NULL` table.
 
-One consequence is worth stating explicitly: `command_get_group` returns `0` on
-an invalid handle, and `0` is also `COMMAND_GROUP_SYSTEM`. The two cases are
-indistinguishable from the return value alone. Callers that need to tell them
-apart must check the handle against `COMMAND_HANDLE_INVALID` first, or use
-`command_get_name`, which returns `NULL` unambiguously. The same reasoning
-applies to `action_get_context` and `action_get_type`, whose underlying `int`
-domain includes `0` as a legitimate value.
+### No attribute accessors
+
+The public API deliberately provides **no** getters for record fields — no
+`command_get_name`, no `action_get_key`, and no equivalents. A handle is an
+identity token and nothing more.
+
+The consequence is that a handle is inert once obtained: it can be executed,
+unbound, or compared for equality against another handle, but its underlying
+name, key, context, group, and trigger type are not readable back through the
+public boundary. Callers that need those values must retain them from the call
+site that supplied them in the first place — `action_bind` and
+`command_table_register` are both given the name and key by the caller.
+
+This keeps the boundary minimal. If a genuine need for read-back appears later,
+accessors can be added without changing anything defined here.
 
 ## Handle lifetime
 
@@ -366,17 +364,18 @@ port, the following cases are added, one set per module:
 1. **Round trip.** Register or bind an entry, receive a handle, pass it through
    at least two further public functions, and confirm the observed effect. No
    `command *`, `action *`, or listener pointer appears in the test body.
-2. **Invalid handle.** `*_execute` and every accessor are called with
-   `*_HANDLE_INVALID` and with an out-of-range handle. Each returns the
-   documented error value and does not crash.
+2. **Invalid handle.** `*_execute` is called with `*_HANDLE_INVALID` and with an
+   out-of-range handle. Each returns the documented error value and does not
+   crash.
 3. **Handle 0 default.** A zero-initialised handle variable is rejected by every
    resolver.
 4. **Documented invalidation.** Bind two entries, remove the first, and assert
    that re-resolving by name or key yields a *different* handle than before.
    This pins the documented behaviour rather than asserting the hazard away.
 5. **Group encoding, command only.** A system command and a user-defined command
-   registered with the same name produce distinct handles, and
-   `command_get_group` returns the correct group for each.
+   registered with the same name but different handlers produce distinct
+   handles, and `command_execute` on each handle dispatches to the correct
+   handler.
 6. **Boundary check.** A build- or script-level assertion that the public
    section of each of the three headers — the text before `#ifdef
    *_IMPLEMENTATION` — contains no definition of `struct command`, `struct
