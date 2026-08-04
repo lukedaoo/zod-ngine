@@ -4,6 +4,10 @@
 #include <ngine.lib/event.h>
 typedef struct event_manager event_manager;
 
+typedef enum {
+    EVENT_CATEGORY_SYSTEM = 0,
+} event_category_id;
+
 // sys_event_ids range [1-100]
 enum {
     SYS_EVENT_NO_OPT = 0,

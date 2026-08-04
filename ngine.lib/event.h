@@ -6,15 +6,7 @@
 
 typedef struct event_table event_table;
 
-typedef enum {
-    EVENT_TAG_SYSTEM_WINDOW,
-    EVENT_TAG_SYSTEM_CONFIG,
-    EVENT_TAG_SYSTEM_RENDERING,
-    EVENT_TAG_SYSTEM_INPUT,
-    EVENT_TAG_SYSTEM_AUDIO,
-    EVENT_TAG_APPLICATION,
-    EVENT_TAG_CUSTOM
-} event_category;
+typedef int event_category;
 
 typedef enum {
     EVENT_CALLBACK_RESULT_VOID,
@@ -60,15 +52,6 @@ typedef void (*event_userdata_destroy)(void *userdata);
 
 // @info: opaque handle to one subscription. EVENT_HANDLE_INVALID (0) is never
 // a valid handle, so a zero-initialised handle is invalid by default.
-//
-// Lifetime: a handle is valid from the moment it is returned until any of the
-// following occurs: the subscription it names is removed; *any other*
-// subscription in the same table is removed; or the table is destroyed.
-// Removal compacts the underlying storage and shifts the index of every later
-// subscription, so all handles obtained before a removal must be treated as
-// invalid afterwards. A handle is scoped to the table that produced it;
-// passing it to a different table is undefined. The caller does not free
-// handles; the table owns the storage.
 typedef unsigned int event_handle;
 #define EVENT_HANDLE_INVALID 0u
 

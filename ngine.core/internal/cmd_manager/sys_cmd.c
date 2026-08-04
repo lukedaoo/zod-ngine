@@ -29,7 +29,7 @@ command_execute_result sys_cmd_priv_reload_config_file(int argc, char **argv) {
 
     zngine_apply_config(true);
 
-    event_context ctx = {.identifier   = {.category = EVENT_TAG_SYSTEM_CONFIG,
+    event_context ctx = {.identifier   = {.category = EVENT_CATEGORY_SYSTEM,
                                           .event_id = SYS_EVENT_ON_CONFIG_RELOAD_FULL},
                          .payload      = NULL,
                          .payload_size = 0};
@@ -171,7 +171,7 @@ command_execute_result sys_cmd_priv_set_config(int argc, char **argv) {
 
     zngine_apply_config(true);
 
-    event_context ctx = {.identifier   = {.category = EVENT_TAG_SYSTEM_CONFIG,
+    event_context ctx = {.identifier   = {.category = EVENT_CATEGORY_SYSTEM,
                                           .event_id = SYS_EVENT_ON_CONFIG_RELOAD_SINGLE},
                          .payload      = (void *)name,
                          .payload_size = strlen(name) + 1};

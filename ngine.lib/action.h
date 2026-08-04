@@ -29,15 +29,6 @@ typedef struct {
 
 // @info: opaque handle to a bound action. ACTION_HANDLE_INVALID (0) is never a
 // valid handle, so a zero-initialised handle is invalid by default.
-//
-// Lifetime: a handle is valid from the moment it is returned until any of the
-// following occurs: the action it names is unbound; *any other* action in the
-// same table is unbound; or the table is destroyed. Unbinding compacts the
-// underlying storage and shifts the index of every later action, so all
-// handles obtained before an unbind must be treated as invalid afterwards —
-// re-resolve with action_resolve_by_name or action_resolve_by_key. A handle is
-// scoped to the table that produced it; passing it to a different table is
-// undefined. The caller does not free handles; the table owns the storage.
 typedef unsigned int action_handle;
 #define ACTION_HANDLE_INVALID 0u
 
@@ -51,14 +42,11 @@ typedef struct {
 void action_init(action_table *table);
 void action_destroy(action_table *table);
 
-// @info: both return ACTION_HANDLE_INVALID when no such action is bound.
 action_handle action_resolve_by_name(const action_table *table, const action_mode context,
                                      const action_trigger_type type, const char *name);
 action_handle action_resolve_by_key(const action_table *table, const action_mode context,
                                     const action_trigger_type type, const int key);
 
-// @info: returns ACTION_HANDLE_INVALID on bad arguments, or when the
-// (context, type, key) triple is already bound.
 action_handle action_bind(action_table *table, const action_mode context,
                           const action_trigger_type type, const int key, const char *name,
                           action_executor *executor);

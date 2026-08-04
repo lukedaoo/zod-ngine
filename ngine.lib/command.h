@@ -28,17 +28,6 @@ typedef struct {
 
 typedef struct command_table command_table;
 
-// @info: opaque handle to a registered command. COMMAND_HANDLE_INVALID (0) is
-// never a valid handle, so a zero-initialised handle is invalid by default.
-//
-// Lifetime: a handle is valid from the moment it is returned until any of the
-// following occurs: the command it names is unregistered; *any other* command
-// in the same table is unregistered; or the table is destroyed. Unregistering
-// compacts the underlying storage and shifts the index of every later command,
-// so all handles obtained before a removal must be treated as invalid
-// afterwards — re-resolve with command_table_get. A handle is scoped to the
-// table that produced it; passing it to a different table is undefined. The
-// caller does not free handles; the table owns the storage.
 typedef unsigned int command_handle;
 #define COMMAND_HANDLE_INVALID 0u
 

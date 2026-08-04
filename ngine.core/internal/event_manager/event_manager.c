@@ -35,13 +35,12 @@ void event_manager_priv_publish(event_manager *mgr, event_context *ctx) {
 }
 
 void event_manager_priv_subscribe_sys_events(event_manager *mgr) {
-    event_table_subscribe(&mgr->table, EVENT_TAG_SYSTEM_WINDOW,
-                          SYS_EVENT_ON_RESIZE_WINDOW, sys_event_priv_on_resize_window,
-                          NULL, NULL);
-    event_table_subscribe(&mgr->table, EVENT_TAG_SYSTEM_CONFIG,
+    event_table_subscribe(&mgr->table, EVENT_CATEGORY_SYSTEM, SYS_EVENT_ON_RESIZE_WINDOW,
+                          sys_event_priv_on_resize_window, NULL, NULL);
+    event_table_subscribe(&mgr->table, EVENT_CATEGORY_SYSTEM,
                           SYS_EVENT_ON_CONFIG_RELOAD_FULL,
                           sys_event_priv_on_config_reload_full, NULL, NULL);
-    event_table_subscribe(&mgr->table, EVENT_TAG_SYSTEM_CONFIG,
+    event_table_subscribe(&mgr->table, EVENT_CATEGORY_SYSTEM,
                           SYS_EVENT_ON_CONFIG_RELOAD_SINGLE,
                           sys_event_priv_on_config_reload_single, NULL, NULL);
 }
