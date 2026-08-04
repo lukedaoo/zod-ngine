@@ -239,7 +239,7 @@ bool zngine_tick_hot_reload(void) {
     }
     zngine_apply_config(true);
 
-    event_context ctx = {.identifier   = {.category = EVENT_TAG_SYSTEM_CONFIG,
+    event_context ctx = {.identifier   = {.category = EVENT_CATEGORY_SYSTEM,
                                           .event_id = SYS_EVENT_ON_CONFIG_RELOAD_FULL},
                          .payload      = NULL,
                          .payload_size = 0};

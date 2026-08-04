@@ -6,6 +6,8 @@
 
 #define CONFIG_PATH "run-tree/data/engine.scf"
 
+enum : uint8_t { EVENT_CATEGORY_APP = 5 } app_event_category;
+
 // app_event_ids range [100-200]
 enum : uint8_t { APP_EVENT_TICK = 100 } app_event_ids;
 
@@ -103,7 +105,7 @@ int main(const int argc, const char **argv) {
 
     int                app_userdata    = 42;
     const event_handle app_tick_handle = zngine_event_subscribe(
-         EVENT_TAG_APPLICATION, APP_EVENT_TICK, on_app_tick, &app_userdata, NULL);
+         EVENT_CATEGORY_APP, APP_EVENT_TICK, on_app_tick, &app_userdata, NULL);
 
 #if ZOD_CONSOLE_ENABLED
     action_executor toggle_console_executor = {.execute = toggle_console_execute};
@@ -123,7 +125,7 @@ int main(const int argc, const char **argv) {
                 sys_event_resize_payload payload = {.width  = e.window.data1,
                                                     .height = e.window.data2};
                 event_context            ctx     = {
-                     .identifier   = {.category = EVENT_TAG_SYSTEM_WINDOW,
+                     .identifier   = {.category = EVENT_CATEGORY_SYSTEM,
                                       .event_id = SYS_EVENT_ON_RESIZE_WINDOW},
                      .payload      = &payload,
                      .payload_size = sizeof(payload)};

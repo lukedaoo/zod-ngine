@@ -258,7 +258,7 @@ int main(const int argc, const char **argv) {
                 sys_event_resize_payload payload = {.width  = e.window.data1,
                                                     .height = e.window.data2};
                 event_context            ctx     = {
-                     .identifier   = {.category = EVENT_TAG_SYSTEM_WINDOW,
+                     .identifier   = {.category = EVENT_CATEGORY_SYSTEM,
                                       .event_id = SYS_EVENT_ON_RESIZE_WINDOW},
                      .payload      = &payload,
                      .payload_size = sizeof(payload)};
