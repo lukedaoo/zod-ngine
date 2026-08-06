@@ -1,7 +1,7 @@
 #ifndef ZOD_EVENT_MANAGER_H
 #define ZOD_EVENT_MANAGER_H
 
-#include <ngine.lib/event.h>
+#include <ngine.lib/event_dispatcher.h>
 typedef struct event_manager event_manager;
 
 typedef enum {

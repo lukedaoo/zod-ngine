@@ -1,6 +1,6 @@
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
-#include <ngine.lib/event.h>
+#include <ngine.lib/event_dispatcher.h>
 #include "event_manager_internal.h"
 
 void event_manager_priv_init(event_manager *mgr) {

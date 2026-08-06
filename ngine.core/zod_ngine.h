@@ -7,7 +7,7 @@
 #include <ngine.lib/cvar_load.h>
 #include <ngine.lib/simple_font.h>
 #include <ngine.lib/command.h>
-#include <ngine.lib/event.h>
+#include <ngine.lib/event_dispatcher.h>
 #include <ngine.lib/action.h>
 
 #include "input.h"
