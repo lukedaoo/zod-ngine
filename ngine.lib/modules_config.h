@@ -18,7 +18,7 @@
 #define ARRAY_LIST_LOG_ENABLED   1
 #define FILE_BUFFER_LOG_ENABLED  1
 #define COMMAND_LOG_ENABLED      1
-#define EVENT_LOG_ENABLED        1
+#define EVENT_DISPATCHER_LOG_ENABLED        1
 #endif
 
 // ------- Log

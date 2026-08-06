@@ -1,5 +1,5 @@
-#ifndef EVENT_H
-#define EVENT_H
+#ifndef EVENT_DISPATCHER_H
+#define EVENT_DISPATCHER_H
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -68,14 +68,14 @@ bool event_table_unsubscribe_by_event_identifier(event_table         *event_tabl
                                                  const int            event_id);
 void event_table_publish(event_table *event_table, event_context *ctx);
 
-#ifdef EVENT_IMPLEMENTATION
+#ifdef EVENT_DISPATCHER_IMPLEMENTATION
 
-#ifndef EVENT_LOG_ENABLED
-#define EVENT_LOG_ENABLED 0
+#ifndef EVENT_DISPATCHER_LOG_ENABLED
+#define EVENT_DISPATCHER_LOG_ENABLED 0
 #endif
 
-#ifndef EVENT_DEFAULT_LISTENER_CAPACITY
-#define EVENT_DEFAULT_LISTENER_CAPACITY 16
+#ifndef EVENT_DISPATCHER_DEFAULT_LISTENER_CAPACITY
+#define EVENT_DISPATCHER_DEFAULT_LISTENER_CAPACITY 16
 #endif
 
 #include "collections/array_list.h"
@@ -103,7 +103,7 @@ static event_listener *event_resolve(const event_table *table, const event_handl
 
 void event_table_init(event_table *event_table) {
     if (!event_table) return;
-    array_list_init(&event_table->listeners, EVENT_DEFAULT_LISTENER_CAPACITY,
+    array_list_init(&event_table->listeners, EVENT_DISPATCHER_DEFAULT_LISTENER_CAPACITY,
                     sizeof(event_listener));
 }
 
@@ -137,14 +137,14 @@ event_handle event_table_subscribe(event_table *event_table,
 
     const size_t index = event_table->listeners.header.size;
     if (!array_list_append(&event_table->listeners, &listener)) {
-#if EVENT_LOG_ENABLED
+#if EVENT_DISPATCHER_LOG_ENABLED
         log_debug("event.subscribe: append failed category=%d event_id=%d", category,
                   event_id);
 #endif
         return EVENT_HANDLE_INVALID;
     }
 
-#if EVENT_LOG_ENABLED
+#if EVENT_DISPATCHER_LOG_ENABLED
     log_debug("event.subscribe: category=%d event_id=%d userdata=%p handle=%u", category,
               event_id, userdata, (unsigned int)(index + 1u));
 #endif
@@ -155,7 +155,7 @@ bool event_table_unsubscribe(event_table *event_table, const event_handle handle
     event_listener *l = event_resolve(event_table, handle);
     if (!l) return false;
 
-#if EVENT_LOG_ENABLED
+#if EVENT_DISPATCHER_LOG_ENABLED
     log_debug("event.unsubscribe: handle=%u category=%d event_id=%d", handle,
               l->identifier.category, l->identifier.event_id);
 #endif
@@ -178,7 +178,7 @@ bool event_table_unsubscribe_by_event_identifier(event_table         *event_tabl
             removed = true;
         }
     }
-#if EVENT_LOG_ENABLED
+#if EVENT_DISPATCHER_LOG_ENABLED
     log_debug("event.unsubscribe_by_event_identifier: category=%d event_id=%d removed=%d",
               category, event_id, removed);
 #endif
@@ -193,7 +193,7 @@ void event_table_publish(event_table *event_table, event_context *ctx) {
 
         if (l->identifier.category == ctx->identifier.category &&
             l->identifier.event_id == ctx->identifier.event_id) {
-#if EVENT_LOG_ENABLED
+#if EVENT_DISPATCHER_LOG_ENABLED
             log_trace("event.publish: category=%d event_id=%d userdata=%p",
                       ctx->identifier.category, ctx->identifier.event_id,
                       l->listener_data);

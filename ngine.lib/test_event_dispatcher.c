@@ -1,8 +1,8 @@
 #include "../thirdparty/minunit.h"
 
 #define ARRAY_LIST_IMPLEMENTATION
-#define EVENT_IMPLEMENTATION
-#include "event.h"
+#define EVENT_DISPATCHER_IMPLEMENTATION
+#include "event_dispatcher.h"
 
 typedef struct {
     int            call_count;

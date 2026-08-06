@@ -1,7 +1,7 @@
 #ifndef EVENT_MANAGER_INTERNAL_H
 #define EVENT_MANAGER_INTERNAL_H
 
-#include <ngine.lib/event.h>
+#include <ngine.lib/event_dispatcher.h>
 #include "../../event_manager.h"
 
 struct event_manager {
