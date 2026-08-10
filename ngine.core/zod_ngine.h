@@ -153,6 +153,8 @@ bool         zngine_event_unsubscribe(const event_handle handle);
 bool         zngine_event_unsubscribe_by_event_identifier(const event_category category,
                                                           const int            event_id);
 void         zngine_event_publish(event_context *ctx);
+void zngine_event_emit(const event_category category, const int event_id, void *payload,
+                       const size_t payload_size);
 
 //
 // Action Manager accessors

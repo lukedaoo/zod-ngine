@@ -11,9 +11,9 @@ enum : uint8_t { EVENT_CATEGORY_APP = 5 } app_event_category;
 // app_event_ids range [100-200]
 enum : uint8_t { APP_EVENT_TICK = 100 } app_event_ids;
 
-#if ZOD_CONSOLE_ENABLED
-enum : uint8_t { INPUT_CONTEXT_GAME = 0 } input_contexts;
+enum : uint8_t { INPUT_CONTEXT_GAME = 0, INPUT_CONTEXT_SELFTEST = 1 } input_contexts;
 
+#if ZOD_CONSOLE_ENABLED
 static action_execute_result toggle_console_execute(const action_table *table,
                                                     action_handle self, void *userdata) {
     (void)table;
@@ -28,6 +28,160 @@ static event_callback_result on_app_tick(event_context *ctx, void *userdata) {
     const uint32_t *frame = (const uint32_t *)ctx->payload;
     log_debug("app.on_tick: frame=%u userdata=%p", *frame, userdata);
     return (event_callback_result){.type = EVENT_CALLBACK_RESULT_VOID};
+}
+
+typedef struct {
+    const char *name;
+    bool (*run)(void);
+} service_check;
+
+static bool check_config(void) {
+    if (zngine_config_get_int("window.width", 0) <= 0) return false;
+    if (!zngine_config_set_int("game.difficulty", 3)) return false;
+    return zngine_config_get_int("game.difficulty", 0) == 3;
+}
+
+static bool check_clock(void) {
+    zngine_clock_set_paused(true);
+    bool paused_ok = zngine_clock_paused() && zngine_clock_dt() == 0.0f;
+    zngine_clock_set_paused(false);
+    return paused_ok && !zngine_clock_paused();
+}
+
+static bool check_window(void) {
+    return zngine_window_width() > 0 && zngine_window_height() > 0;
+}
+
+static bool check_font(void) { return zngine_font_primary_get() != NULL; }
+
+static int service_check_event_hits;
+static int service_check_event_hits_second;
+
+static event_callback_result check_event_callback(event_context *ctx, void *userdata) {
+    (void)userdata;
+    if (ctx->payload && *(const int *)ctx->payload == 7) service_check_event_hits++;
+    return (event_callback_result){.type = EVENT_CALLBACK_RESULT_VOID};
+}
+
+static event_callback_result check_event_callback_second(event_context *ctx,
+                                                         void          *userdata) {
+    (void)ctx;
+    (void)userdata;
+    service_check_event_hits_second++;
+    return (event_callback_result){.type = EVENT_CALLBACK_RESULT_VOID};
+}
+
+static bool check_event_manager(void) {
+    service_check_event_hits        = 0;
+    service_check_event_hits_second = 0;
+
+    const event_handle handle = zngine_event_subscribe(
+         EVENT_CATEGORY_APP, APP_EVENT_TICK + 1, check_event_callback, NULL, NULL);
+    const event_handle handle_second = zngine_event_subscribe(
+         EVENT_CATEGORY_APP, APP_EVENT_TICK + 1, check_event_callback_second, NULL, NULL);
+    if (handle == EVENT_HANDLE_INVALID || handle_second == EVENT_HANDLE_INVALID)
+        return false;
+
+    int payload = 7;
+    zngine_event_emit(EVENT_CATEGORY_APP, APP_EVENT_TICK + 1, &payload, sizeof(payload));
+    if (service_check_event_hits != 1 || service_check_event_hits_second != 1)
+        return false;
+
+    if (!zngine_event_unsubscribe(handle)) return false;
+    zngine_event_emit(EVENT_CATEGORY_APP, APP_EVENT_TICK + 1, &payload, sizeof(payload));
+
+    if (!zngine_event_unsubscribe(handle_second)) return false;
+    return service_check_event_hits == 1 && service_check_event_hits_second == 2;
+}
+
+static command_execute_result check_command_handler(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+    return (command_execute_result){.type = COMMAND_RESULT_INT, .value.i = 99};
+}
+
+static bool check_cmd_manager(void) {
+    if (!zngine_command_register(COMMAND_GROUP_USER_DEFINED, "selftest",
+                                 check_command_handler))
+        return false;
+
+    command_execute_result result = zngine_user_command_execute("selftest", 0, NULL);
+    bool                   ok = result.type == COMMAND_RESULT_INT && result.value.i == 99;
+
+    ok = zngine_command_unregister(COMMAND_GROUP_USER_DEFINED, "selftest") && ok;
+    return ok && zngine_user_command_execute("selftest", 0, NULL).type ==
+                      COMMAND_RESULT_COMMAND_NOT_FOUND;
+}
+
+static int                   service_check_action_hits;
+static action_execute_result check_action_execute(const action_table *table,
+                                                  action_handle self, void *userdata) {
+    (void)table;
+    (void)self;
+    (void)userdata;
+    service_check_action_hits++;
+    return (action_execute_result){.type = ACTION_EXECUTE_RESULT_VOID};
+}
+
+static bool check_action_manager(void) {
+    service_check_action_hits    = 0;
+    action_executor     executor = {.execute = check_action_execute};
+    const action_handle handle =
+         zngine_action_bind(INPUT_CONTEXT_SELFTEST, ACTION_TRIGGER_KEY_PRESSED,
+                            SDL_SCANCODE_F24, "selftest", &executor);
+    if (handle == ACTION_HANDLE_INVALID) return false;
+
+    if (zngine_action_resolve_by_name(INPUT_CONTEXT_SELFTEST, ACTION_TRIGGER_KEY_PRESSED,
+                                      "selftest") != handle)
+        return false;
+    if (zngine_action_resolve_by_key(INPUT_CONTEXT_SELFTEST, ACTION_TRIGGER_KEY_PRESSED,
+                                     SDL_SCANCODE_F24) != handle)
+        return false;
+
+    zngine_action_execute(handle, NULL);
+    return service_check_action_hits == 1 &&
+           zngine_action_unbind_by_name(INPUT_CONTEXT_SELFTEST,
+                                        ACTION_TRIGGER_KEY_PRESSED, "selftest");
+}
+
+static bool check_extensions(void) {
+#if ZOD_CONSOLE_ENABLED
+    zconsole_write("selftest: console reachable");
+    bool was_visible = zconsole_visible();
+    zconsole_toggle();
+    bool toggled = zconsole_visible() != was_visible;
+    zconsole_toggle();
+    return toggled && zconsole_visible() == was_visible;
+#else
+    return true;
+#endif
+}
+
+static const service_check service_checks[] = {
+     {"config", check_config},
+     {"clock", check_clock},
+     {"window", check_window},
+     {"font", check_font},
+     {"event_manager", check_event_manager},
+     {"cmd_manager", check_cmd_manager},
+     {"action_manager", check_action_manager},
+     {"extensions", check_extensions},
+};
+
+static bool run_service_checks(void) {
+    size_t failed = 0;
+    for (size_t i = 0; i < sizeof(service_checks) / sizeof(service_checks[0]); i++) {
+        if (service_checks[i].run()) {
+            log_info("selftest: %-15s ok", service_checks[i].name);
+        } else {
+            log_error("selftest: %-15s FAILED", service_checks[i].name);
+            failed++;
+        }
+    }
+    log_info("selftest: %zu/%zu services ok",
+             sizeof(service_checks) / sizeof(service_checks[0]) - failed,
+             sizeof(service_checks) / sizeof(service_checks[0]));
+    return failed == 0;
 }
 
 void before_init(void *user_data) {
@@ -101,6 +255,8 @@ int main(const int argc, const char **argv) {
 
     if (!zngine_init(params)) return 1;
     render_text_init();
+
+    run_service_checks();
 
     int                app_userdata    = 42;
     const event_handle app_tick_handle = zngine_event_subscribe(

@@ -36,5 +36,8 @@ bool event_manager_priv_unsubscribe_by_event_identifier(event_manager       *mgr
 bool event_manager_priv_unsubscribe(event_manager *mgr, const event_handle handle);
 
 void event_manager_priv_publish(event_manager *mgr, event_context *ctx);
+void event_manager_priv_emit(event_manager *mgr, const event_category category,
+                             const int event_id, void *payload,
+                             const size_t payload_size);
 
 #endif

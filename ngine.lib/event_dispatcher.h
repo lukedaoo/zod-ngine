@@ -58,15 +58,17 @@ typedef unsigned int event_handle;
 void event_table_init(event_table *event_table);
 void event_table_destroy(event_table *event_table);
 // @info: returns EVENT_HANDLE_INVALID on bad arguments or allocation failure.
-event_handle event_table_subscribe(event_table *event_table,
+event_handle event_table_subscribe(event_table         *event_table,
                                    const event_category category, const int event_id,
                                    const event_callback callback, void *userdata,
                                    const event_userdata_destroy destroy_fn);
-bool event_table_unsubscribe(event_table *event_table, const event_handle handle);
-bool event_table_unsubscribe_by_event_identifier(event_table         *event_table,
-                                                 const event_category category,
-                                                 const int            event_id);
-void event_table_publish(event_table *event_table, event_context *ctx);
+bool         event_table_unsubscribe(event_table *event_table, const event_handle handle);
+bool         event_table_unsubscribe_by_event_identifier(event_table         *event_table,
+                                                         const event_category category,
+                                                         const int            event_id);
+void         event_table_publish(event_table *event_table, event_context *ctx);
+void event_table_emit(event_table *event_table, const event_category category,
+                      const int event_id, void *payload, const size_t payload_size);
 
 #ifdef EVENT_DISPATCHER_IMPLEMENTATION
 
@@ -96,7 +98,8 @@ struct event_table {
     array_list listeners;
 };
 
-static event_listener *event_resolve(const event_table *table, const event_handle handle) {
+static event_listener *event_resolve(const event_table *table,
+                                     const event_handle handle) {
     if (!table || handle == EVENT_HANDLE_INVALID) return NULL;
     return (event_listener *)array_list_get(&table->listeners, (size_t)handle - 1u);
 }
@@ -117,7 +120,7 @@ void event_table_destroy(event_table *event_table) {
     array_list_deinit(&event_table->listeners);
 }
 
-event_handle event_table_subscribe(event_table *event_table,
+event_handle event_table_subscribe(event_table         *event_table,
                                    const event_category category, const int event_id,
                                    const event_callback callback, void *userdata,
                                    const event_userdata_destroy destroy_fn) {
@@ -202,6 +205,14 @@ void event_table_publish(event_table *event_table, event_context *ctx) {
             l->callback(ctx, l->listener_data);
         }
     }
+}
+
+void event_table_emit(event_table *event_table, const event_category category,
+                      const int event_id, void *payload, const size_t payload_size) {
+    event_context ctx = {.identifier   = {.category = category, .event_id = event_id},
+                         .payload      = payload,
+                         .payload_size = payload_size};
+    event_table_publish(event_table, &ctx);
 }
 #endif
 

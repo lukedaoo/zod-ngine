@@ -393,4 +393,10 @@ bool zngine_event_unsubscribe_by_event_identifier(const event_category category,
 void zngine_event_publish(event_context *ctx) {
     event_manager_priv_publish(&g_ctx.event_manager, ctx);
 }
+
+void zngine_event_emit(const event_category category, const int event_id, void *payload,
+                       const size_t payload_size) {
+    event_manager_priv_emit(&g_ctx.event_manager, category, event_id, payload,
+                            payload_size);
+}
 #endif
