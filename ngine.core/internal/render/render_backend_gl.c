@@ -57,6 +57,7 @@ void render_backend_priv_end(void *render_context) {
 
 void render_backend_priv_shutdown(void *render_context) {
     gl_backend_context *c = render_context;
+    if (!c) return;
     if (c->gl) SDL_GL_DestroyContext(c->gl);
     c->gl = NULL;
 }

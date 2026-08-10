@@ -312,9 +312,7 @@ int main(const int argc, const char **argv) {
                      .payload_size = sizeof(payload)};
                 zngine_event_publish(&ctx);
             }
-#if ZOD_CONSOLE_ENABLED
-            zconsole_input_handle(&e);
-#endif
+            zngine_extensions_handle_event(&e);
         }
         zngine_input_update();
         zngine_tick_hot_reload();
@@ -323,9 +321,7 @@ int main(const int argc, const char **argv) {
 
         zngine_begin_drawing();
         beatup_layout_draw();
-#if ZOD_CONSOLE_ENABLED
-        zconsole_draw();
-#endif
+        zngine_extensions_draw();
         beatup_hud_draw();
 
         render_text_flush();

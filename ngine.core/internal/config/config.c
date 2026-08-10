@@ -7,6 +7,7 @@
 
 #include "../../zod_ngine.h"
 #include "../engine_context/engine_context_internal.h"
+#include "../zod_ngine/zod_ngine_internal.h"
 
 static const cvar_constraint g_engine_constraints[] = {
      {.name     = "engine.target_fps",
@@ -54,10 +55,12 @@ void config_priv_destroy(config *cfg) {
     if (!cfg) return;
     cvar_destroy(&cfg->cvars);
     file_watcher_close(cfg->config_file_watcher);
+    cfg->config_file_watcher = NULL;
+    cfg->reload_config_func  = NULL;
 }
 
 void config_priv_add_user_constraints(config *cfg, const cvar_constraint *entries,
-                                 size_t count) {
+                                      size_t count) {
     cvar_add_schema(&cfg->cvars, entries, count);
 }
 
@@ -98,7 +101,7 @@ bool config_priv_reload_from_file(config *cfg) {
 
     config tmp = {0};
     config_priv_seed_preset(&tmp);
-    zngine_run_extension_init_config(&tmp.cvars);
+    extensions_priv_init_config(&tmp.cvars);
     cvar_copy_schema(&tmp.cvars, &cfg->cvars);
     if (!cfg->reload_config_func(cfg->config_file_watcher->path, &tmp.cvars)) {
         cvar_destroy(&tmp.cvars);
@@ -109,8 +112,9 @@ bool config_priv_reload_from_file(config *cfg) {
 
     if (!config_priv_validate(&tmp)) {
         cvar_destroy(&tmp.cvars);
-        log_warn("config.reload: reloaded config failed validation — keeping previous "
-                 "config");
+        log_warn(
+             "config.reload: reloaded config failed validation — keeping previous "
+             "config");
         return false;
     }
 

@@ -80,10 +80,16 @@ static void console_init_config(cvar_table *cvars) {
                     sizeof(g_console_constraints) / sizeof(g_console_constraints[0]));
 }
 
+static void console_ext_draw(void) { zconsole_draw(); }
+static void console_ext_shutdown(void) { zconsole_destroy(); }
+
 void zconsole_ext_install(void) {
     zngine_register_extension((zngine_extension){
          .init_config  = console_init_config,
          .apply_config = console_priv_apply_config,
+         .handle_event = zconsole_input_handle,
+         .draw         = console_ext_draw,
+         .shutdown     = console_ext_shutdown,
     });
 }
 

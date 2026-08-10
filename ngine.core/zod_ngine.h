@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <SDL3/SDL_events.h>
 #include <ngine.lib/cvar.h>
 #include <ngine.lib/cvar_load.h>
 #include <ngine.lib/simple_font.h>
@@ -24,16 +25,21 @@ typedef struct {
 typedef struct {
     void (*init_config)(cvar_table *cvars);
     void (*apply_config)(void);
+    bool (*init)(void);
+    // @todo(input): takes the engine event wrapper once it exists.
+    void (*handle_event)(const SDL_Event *event);
+    void (*draw)(void);
+    void (*shutdown)(void);
 } zngine_extension;
 
 // Must be called before zngine_init() so init_config runs in time to
 // register the extension's constraints before the config file loads.
 void zngine_register_extension(zngine_extension ext);
 
-// Runs every registered extension's init_config against `cvars`. Called by
-// zngine_init and by config_reload_from_file (config.c) — not meant for
-// application code.
-void zngine_run_extension_init_config(cvar_table *cvars);
+// @todo(input): SDL_Event will be replaced by an engine-owned event wrapper —
+// this signature and zngine_extension.handle_event change with it.
+void zngine_extensions_handle_event(const SDL_Event *event);
+void zngine_extensions_draw(void);
 
 typedef struct {
     const char            *config_path;
@@ -129,9 +135,9 @@ bool zngine_input_key_released(zod_key_t key);
 // Command Manager accessors
 //
 command_handle zngine_command_register(command_group group, const char *name,
-                                       command_execute_result (*handler)(int argc,
+                                       command_execute_result (*handler)(int    argc,
                                                                          char **argv));
-bool zngine_command_unregister(command_group group, const char *name);
+bool           zngine_command_unregister(command_group group, const char *name);
 command_execute_result zngine_sys_command_execute(const char *name, int argc,
                                                   char **argv);
 command_execute_result zngine_user_command_execute(const char *name, int argc,
@@ -143,10 +149,10 @@ command_execute_result zngine_user_command_execute(const char *name, int argc,
 event_handle zngine_event_subscribe(const event_category category, const int event_id,
                                     const event_callback callback, void *userdata,
                                     const event_userdata_destroy destroy_fn);
-bool zngine_event_unsubscribe(const event_handle handle);
-bool zngine_event_unsubscribe_by_event_identifier(const event_category category,
-                                                  const int            event_id);
-void zngine_event_publish(event_context *ctx);
+bool         zngine_event_unsubscribe(const event_handle handle);
+bool         zngine_event_unsubscribe_by_event_identifier(const event_category category,
+                                                          const int            event_id);
+void         zngine_event_publish(event_context *ctx);
 
 //
 // Action Manager accessors
@@ -155,18 +161,17 @@ action_handle zngine_action_resolve_by_name(const action_mode         context,
                                             const action_trigger_type type,
                                             const char               *name);
 action_handle zngine_action_resolve_by_key(const action_mode         context,
-                                           const action_trigger_type type,
-                                           const int                 key);
+                                           const action_trigger_type type, const int key);
 
-action_handle zngine_action_bind(const action_mode context,
+action_handle zngine_action_bind(const action_mode         context,
                                  const action_trigger_type type, const int key,
                                  const char *name, action_executor *executor);
 bool zngine_action_rebind(const action_mode context, const action_trigger_type type,
                           const int old_key, const int new_key);
 
-bool zngine_action_unbind_by_key(const action_mode context, const action_trigger_type type,
-                                 const int key);
-bool zngine_action_unbind_by_name(const action_mode context,
+bool zngine_action_unbind_by_key(const action_mode         context,
+                                 const action_trigger_type type, const int key);
+bool zngine_action_unbind_by_name(const action_mode         context,
                                   const action_trigger_type type, const char *name);
 bool zngine_action_unbind_all(const action_mode context, const action_trigger_type type);
 

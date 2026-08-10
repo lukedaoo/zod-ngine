@@ -130,21 +130,15 @@ int main(const int argc, const char **argv) {
                      .payload_size = sizeof(payload)};
                 zngine_event_publish(&ctx);
             }
-#if ZOD_CONSOLE_ENABLED
-            zconsole_input_handle(&e);
-#endif
+            zngine_extensions_handle_event(&e);
         }
         zngine_input_update();
         zngine_tick_hot_reload();
 
-#if ZOD_CONSOLE_ENABLED
         zngine_action_dispatch(INPUT_CONTEXT_GAME, NULL);
-#endif
 
         zngine_begin_drawing();
-#if ZOD_CONSOLE_ENABLED
-        zconsole_draw();
-#endif
+        zngine_extensions_draw();
         render_text_flush();
 
         fps_frames++;

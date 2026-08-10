@@ -325,10 +325,16 @@ MU_TEST(test_stage2_load_fail_no_watcher_attached) {
 MU_TEST(test_stage2_load_fail_presets_survive) {
     reset();
     load_config_return_val = false;
-    zngine_init((zngine_init_params){
+    mu_check(!zngine_init((zngine_init_params){
          .config_setup = {.load_config_func = stub_load_config,
                           .config_path      = "/dev/null"},
-    });
+    }));
+
+    load_config_return_val = true;
+    mu_check(zngine_init((zngine_init_params){
+         .config_setup = {.load_config_func = stub_load_config,
+                          .config_path      = "/dev/null"},
+    }));
     mu_assert_int_eq(800, zngine_config_get_int("window.width", 0));
     mu_assert_int_eq(600, zngine_config_get_int("window.height", 0));
     mu_assert_string_eq("zod-ngine", zngine_config_get_string("window.title", ""));
