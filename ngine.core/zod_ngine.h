@@ -170,6 +170,8 @@ bool zngine_action_unbind_by_name(const action_mode context,
                                   const action_trigger_type type, const char *name);
 bool zngine_action_unbind_all(const action_mode context, const action_trigger_type type);
 
+size_t zngine_action_dispatch(const action_mode context, void *userdata);
+
 action_execute_result zngine_action_execute(const action_handle handle, void *userdata);
 action_execute_result zngine_action_execute_by_name(const action_mode         context,
                                                     const action_trigger_type type,

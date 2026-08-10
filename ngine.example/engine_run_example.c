@@ -13,7 +13,6 @@ enum : uint8_t { APP_EVENT_TICK = 100 } app_event_ids;
 
 #if ZOD_CONSOLE_ENABLED
 enum : uint8_t { INPUT_CONTEXT_GAME = 0 } input_contexts;
-enum : uint8_t { ACTION_TRIGGER_KEY_PRESSED = 0 } action_triggers;
 
 static action_execute_result toggle_console_execute(const action_table *table,
                                                     action_handle self, void *userdata) {
@@ -139,9 +138,7 @@ int main(const int argc, const char **argv) {
         zngine_tick_hot_reload();
 
 #if ZOD_CONSOLE_ENABLED
-        if (zngine_input_key_pressed(SDL_SCANCODE_GRAVE))
-            zngine_action_execute_by_name(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED,
-                                          "toggle_console", NULL);
+        zngine_action_dispatch(INPUT_CONTEXT_GAME, NULL);
 #endif
 
         zngine_begin_drawing();

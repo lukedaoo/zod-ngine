@@ -4,6 +4,12 @@
 #include <ngine.lib/action.h>
 typedef struct action_manager action_manager;
 
+typedef enum {
+    ACTION_TRIGGER_KEY_PRESSED = 0,
+    ACTION_TRIGGER_KEY_DOWN,
+    ACTION_TRIGGER_KEY_RELEASED,
+} action_key_trigger;
+
 void action_manager_priv_init(action_manager *mgr);
 void action_manager_priv_destroy(action_manager *mgr);
 
@@ -34,6 +40,10 @@ bool action_manager_priv_unbind_all(action_manager *mgr, const action_mode conte
 action_execute_result action_manager_priv_execute(action_manager     *mgr,
                                                   const action_handle handle,
                                                   void               *userdata);
+
+size_t action_manager_priv_dispatch(action_manager *mgr, const action_mode context,
+                                    void *userdata);
+
 action_execute_result action_manager_priv_execute_by_name(action_manager   *mgr,
                                                           const action_mode context,
                                                           const action_trigger_type type,

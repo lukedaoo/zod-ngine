@@ -63,6 +63,12 @@ bool action_unbind_by_name(action_table *table, const action_mode context,
 bool action_unbind_all(action_table *table, const action_mode context,
                        const action_trigger_type type);
 
+typedef bool (*action_trigger_fn)(const action_trigger_type type, const int key,
+                                  void *trigger_ctx);
+
+size_t action_dispatch(action_table *table, const action_mode context,
+                       action_trigger_fn fired, void *trigger_ctx, void *userdata);
+
 action_execute_result action_execute(const action_table *table,
                                      const action_handle handle, void *userdata);
 action_execute_result action_execute_by_name(action_table             *table,
@@ -239,6 +245,20 @@ action_execute_result action_execute_by_name(action_table             *table,
     if (handle == ACTION_HANDLE_INVALID)
         return (action_execute_result){.type = ACTION_EXECUTE_RESULT_VOID};
     return action_execute(table, handle, userdata);
+}
+
+size_t action_dispatch(action_table *table, const action_mode context,
+                       action_trigger_fn fired, void *trigger_ctx, void *userdata) {
+    if (!table || !fired) return 0;
+    size_t executed = 0;
+    for (size_t i = 0; i < table->actions.header.size; i++) {
+        action *entry = (action *)array_list_get(&table->actions, i);
+        if (entry->context != context) continue;
+        if (!fired(entry->type, entry->binding.key, trigger_ctx)) continue;
+        action_execute(table, action_handle_make(i), userdata);
+        executed++;
+    }
+    return executed;
 }
 
 #endif

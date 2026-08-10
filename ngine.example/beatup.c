@@ -57,6 +57,8 @@ typedef struct beatup_note {
 
 #define BEATUP_NOTE_DURATION 1.2f
 
+enum : uint8_t { INPUT_CONTEXT_GAME = 0, INPUT_CONTEXT_CONSOLE = 1 } input_contexts;
+
 static beatup_note beatup_notes[6] = {
      {.path = BEATUP_ASSET_DIR "a71.png", .right_col = false, .row = 0, .phase = 0.0f},
      {.path = BEATUP_ASSET_DIR "a41.png", .right_col = false, .row = 1, .phase = 0.4f},
@@ -227,6 +229,51 @@ static bool load_args(const int argc, const char **argv, cvar_table *cvars) {
     return carg_entry_to_cvars(carg_get(&cargs, "--size"), size_names, 2, cvars);
 }
 
+#if ZOD_CONSOLE_ENABLED
+static action_execute_result toggle_console_execute(const action_table *table,
+                                                    action_handle self, void *userdata) {
+    (void)table;
+    (void)self;
+    (void)userdata;
+    zconsole_toggle();
+    return (action_execute_result){.type = ACTION_EXECUTE_RESULT_VOID};
+}
+#endif
+
+static action_execute_result toggle_pause_execute(const action_table *table,
+                                                  action_handle self, void *userdata) {
+    (void)table;
+    (void)self;
+    (void)userdata;
+    g_ctx.clock.paused = !g_ctx.clock.paused;
+    return (action_execute_result){.type = ACTION_EXECUTE_RESULT_VOID};
+}
+
+// Must run after zngine_init — the action table is created there. The action
+// manager owns the bindings from here on; only the active context is app state.
+static void beatup_actions_bind(void) {
+    action_executor toggle_pause = {.execute = toggle_pause_execute};
+    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, SDL_SCANCODE_P,
+                       "toggle_pause", &toggle_pause);
+
+#if ZOD_CONSOLE_ENABLED
+    // Bound in both contexts so grave closes the console it opened.
+    action_executor toggle_console = {.execute = toggle_console_execute};
+    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED,
+                       SDL_SCANCODE_GRAVE, "toggle_console", &toggle_console);
+    zngine_action_bind(INPUT_CONTEXT_CONSOLE, ACTION_TRIGGER_KEY_PRESSED,
+                       SDL_SCANCODE_GRAVE, "toggle_console", &toggle_console);
+#endif
+}
+
+// Console context has no game bindings, so typing there cannot pause the game.
+static action_mode beatup_active_context(void) {
+#if ZOD_CONSOLE_ENABLED
+    if (zconsole_visible()) return INPUT_CONTEXT_CONSOLE;
+#endif
+    return INPUT_CONTEXT_GAME;
+}
+
 int main(const int argc, const char **argv) {
     log_debug("beatup: starting");
     const zngine_dispatch dispatch = {.load_args = load_args};
@@ -245,6 +292,7 @@ int main(const int argc, const char **argv) {
 #endif
 
     if (!zngine_init(params)) return 1;
+    beatup_actions_bind();
     render_text_init();
     render_sprite_init();
     beatup_layout_init();
@@ -264,11 +312,6 @@ int main(const int argc, const char **argv) {
                      .payload_size = sizeof(payload)};
                 zngine_event_publish(&ctx);
             }
-            if (e.type == SDL_EVENT_KEY_DOWN) {
-                if (e.key.key == SDLK_P) {
-                    g_ctx.clock.paused = !g_ctx.clock.paused;
-                }
-            }
 #if ZOD_CONSOLE_ENABLED
             zconsole_input_handle(&e);
 #endif
@@ -276,9 +319,7 @@ int main(const int argc, const char **argv) {
         zngine_input_update();
         zngine_tick_hot_reload();
 
-#if ZOD_CONSOLE_ENABLED
-        if (zngine_input_key_pressed(SDL_SCANCODE_GRAVE)) zconsole_toggle();
-#endif
+        zngine_action_dispatch(beatup_active_context(), NULL);
 
         zngine_begin_drawing();
         beatup_layout_draw();

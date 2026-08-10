@@ -44,6 +44,10 @@ bool zngine_action_unbind_all(const action_mode context, const action_trigger_ty
     return action_manager_priv_unbind_all(&g_ctx.action_manager, context, type);
 }
 
+size_t zngine_action_dispatch(const action_mode context, void *userdata) {
+    return action_manager_priv_dispatch(&g_ctx.action_manager, context, userdata);
+}
+
 action_execute_result zngine_action_execute(const action_handle handle, void *userdata) {
     return action_manager_priv_execute(&g_ctx.action_manager, handle, userdata);
 }
