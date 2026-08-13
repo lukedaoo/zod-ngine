@@ -92,12 +92,16 @@ static void beatup_layout_init(void) {
     beatup_landing_l          = sprite_texture_load(BEATUP_ASSET_DIR "landingL.png");
     beatup_landing_l.draw_box = true;
 
-    beatup_landing_r          = sprite_texture_load(BEATUP_ASSET_DIR "landingR.png");
-    beatup_landing_r.draw_box = true;
-    beatup_space_frame        = sprite_texture_load(BEATUP_ASSET_DIR "space_frame.png");
+    beatup_landing_r            = sprite_texture_load(BEATUP_ASSET_DIR "landingR.png");
+    beatup_landing_r.draw_box   = true;
+    beatup_space_frame          = sprite_texture_load(BEATUP_ASSET_DIR "space_frame.png");
+    beatup_space_frame.draw_box = true;
     beatup_marker = sprite_texture_load(BEATUP_ASSET_DIR "space_frame_cursor.png");
-    for (int i = 0; i < 5; i++)
-        beatup_judge_tex[i] = sprite_texture_load(BEATUP_JUDGE_PATHS[i]);
+    beatup_marker.draw_box = true;
+    for (int i = 0; i < 5; i++) {
+        beatup_judge_tex[i]          = sprite_texture_load(BEATUP_JUDGE_PATHS[i]);
+        beatup_judge_tex[i].draw_box = true;
+    }
 
     for (int i = 0; i < 6; i++) {
         beatup_notes[i].tex          = sprite_texture_load(beatup_notes[i].path);
@@ -259,8 +263,8 @@ static void beatup_actions_bind(void) {
 #if ZOD_CONSOLE_ENABLED
     // Bound in both contexts so grave closes the console it opened.
     action_executor toggle_console = {.execute = toggle_console_execute};
-    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED,
-                       SDL_SCANCODE_GRAVE, "toggle_console", &toggle_console);
+    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, SDL_SCANCODE_GRAVE,
+                       "toggle_console", &toggle_console);
     zngine_action_bind(INPUT_CONTEXT_CONSOLE, ACTION_TRIGGER_KEY_PRESSED,
                        SDL_SCANCODE_GRAVE, "toggle_console", &toggle_console);
 #endif
@@ -321,11 +325,11 @@ int main(const int argc, const char **argv) {
 
         zngine_begin_drawing();
         beatup_layout_draw();
-        zngine_extensions_draw();
         beatup_hud_draw();
 
         render_text_flush();
         render_sprite_flush();
+        zngine_extensions_draw();
         zngine_end_drawing();
         zngine_clock_sleep_to_target_fps();
     }

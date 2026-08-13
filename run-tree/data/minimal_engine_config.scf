@@ -1,0 +1,18 @@
+; Engine configuration
+:/engine
+target_fps                 144            ; target frame rate
+
+; Window configuration
+:/window
+title                      "Minimal Engine"
+width                      800           ; window width,  not applicable for fullscreen
+height                     600            ; window height, not applicable for fullscreen
+transparent                false          ; enable alpha channel
+clear_color                0x141A1AFF     ; clear color. Hex format: 0xRRGGBBAA
+vsync                      true           ; enable vsync
+fullscreen                 false          ; borderless fullscreen, hot-reloadable
+resizable                  false          ; OS-draggable window edge, creation-time only, not hot-reloadable
+
+; Logging configuration
+:/log
+level                      "trace"        ; trace, debug, info, warning, error, fatal

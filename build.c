@@ -25,6 +25,7 @@ typedef struct {
 static const build_target BUILD_TARGETS[] = {
      {"engine", "ngine.example/engine_run_example.c", "engine_run", true},
      {"beatup", "ngine.example/beatup.c", "beatup_run", true},
+     {"minimal", "ngine.example/minimal_engine_run.c", "minimal_run", true},
 };
 static const size_t BUILD_TARGETS_COUNT =
      sizeof(BUILD_TARGETS) / sizeof(BUILD_TARGETS[0]);
@@ -466,8 +467,7 @@ int main(int argc, char **argv) {
         nob_log(NOB_INFO, "usage: ./nob [command] [target] [options]");
         nob_log(NOB_INFO, "  target: engine (default) | beatup");
         nob_log(NOB_INFO, "  (none)                        build engine debug");
-        nob_log(NOB_INFO,
-                "  run [target] [debug|release] [--backend=opengl|vulkan]");
+        nob_log(NOB_INFO, "  run [target] [debug|release] [--backend=opengl|vulkan]");
         nob_log(NOB_INFO, "                                build and run");
         nob_log(NOB_INFO, "  build-debug [target] [--backend=opengl|vulkan]");
         nob_log(NOB_INFO, "                                build with debug symbols");

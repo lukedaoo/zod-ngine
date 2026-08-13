@@ -38,3 +38,6 @@ input_box_background_color 0x00000080     ; input box fill color. Hex format: 0x
 background_color           0x114455FF     ; panel background color. Hex format: 0xRRGGBBAA
 cursor_color               0xFFD400FF     ; cursor color. Hex format: 0xRRGGBBAA
 
+; TODO
+:/console.keybind
+toggle_console             KEY_GRAVE
