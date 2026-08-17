@@ -8,17 +8,17 @@
 // diagnostics for every module at once. Each module also has its own
 // <MODULE>_LOG_ENABLED flag below for turning logging on per-module instead.
 #ifdef ALL_MODULES_LOG_ENABLED
-#define CVAR_LOG_ENABLED         1
-#define CVAR_LOAD_LOG_ENABLED    1
-#define INI_LOG_ENABLED          1
-#define SCF_LOG_ENABLED          1
-#define CARG_LOG_ENABLED         1
-#define CARG_TO_CVAR_LOG_ENABLED 1
-#define FILE_WATCHER_LOG_ENABLED 1
-#define ARRAY_LIST_LOG_ENABLED   1
-#define FILE_BUFFER_LOG_ENABLED  1
-#define COMMAND_LOG_ENABLED      1
-#define EVENT_DISPATCHER_LOG_ENABLED        1
+#define CVAR_LOG_ENABLED             1
+#define CVAR_LOAD_LOG_ENABLED        1
+#define INI_LOG_ENABLED              1
+#define SCF_LOG_ENABLED              1
+#define CARG_LOG_ENABLED             1
+#define CARG_TO_CVAR_LOG_ENABLED     1
+#define FILE_WATCHER_LOG_ENABLED     1
+#define ARRAY_LIST_LOG_ENABLED       1
+#define FILE_BUFFER_LOG_ENABLED      1
+#define COMMAND_LOG_ENABLED          1
+#define EVENT_DISPATCHER_LOG_ENABLED 1
 #endif
 
 // ------- Log
@@ -142,6 +142,35 @@
 // collections/array_list.h — enable log_* diagnostics for this module.
 // @default 0
 // #define ARRAY_LIST_LOG_ENABLED 0
+
+// ------- Control
+// control.h — max length of an action name, including null terminator. Must not
+// exceed ACTION_NAME_MAX, or the table would accept a name action_bind rejects.
+// @default 32
+// #define CONTROL_ACTION_MAX 32
+
+// control.h — initial control_table.bindings capacity before first grow
+// @default 16
+// #define DEFAULT_CONTROL_CAPACITY 16
+
+// control.h — enable log_* diagnostics for this module.
+// @default 0
+// #define CONTROL_LOG_ENABLED 0
+
+// ------- Control Load
+// control_load.h — section name prefix a binding section must carry; the rest of
+// the section name is the context name resolved through control_vocab.
+// @default "input."
+// #define CONTROL_SECTION_PREFIX "input."
+
+// control_load.h — max length of a key or trigger name in a file, including null
+// terminator
+// @default 64
+// #define CONTROL_KEY_NAME_MAX 64
+
+// control_load.h — enable log_* diagnostics for this module.
+// @default 0
+// #define CONTROL_LOAD_LOG_ENABLED 0
 
 // ------- Command
 // command.h — max length of a command name, including null terminator
