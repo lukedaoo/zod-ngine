@@ -85,8 +85,6 @@ static size_t live_count(void) {
     return live;
 }
 
-// ---------------------------------------------------------------------- parsing
-
 MU_TEST(test_parse_key_with_default_trigger) {
     mu_check(control_merge_scf_string(&table,
                                       ":/input.game\n"
@@ -174,7 +172,6 @@ MU_TEST(test_parse_skips_unknown_key_but_keeps_the_rest) {
     mu_check(control_find(&table, CTX_GAME, "crouch") != CONTROL_HANDLE_INVALID);
 }
 
-// a line saying "down" must never silently become a press binding
 MU_TEST(test_parse_skips_unknown_trigger_entirely) {
     mu_check(control_merge_scf_string(&table,
                                       ":/input.game\n"
@@ -237,8 +234,6 @@ MU_TEST(test_parse_conflicting_key_keeps_the_first) {
     mu_check(control_find(&table, CTX_GAME, "crouch") == CONTROL_HANDLE_INVALID);
 }
 
-// ---------------------------------------------------------------- load and merge
-
 MU_TEST(test_merge_folds_into_existing_bindings) {
     control_set(&table, CTX_GAME, "jump", KEY_A, TRIG_PRESSED);
 
@@ -292,8 +287,6 @@ MU_TEST(test_merge_string_null_args_return_false) {
     mu_check(!control_merge(&table, NULL, &fake_vocab));
 }
 
-// ------------------------------------------------------------------------ vocabulary
-
 MU_TEST(test_incomplete_vocab_fails_the_load) {
     const control_vocab no_resolver = {
          .contexts = fake_contexts, .context_count = 2, .key_from_name = NULL};
@@ -338,14 +331,10 @@ MU_TEST(test_custom_trigger_table_overrides_builtin) {
 
     mu_check(
          binding_is(control_find(&table, CTX_GAME, "jump"), CTX_GAME, "jump", KEY_A, 8));
-    // no trigger given falls back to the table's first entry
     mu_check(binding_is(control_find(&table, CTX_GAME, "crouch"), CTX_GAME, "crouch",
                         KEY_B, 7));
-    // "down" is not in the custom table
     mu_check(control_find(&table, CTX_GAME, "shoot") == CONTROL_HANDLE_INVALID);
 }
-
-// -------------------------------------------------------------------- integration
 
 MU_TEST(test_integration_load_rebind_enumerate) {
     mu_check(control_merge_scf_string(&table,
@@ -358,17 +347,14 @@ MU_TEST(test_integration_load_rebind_enumerate) {
                                       &fake_vocab));
     mu_assert_int_eq(3, (int)live_count());
 
-    // runtime rebind through the same validation the file went through
     const control_handle bar = control_find(&table, CTX_GAME, "press_bar");
     mu_check(control_set(&table, CTX_GAME, "press_bar", KEY_B, TRIG_DOWN) == bar);
     mu_check(binding_is(bar, CTX_GAME, "press_bar", KEY_B, TRIG_DOWN));
 
-    // a rebind onto a taken key is refused, leaving both bindings intact
     mu_check(control_set(&table, CTX_GAME, "press_bar", KEY_A, TRIG_PRESSED) ==
              CONTROL_HANDLE_INVALID);
     mu_check(binding_is(bar, CTX_GAME, "press_bar", KEY_B, TRIG_DOWN));
 
-    // save-shaped walk: every live binding renders back to a name
     size_t rendered = 0;
     for (size_t i = 0; i < control_count(&table); i++) {
         const control_handle h = control_at(&table, i);
@@ -382,9 +368,6 @@ MU_TEST(test_integration_load_rebind_enumerate) {
     }
     mu_assert_int_eq(3, (int)rendered);
 }
-
-
-// ---------------------------------------------------------------------------- ini
 
 MU_TEST(test_ini_parses_the_same_bindings_as_scf) {
     mu_check(control_merge_ini_string(&table,
@@ -454,8 +437,6 @@ MU_TEST(test_ini_and_scf_compose_in_one_table) {
     mu_assert_int_eq(2, (int)live_count());
 }
 
-// ------------------------------------------------------------- extension dispatch
-
 MU_TEST(test_dispatch_rejects_unknown_extension) {
     mu_check(!control_load(&table, "controls.toml", &fake_vocab));
     mu_check(!control_load(&table, "controls", &fake_vocab));
@@ -465,7 +446,6 @@ MU_TEST(test_dispatch_rejects_unknown_extension) {
 }
 
 MU_TEST(test_dispatch_accepts_known_extensions_and_reports_missing_files) {
-    // routed to a parser, then fails on the open: not an "unsupported type" refusal
     control_set(&table, CTX_GAME, "jump", KEY_A, TRIG_PRESSED);
 
     mu_check(!control_load(&table, "testdata/definitely_not_here.scf", &fake_vocab));
@@ -489,9 +469,8 @@ MU_TEST(test_load_scf_and_ini_of_missing_file_leave_table_unchanged) {
 }
 
 MU_TEST(test_ini_string_incomplete_vocab_fails) {
-    const control_vocab no_resolver = {.contexts      = fake_contexts,
-                                       .context_count = 2,
-                                       .key_from_name = NULL};
+    const control_vocab no_resolver = {
+         .contexts = fake_contexts, .context_count = 2, .key_from_name = NULL};
 
     mu_check(!control_merge_ini_string(&table, "[input.game]\njump = A\n", &no_resolver));
     mu_check(!control_merge_ini_string(&table, NULL, &fake_vocab));

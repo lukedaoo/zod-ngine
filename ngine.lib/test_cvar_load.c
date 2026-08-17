@@ -24,8 +24,12 @@
 
 #ifdef _WIN32
 #define TEST_INI "tmp/cvar_load_test.ini"
+#define TEST_SCF "tmp/cvar_load_test.scf"
+#define TEST_TXT "tmp/cvar_load_test.txt"
 #else
 #define TEST_INI "/tmp/cvar_load_test.ini"
+#define TEST_SCF "/tmp/cvar_load_test.scf"
+#define TEST_TXT "/tmp/cvar_load_test.txt"
 #endif
 
 static void write_file(const char *path, const char *content) {
@@ -94,6 +98,119 @@ MU_TEST(test_cvar_reload_ini_failure_keeps_old) {
 
     cvar_destroy(&table);
     remove(TEST_INI);
+}
+
+
+MU_TEST(test_cvar_load_dispatches_ini_by_extension) {
+    cvar_table table = {0};
+
+    write_file(TEST_INI, "[test]\nvalue=7\nname=alice\n");
+    mu_check(cvar_load(&table, TEST_INI, false));
+
+    mu_check(cvar_get(&table, "test.value")->value.i == 7);
+    mu_assert_string_eq("alice", cvar_get(&table, "test.name")->value.str.data);
+
+    cvar_destroy(&table);
+    remove(TEST_INI);
+}
+
+MU_TEST(test_cvar_load_dispatches_scf_by_extension) {
+    cvar_table table = {0};
+
+    write_file(TEST_SCF, ":/test\nvalue 7\nname alice\n");
+    mu_check(cvar_load(&table, TEST_SCF, false));
+
+    mu_check(cvar_get(&table, "test.value")->value.i == 7);
+    mu_assert_string_eq("alice", cvar_get(&table, "test.name")->value.str.data);
+
+    cvar_destroy(&table);
+    remove(TEST_SCF);
+}
+
+MU_TEST(test_cvar_load_matches_the_explicit_entry_points) {
+    cvar_table dispatched = {0};
+    cvar_table explicit_ini = {0};
+
+    write_file(TEST_INI, "[test]\nvalue=42\nflag=true\n");
+    mu_check(cvar_load(&dispatched, TEST_INI, false));
+    mu_check(cvar_load_ini(&explicit_ini, TEST_INI, false));
+
+    mu_check(cvar_get(&dispatched, "test.value")->value.i ==
+             cvar_get(&explicit_ini, "test.value")->value.i);
+    mu_check(cvar_get(&dispatched, "test.flag")->value.b ==
+             cvar_get(&explicit_ini, "test.flag")->value.b);
+
+    cvar_destroy(&dispatched);
+    cvar_destroy(&explicit_ini);
+    remove(TEST_INI);
+}
+
+MU_TEST(test_cvar_load_rejects_unknown_extension) {
+    cvar_table table = {0};
+
+    write_file(TEST_TXT, "[test]\nvalue=1\n");
+    mu_check(!cvar_load(&table, TEST_TXT, false));
+    mu_check(cvar_get(&table, "test.value") == NULL);
+
+    cvar_destroy(&table);
+    remove(TEST_TXT);
+}
+
+MU_TEST(test_cvar_load_rejects_path_without_extension) {
+    cvar_table table = {0};
+    mu_check(!cvar_load(&table, "cvars", false));
+    cvar_destroy(&table);
+}
+
+MU_TEST(test_cvar_load_null_args_return_false) {
+    cvar_table table = {0};
+
+    mu_check(!cvar_load(&table, NULL, false));
+    mu_check(!cvar_load(NULL, TEST_INI, false));
+    mu_check(!cvar_load(NULL, NULL, true));
+
+    cvar_destroy(&table);
+}
+
+MU_TEST(test_cvar_load_missing_file_of_known_type_fails) {
+    cvar_table table = {0};
+
+    // routed to a parser, then fails on the open: not an unsupported-type refusal
+    mu_check(!cvar_load(&table, "/tmp/cvar_load_definitely_not_here.ini", false));
+    mu_check(!cvar_load(&table, "/tmp/cvar_load_definitely_not_here.scf", false));
+
+    cvar_destroy(&table);
+}
+
+MU_TEST(test_cvar_load_force_reload_failure_keeps_old) {
+    cvar_table table = {0};
+
+    write_file(TEST_INI, "[test]\nvalue=1\nname=alice\n");
+    mu_check(cvar_load(&table, TEST_INI, false));
+
+    static const cvar_constraint entries[] = {
+         {.name = "test.value", .expected = CVAR_BOOL}};
+    cvar_add_schema(&table, entries, 1);
+
+    write_file(TEST_INI, "[test]\nvalue=99\nname=bob\n");
+    mu_check(!cvar_load(&table, TEST_INI, true));
+
+    mu_check(cvar_get(&table, "test.value")->value.i == 1);
+    mu_assert_string_eq("alice", cvar_get(&table, "test.name")->value.str.data);
+
+    cvar_destroy(&table);
+    remove(TEST_INI);
+}
+
+MU_TEST_SUITE(cvar_load_dispatch_suite) {
+    MU_RUN_TEST(test_cvar_load_dispatches_ini_by_extension);
+    MU_RUN_TEST(test_cvar_load_dispatches_scf_by_extension);
+    MU_RUN_TEST(test_cvar_load_matches_the_explicit_entry_points);
+    MU_RUN_TEST(test_cvar_load_rejects_unknown_extension);
+    MU_RUN_TEST(test_cvar_load_rejects_path_without_extension);
+    MU_RUN_TEST(test_cvar_load_null_args_return_false);
+    MU_RUN_TEST(test_cvar_load_missing_file_of_known_type_fails);
+    MU_RUN_TEST(test_cvar_load_force_reload_failure_keeps_old);
 }
 
 MU_TEST_SUITE(cvar_reload_suite) {
@@ -683,6 +800,7 @@ MU_TEST_SUITE(cvar_parse_with_range_suite) {
 
 int main(void) {
     MU_RUN_SUITE(cvar_reload_suite);
+    MU_RUN_SUITE(cvar_load_dispatch_suite);
     MU_RUN_SUITE(cvar_float_suffix_suite);
     MU_RUN_SUITE(cvar_int_suffix_suite);
     MU_RUN_SUITE(cvar_quote_strip_suite);

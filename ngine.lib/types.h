@@ -15,6 +15,18 @@ typedef float    f32;
 typedef double   f64;
 typedef size_t   usize;
 
+// bytes
+typedef uint8_t  $1u;
+typedef uint16_t $2u;
+typedef uint32_t $4u;
+typedef uint64_t $8u;
+typedef int8_t   $1i;
+typedef int16_t  $2i;
+typedef int32_t  $4i;
+typedef int64_t  $8i;
+typedef float    $4f;
+typedef double   $8f;
+
 typedef struct {
     float r, g, b, a;
 } color4f;

@@ -10,6 +10,7 @@
 // force_reload=true: parse into scratch table, swap only on success.
 bool cvar_load_ini(cvar_table *table, const char *path, bool force_reload);
 bool cvar_load_scf(cvar_table *table, const char *path, bool force_reload);
+bool cvar_load(cvar_table *table, const char *path, bool force_reload);
 
 #ifdef CVAR_LOAD_IMPLEMENTATION
 
@@ -47,6 +48,28 @@ bool cvar_load_ini(cvar_table *table, const char *path, bool force_reload) {
 
 bool cvar_load_scf(cvar_table *table, const char *path, bool force_reload) {
     return cvar_load_internal(table, path, force_reload, (parse_func)scf_parse);
+}
+
+static parse_func cvar_parser_for_path(const char *path) {
+    if (!path) return NULL;
+
+    const char *dot = strrchr(path, '.');
+    if (!dot) return NULL;
+
+    if (strcmp(dot, ".scf") == 0) return (parse_func)scf_parse;
+    if (strcmp(dot, ".ini") == 0) return (parse_func)ini_parse;
+    return NULL;
+}
+
+bool cvar_load(cvar_table *table, const char *path, bool force_reload) {
+    if (!table) return false;
+
+    parse_func parser = cvar_parser_for_path(path);
+    if (!parser) {
+        log_error("cvar_load.cvar_load: unsupported file type '%s'", path ? path : "");
+        return false;
+    }
+    return cvar_load_internal(table, path, force_reload, parser);
 }
 
 #endif
