@@ -143,34 +143,34 @@
 // @default 0
 // #define ARRAY_LIST_LOG_ENABLED 0
 
-// ------- Control
-// control.h — max length of an action name, including null terminator. Must not
+// ------- Keybind
+// keybind.h — max length of an action name, including null terminator. Must not
 // exceed ACTION_NAME_MAX, or the table would accept a name action_bind rejects.
 // @default 32
-// #define CONTROL_ACTION_MAX 32
+// #define KEYBIND_ACTION_MAX 32
 
-// control.h — initial control_table.bindings capacity before first grow
+// keybind.h — initial keybind_table.bindings capacity before first grow
 // @default 16
-// #define DEFAULT_CONTROL_CAPACITY 16
+// #define DEFAULT_KEYBIND_CAPACITY 16
 
-// control.h — enable log_* diagnostics for this module.
+// keybind.h — enable log_* diagnostics for this module.
 // @default 0
-// #define CONTROL_LOG_ENABLED 0
+// #define KEYBIND_LOG_ENABLED 0
 
-// ------- Control Load
-// control_load.h — section name prefix a binding section must carry; the rest of
-// the section name is the context name resolved through control_vocab.
+// ------- Keybind Load
+// keybind_load.h — section name prefix a binding section must carry; the rest of
+// the section name is the context name resolved through keybind_vocab.
 // @default "input."
-// #define CONTROL_SECTION_PREFIX "input."
+// #define KEYBIND_SECTION_PREFIX "input."
 
-// control_load.h — max length of a key or trigger name in a file, including null
+// keybind_load.h — max length of a key or trigger name in a file, including null
 // terminator
 // @default 64
-// #define CONTROL_KEY_NAME_MAX 64
+// #define KEYBIND_KEY_NAME_MAX 64
 
-// control_load.h — enable log_* diagnostics for this module.
+// keybind_load.h — enable log_* diagnostics for this module.
 // @default 0
-// #define CONTROL_LOAD_LOG_ENABLED 0
+// #define KEYBIND_LOAD_LOG_ENABLED 0
 
 // ------- Command
 // command.h — max length of a command name, including null terminator

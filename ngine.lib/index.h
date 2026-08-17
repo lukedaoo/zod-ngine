@@ -31,9 +31,9 @@
 // action
 #include "action.h"
 
-// control
-#include "control.h"
-#include "control_load.h"
+// keybind
+#include "keybind.h"
+#include "keybind_load.h"
 
 // io
 #include "file_watcher.h"
