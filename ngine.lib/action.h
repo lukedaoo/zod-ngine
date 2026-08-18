@@ -8,6 +8,10 @@ typedef struct action_table action_table;
 typedef int                 action_trigger_type;
 typedef int                 action_mode;
 
+#ifndef ACTION_NAME_MAX
+#define ACTION_NAME_MAX 32
+#endif
+
 typedef enum {
     ACTION_EXECUTE_RESULT_VOID,
     ACTION_EXECUTE_RESULT_INT,
@@ -46,6 +50,16 @@ action_handle action_resolve_by_name(const action_table *table, const action_mod
                                      const action_trigger_type type, const char *name);
 action_handle action_resolve_by_key(const action_table *table, const action_mode context,
                                     const action_trigger_type type, const int key);
+
+typedef struct {
+    action_mode         context;
+    action_trigger_type type;
+    int                 key;
+    char                name[ACTION_NAME_MAX];
+} action_info;
+
+bool action_lookup(const action_table *table, const action_handle handle,
+                   action_info *out);
 
 action_handle action_bind(action_table *table, const action_mode context,
                           const action_trigger_type type, const int key, const char *name,
@@ -88,10 +102,6 @@ action_execute_result action_execute_by_name(action_table             *table,
 
 #ifndef DEFAULT_ACTION_CAPACITY
 #define DEFAULT_ACTION_CAPACITY 16
-#endif
-
-#ifndef ACTION_NAME_MAX
-#define ACTION_NAME_MAX 32
 #endif
 
 typedef struct action action;
@@ -171,6 +181,19 @@ action_handle action_resolve_by_key(const action_table *table, const action_mode
     const size_t index = action_index_by_key(table, context, type, key);
     if (index == ACTION_INDEX_NONE) return ACTION_HANDLE_INVALID;
     return action_handle_make(index);
+}
+
+bool action_lookup(const action_table *table, const action_handle handle,
+                   action_info *out) {
+    if (!out) return false;
+    const action *entry = action_resolve(table, handle);
+    if (!entry) return false;
+
+    out->context = entry->context;
+    out->type    = entry->type;
+    out->key     = entry->binding.key;
+    memcpy(out->name, entry->binding.name, sizeof(out->name));
+    return true;
 }
 
 action_handle action_bind(action_table *table, const action_mode context,

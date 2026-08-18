@@ -13,6 +13,7 @@
 #include <ngine.lib/keybind.h>
 
 #include "input.h"
+#include "keybind_manager.h"
 
 typedef struct {
     void (*before_init)(void *user_data);
@@ -192,6 +193,9 @@ bool          zngine_keybind_manager_load(const char *path, const keybind_vocab 
 bool          zngine_keybind_manager_merge(const char *path, const keybind_vocab *vocab);
 action_handle zngine_keybind_resolve(const action_mode context, const int key,
                                      const int trigger);
+
+size_t zngine_keybind_count(void);
+bool   zngine_keybind_at(const size_t index, keybind_manager_entry *out);
 
 // Utils
 bool zngine_should_exit(void);

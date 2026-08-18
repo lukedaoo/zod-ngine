@@ -20,6 +20,51 @@ static command_execute_result mock_handler_alt(int argc, char **argv) {
     return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = "alt"};
 }
 
+static action_execute_result mock_action_exec(const action_table *table,
+                                              action_handle self, void *userdata) {
+    (void)table;
+    (void)self;
+    (void)userdata;
+    return (action_execute_result){.type = ACTION_EXECUTE_RESULT_VOID};
+}
+
+static int keybind_test_key_from_name(const char *name) {
+    if (strcmp(name, "R") == 0) return SDL_SCANCODE_R;
+    return 0;
+}
+static const char *keybind_test_key_to_name(const int key) {
+    return key == SDL_SCANCODE_R ? "R" : NULL;
+}
+
+static const keybind_context keybind_test_contexts[] = {
+     {.name = "game", .context = 0},
+};
+
+static const keybind_vocab keybind_test_vocab = {
+     .contexts      = keybind_test_contexts,
+     .context_count = 1,
+     .key_from_name = keybind_test_key_from_name,
+     .key_to_name   = keybind_test_key_to_name,
+};
+
+static void write_temp_keybind_file(const char *path, const char *contents) {
+    FILE *f = fopen(path, "w");
+    mu_check(f != NULL);
+    fputs(contents, f);
+    fclose(f);
+}
+
+static void bind_reload_and_load_keybind(const char *path) {
+    action_executor executor = {.execute = mock_action_exec};
+    action_manager_priv_bind(&g_ctx.action_manager, 0, ACTION_TRIGGER_KEY_PRESSED, 0,
+                             "reload", &executor);
+
+    write_temp_keybind_file(path, ":/input.game\nR pressed reload\n");
+    mu_check(keybind_manager_priv_load(&g_ctx.keybind_manager, path, &keybind_test_vocab,
+                                       &g_ctx.action_manager));
+    remove(path);
+}
+
 MU_TEST(test_destroy_null_safe) { cmd_manager_priv_destroy(NULL); }
 
 MU_TEST_SUITE(cmd_manager_init_suite) { MU_RUN_TEST(test_destroy_null_safe); }
@@ -136,7 +181,8 @@ MU_TEST(test_sys_cmd_show_commands_lists_both_groups) {
     mu_check(res.type == COMMAND_RESULT_STRING);
     mu_check(strstr(res.value.str,
                     "system [reload-config-file, show-commands, set-config, get-config, "
-                    "list-config]") != NULL);
+                    "show-config, show-keybinding, get-keybinding-by-action, "
+                    "get-keybinding-by-key]") != NULL);
     mu_check(strstr(res.value.str, "user [foo]") != NULL);
     mu_check(res.value.str[strlen(res.value.str) - 1] != '\n');
 
@@ -262,19 +308,19 @@ MU_TEST(test_sys_cmd_set_config_string_accepts_numeric_literal) {
     cvar_destroy(&g_ctx.config.cvars);
 }
 
-MU_TEST(test_sys_cmd_list_config_rejects_args) {
+MU_TEST(test_sys_cmd_show_config_rejects_args) {
     char                  *argv[] = {"extra"};
-    command_execute_result res    = sys_cmd_priv_list_config(1, argv);
+    command_execute_result res    = sys_cmd_priv_show_config(1, argv);
     mu_check(res.type == COMMAND_RESULT_ERROR);
 }
 
-MU_TEST(test_sys_cmd_list_config_empty_table_is_void) {
+MU_TEST(test_sys_cmd_show_config_empty_table_is_void) {
     g_ctx                      = (engine_context){0};
-    command_execute_result res = sys_cmd_priv_list_config(0, NULL);
+    command_execute_result res = sys_cmd_priv_show_config(0, NULL);
     mu_check(res.type == COMMAND_RESULT_VOID);
 }
 
-MU_TEST(test_sys_cmd_list_config_shows_range_when_constrained) {
+MU_TEST(test_sys_cmd_show_config_shows_range_when_constrained) {
     g_ctx = (engine_context){0};
     cvar_set_int(&g_ctx.config.cvars, "engine.target_fps", 60);
     static const cvar_constraint c = {.name     = "engine.target_fps",
@@ -282,22 +328,116 @@ MU_TEST(test_sys_cmd_list_config_shows_range_when_constrained) {
                                       .range    = {.has_min = true, .min.i = 1}};
     cvar_add_schema(&g_ctx.config.cvars, &c, 1);
 
-    command_execute_result res = sys_cmd_priv_list_config(0, NULL);
+    command_execute_result res = sys_cmd_priv_show_config(0, NULL);
     mu_check(res.type == COMMAND_RESULT_STRING);
     mu_assert_string_eq("engine.target_fps int [1,inf]", res.value.str);
 
     cvar_destroy(&g_ctx.config.cvars);
 }
 
-MU_TEST(test_sys_cmd_list_config_omits_brackets_when_unconstrained) {
+MU_TEST(test_sys_cmd_show_config_omits_brackets_when_unconstrained) {
     g_ctx = (engine_context){0};
     cvar_set_bool(&g_ctx.config.cvars, "debug.enabled", true);
 
-    command_execute_result res = sys_cmd_priv_list_config(0, NULL);
+    command_execute_result res = sys_cmd_priv_show_config(0, NULL);
     mu_check(res.type == COMMAND_RESULT_STRING);
     mu_assert_string_eq("debug.enabled bool", res.value.str);
 
     cvar_destroy(&g_ctx.config.cvars);
+}
+
+MU_TEST(test_sys_cmd_show_keybinding_lists_key_and_action) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+    bind_reload_and_load_keybind("test_show_keybinding.scf");
+
+    command_execute_result res = sys_cmd_priv_show_keybinding(0, NULL);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("R -> reload", res.value.str);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
+MU_TEST(test_sys_cmd_show_keybinding_empty_table) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+
+    command_execute_result res = sys_cmd_priv_show_keybinding(0, NULL);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("show-keybinding: no keybindings loaded", res.value.str);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
+MU_TEST(test_sys_cmd_get_keybinding_by_action_rejects_bad_argc) {
+    command_execute_result res = sys_cmd_priv_get_keybinding_by_action(0, NULL);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
+MU_TEST(test_sys_cmd_get_keybinding_by_action_not_found) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+
+    char                  *argv[] = {"reload"};
+    command_execute_result res    = sys_cmd_priv_get_keybinding_by_action(1, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
+MU_TEST(test_sys_cmd_get_keybinding_by_action_finds_key) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+    bind_reload_and_load_keybind("test_get_keybinding_by_action.scf");
+
+    char                  *argv[] = {"reload"};
+    command_execute_result res    = sys_cmd_priv_get_keybinding_by_action(1, argv);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("R", res.value.str);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
+MU_TEST(test_sys_cmd_get_keybinding_by_key_rejects_bad_argc) {
+    char                  *argv[] = {"a", "b"};
+    command_execute_result res    = sys_cmd_priv_get_keybinding_by_key(2, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
+MU_TEST(test_sys_cmd_get_keybinding_by_key_not_found) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+
+    char                  *argv[] = {"R"};
+    command_execute_result res    = sys_cmd_priv_get_keybinding_by_key(1, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
+MU_TEST(test_sys_cmd_get_keybinding_by_key_finds_action) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+    bind_reload_and_load_keybind("test_get_keybinding_by_key.scf");
+
+    char                  *argv[] = {"R"};
+    command_execute_result res    = sys_cmd_priv_get_keybinding_by_key(1, argv);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_assert_string_eq("reload", res.value.str);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
 }
 
 MU_TEST_SUITE(sys_cmd_suite) {
@@ -314,10 +454,18 @@ MU_TEST_SUITE(sys_cmd_suite) {
     MU_RUN_TEST(test_sys_cmd_set_config_sets_bool);
     MU_RUN_TEST(test_sys_cmd_set_config_sets_string_with_spaces);
     MU_RUN_TEST(test_sys_cmd_set_config_string_accepts_numeric_literal);
-    MU_RUN_TEST(test_sys_cmd_list_config_rejects_args);
-    MU_RUN_TEST(test_sys_cmd_list_config_empty_table_is_void);
-    MU_RUN_TEST(test_sys_cmd_list_config_shows_range_when_constrained);
-    MU_RUN_TEST(test_sys_cmd_list_config_omits_brackets_when_unconstrained);
+    MU_RUN_TEST(test_sys_cmd_show_config_rejects_args);
+    MU_RUN_TEST(test_sys_cmd_show_config_empty_table_is_void);
+    MU_RUN_TEST(test_sys_cmd_show_config_shows_range_when_constrained);
+    MU_RUN_TEST(test_sys_cmd_show_config_omits_brackets_when_unconstrained);
+    MU_RUN_TEST(test_sys_cmd_show_keybinding_lists_key_and_action);
+    MU_RUN_TEST(test_sys_cmd_show_keybinding_empty_table);
+    MU_RUN_TEST(test_sys_cmd_get_keybinding_by_action_rejects_bad_argc);
+    MU_RUN_TEST(test_sys_cmd_get_keybinding_by_action_not_found);
+    MU_RUN_TEST(test_sys_cmd_get_keybinding_by_action_finds_key);
+    MU_RUN_TEST(test_sys_cmd_get_keybinding_by_key_rejects_bad_argc);
+    MU_RUN_TEST(test_sys_cmd_get_keybinding_by_key_not_found);
+    MU_RUN_TEST(test_sys_cmd_get_keybinding_by_key_finds_action);
 }
 
 int main(void) {

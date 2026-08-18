@@ -15,7 +15,10 @@ void cmd_manager_priv_register_default_system_commands(cmd_manager *mgr) {
          {"show-commands", sys_cmd_priv_show_commands},
          {"set-config", sys_cmd_priv_set_config},
          {"get-config", sys_cmd_priv_get_config},
-         {"list-config", sys_cmd_priv_list_config},
+         {"show-config", sys_cmd_priv_show_config},
+         {"show-keybinding", sys_cmd_priv_show_keybinding},
+         {"get-keybinding-by-action", sys_cmd_priv_get_keybinding_by_action},
+         {"get-keybinding-by-key", sys_cmd_priv_get_keybinding_by_key},
     };
 
     for (size_t i = 0; i < sizeof(defaults) / sizeof(defaults[0]); ++i) {

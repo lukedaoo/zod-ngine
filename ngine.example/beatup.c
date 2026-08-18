@@ -267,13 +267,6 @@ static void beatup_actions_bind(void) {
 #endif
 }
 
-static int beatup_key_from_name(const char *name) {
-    return (int)SDL_GetScancodeFromName(name);
-}
-static const char *beatup_key_to_name(const int key) {
-    return SDL_GetScancodeName((SDL_Scancode)key);
-}
-
 static const keybind_context beatup_contexts[] = {
      {.name = "game", .context = INPUT_CONTEXT_GAME},
      {.name = "console", .context = INPUT_CONTEXT_CONSOLE},
@@ -282,8 +275,8 @@ static const keybind_context beatup_contexts[] = {
 static const keybind_vocab beatup_vocab = {
      .contexts      = beatup_contexts,
      .context_count = sizeof(beatup_contexts) / sizeof(beatup_contexts[0]),
-     .key_from_name = beatup_key_from_name,
-     .key_to_name   = beatup_key_to_name,
+     .key_from_name = zngine_key_from_name,
+     .key_to_name   = zngine_key_to_name,
 };
 
 // Console context has no game bindings, so typing there cannot pause the game.

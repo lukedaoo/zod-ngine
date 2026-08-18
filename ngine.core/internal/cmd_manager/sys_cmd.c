@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <SDL3/SDL.h>
 #include <ngine.lib/command.h>
 #include "cmd_manager_internal.h"
 #include "../../config.h"
@@ -221,13 +222,13 @@ command_execute_result sys_cmd_priv_get_config(int argc, char **argv) {
 #define SYS_CMD_LIST_CONFIG_BUFFER_LEN 4096
 #endif
 
-// list-config
-command_execute_result sys_cmd_priv_list_config(int argc, char **argv) {
+// show-config
+command_execute_result sys_cmd_priv_show_config(int argc, char **argv) {
     (void)argv;
     if (argc > 0) {
         return (command_execute_result){
              .type      = COMMAND_RESULT_ERROR,
-             .value.str = "list-config: takes no arguments",
+             .value.str = "show-config: takes no arguments",
         };
     }
 
@@ -267,4 +268,127 @@ command_execute_result sys_cmd_priv_list_config(int argc, char **argv) {
 
     return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
 }
+
+#ifndef SYS_CMD_SHOW_KEYBINDING_BUFFER_LEN
+#define SYS_CMD_SHOW_KEYBINDING_BUFFER_LEN 2048
+#endif
+
+// show-keybinding
+command_execute_result sys_cmd_priv_show_keybinding(int argc, char **argv) {
+    if (argc > 1) {
+        return (command_execute_result){
+             .type      = COMMAND_RESULT_ERROR,
+             .value.str = "show-keybinding: takes at most one argument (action filter)",
+        };
+    }
+    const char *filter = argc == 1 ? argv[0] : NULL;
+
+    static __thread char buf[SYS_CMD_SHOW_KEYBINDING_BUFFER_LEN];
+    size_t               pos   = 0;
+    const size_t         count = keybind_manager_priv_count(&g_ctx.keybind_manager);
+
+    for (size_t i = 0; i < count; i++) {
+        keybind_manager_entry entry;
+        if (!keybind_manager_priv_at(&g_ctx.keybind_manager, i, &entry)) continue;
+
+        action_info info;
+        bool resolved = action_lookup(action_manager_priv_table(&g_ctx.action_manager),
+                                      entry.action, &info);
+        const char *action_name = resolved ? info.name : "(unresolved)";
+
+        if (filter && (!resolved || !strstr(action_name, filter))) continue;
+
+        const char *key_name = zngine_key_to_name(entry.key);
+        sys_cmd_priv_buf_append(buf, sizeof(buf), &pos, "%s -> %s\n",
+                                key_name && *key_name ? key_name : "?", action_name);
+    }
+
+    if (pos == 0) {
+        return (command_execute_result){
+             .type      = COMMAND_RESULT_STRING,
+             .value.str = "show-keybinding: no keybindings loaded",
+        };
+    }
+    if (buf[pos - 1] == '\n') buf[pos - 1] = '\0';
+
+    return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
+}
+
+// get-keybinding-by-action
+command_execute_result sys_cmd_priv_get_keybinding_by_action(int argc, char **argv) {
+    if (argc != 1) {
+        return (command_execute_result){
+             .type      = COMMAND_RESULT_ERROR,
+             .value.str = "usage: get-keybinding-by-action <action_name>",
+        };
+    }
+    const char *action_name = argv[0];
+
+    static __thread char buf[SYS_CMD_SHOW_KEYBINDING_BUFFER_LEN];
+    size_t               pos   = 0;
+    const size_t         count = keybind_manager_priv_count(&g_ctx.keybind_manager);
+
+    for (size_t i = 0; i < count; i++) {
+        keybind_manager_entry entry;
+        if (!keybind_manager_priv_at(&g_ctx.keybind_manager, i, &entry)) continue;
+
+        action_info info;
+        if (!action_lookup(action_manager_priv_table(&g_ctx.action_manager), entry.action,
+                           &info))
+            continue;
+        if (strcmp(info.name, action_name) != 0) continue;
+
+        const char *key_name = zngine_key_to_name(entry.key);
+        sys_cmd_priv_buf_append(buf, sizeof(buf), &pos, "%s\n",
+                                key_name && *key_name ? key_name : "?");
+    }
+
+    if (pos == 0) {
+        snprintf(buf, sizeof(buf), "get-keybinding-by-action: '%s' not bound",
+                 action_name);
+        return (command_execute_result){.type = COMMAND_RESULT_ERROR, .value.str = buf};
+    }
+    if (buf[pos - 1] == '\n') buf[pos - 1] = '\0';
+
+    return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
+}
+
+// get-keybinding-by-key
+command_execute_result sys_cmd_priv_get_keybinding_by_key(int argc, char **argv) {
+    if (argc != 1) {
+        return (command_execute_result){
+             .type      = COMMAND_RESULT_ERROR,
+             .value.str = "usage: get-keybinding-by-key <key_name>",
+        };
+    }
+    const char *key_name_arg = argv[0];
+    const int   key          = zngine_key_from_name(key_name_arg);
+
+    static __thread char buf[SYS_CMD_SHOW_KEYBINDING_BUFFER_LEN];
+    size_t               pos   = 0;
+    const size_t         count = keybind_manager_priv_count(&g_ctx.keybind_manager);
+
+    for (size_t i = 0; i < count; i++) {
+        keybind_manager_entry entry;
+        if (!keybind_manager_priv_at(&g_ctx.keybind_manager, i, &entry)) continue;
+        if (entry.key != key) continue;
+
+        action_info info;
+        const char *action_name =
+             action_lookup(action_manager_priv_table(&g_ctx.action_manager), entry.action,
+                           &info)
+                  ? info.name
+                  : "(unresolved)";
+        sys_cmd_priv_buf_append(buf, sizeof(buf), &pos, "%s\n", action_name);
+    }
+
+    if (pos == 0) {
+        snprintf(buf, sizeof(buf), "get-keybinding-by-key: '%s' not bound", key_name_arg);
+        return (command_execute_result){.type = COMMAND_RESULT_ERROR, .value.str = buf};
+    }
+    if (buf[pos - 1] == '\n') buf[pos - 1] = '\0';
+
+    return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
+}
+
 #endif

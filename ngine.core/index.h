@@ -52,6 +52,7 @@
 
 #include "action_manager.h"
 #include "keybind_manager.h"
+#include "keybind_alias.h"
 
 #ifdef ZOD_NGINE_IMPLEMENTATION
 
@@ -87,6 +88,7 @@
 
 #include "internal/action_manager/action_manager.c"
 #include "internal/keybind_manager/keybind_manager.c"
+#include "internal/keybind_alias/keybind_alias.c"
 
 #include "internal/error/zod_error.c"
 

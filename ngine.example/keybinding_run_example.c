@@ -7,13 +7,6 @@
 
 enum : uint8_t { INPUT_CONTEXT_GAME = 0 } input_contexts;
 
-static int keybinding_key_from_name(const char *name) {
-    return (int)SDL_GetScancodeFromName(name);
-}
-static const char *keybinding_key_to_name(const int key) {
-    return SDL_GetScancodeName((SDL_Scancode)key);
-}
-
 static const keybind_context keybinding_contexts[] = {
      {.name = "game", .context = INPUT_CONTEXT_GAME},
 };
@@ -21,8 +14,8 @@ static const keybind_context keybinding_contexts[] = {
 static const keybind_vocab keybinding_vocab = {
      .contexts      = keybinding_contexts,
      .context_count = 1,
-     .key_from_name = keybinding_key_from_name,
-     .key_to_name   = keybinding_key_to_name,
+     .key_from_name = zngine_key_from_name,
+     .key_to_name   = zngine_key_to_name,
 };
 
 static action_execute_result say_hello_execute(const action_table *table,

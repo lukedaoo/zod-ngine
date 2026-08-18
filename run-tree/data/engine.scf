@@ -41,7 +41,7 @@ cursor_color               0xFFD400FF     ; cursor color. Hex format: 0xRRGGBBAA
 ; Keybind configuration — key = trigger action
 :/input.game
 P                       pressed toggle_pause
-C                       pressed toggle_console
+Grave                   pressed toggle_console
 
 :/input.console
-C                       pressed toggle_console
+Grave                   pressed toggle_console

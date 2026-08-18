@@ -249,8 +249,9 @@ MU_TEST(test_input_submit_echoes_and_clears) {
     console_priv_input_append('i');
     console_priv_input_submit();
 
-    mu_assert_int_eq(1, g_console.count);
-    mu_assert_string_eq("ERROR: invalid command: hi", g_console.lines[0]);
+    mu_assert_int_eq(2, g_console.count);
+    mu_assert_string_eq("> hi", g_console.lines[0]);
+    mu_assert_string_eq("ERROR: invalid command: hi", g_console.lines[1]);
     mu_assert_int_eq(0, g_console.input_len);
     mu_assert_string_eq("", g_console.input);
 }
@@ -291,8 +292,9 @@ MU_TEST(test_handle_event_submit_routes_correctly) {
     zconsole_handle_event(
          (zconsole_input_event){.kind = ZCONSOLE_INPUT_TEXT, .text = "hi"});
     zconsole_handle_event((zconsole_input_event){.kind = ZCONSOLE_INPUT_SUBMIT});
-    mu_assert_int_eq(1, g_console.count);
-    mu_assert_string_eq("ERROR: invalid command: hi", g_console.lines[0]);
+    mu_assert_int_eq(2, g_console.count);
+    mu_assert_string_eq("> hi", g_console.lines[0]);
+    mu_assert_string_eq("ERROR: invalid command: hi", g_console.lines[1]);
     mu_assert_int_eq(0, g_console.input_len);
 }
 

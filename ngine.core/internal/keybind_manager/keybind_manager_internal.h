@@ -6,13 +6,6 @@
 
 #include "../../keybind_manager.h"
 
-typedef struct {
-    int           context;
-    int           key;
-    int           trigger;
-    action_handle action;
-} keybind_manager_entry;
-
 struct keybind_manager {
     array_list bindings;
 };

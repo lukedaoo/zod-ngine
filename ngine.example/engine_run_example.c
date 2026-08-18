@@ -145,13 +145,6 @@ static bool check_action_manager(void) {
                                         ACTION_TRIGGER_KEY_PRESSED, "selftest");
 }
 
-static int keybind_key_from_name(const char *name) {
-    return (int)SDL_GetScancodeFromName(name);
-}
-static const char *keybind_key_to_name(const int key) {
-    return SDL_GetScancodeName((SDL_Scancode)key);
-}
-
 static const keybind_context keybind_selftest_contexts[] = {
      {.name = "game", .context = INPUT_CONTEXT_GAME},
 };
@@ -159,8 +152,8 @@ static const keybind_context keybind_selftest_contexts[] = {
 static const keybind_vocab keybind_selftest_vocab = {
      .contexts      = keybind_selftest_contexts,
      .context_count = 1,
-     .key_from_name = keybind_key_from_name,
-     .key_to_name   = keybind_key_to_name,
+     .key_from_name = zngine_key_from_name,
+     .key_to_name   = zngine_key_to_name,
 };
 
 static bool check_keybind_manager(void) {

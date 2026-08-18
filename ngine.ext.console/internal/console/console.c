@@ -359,6 +359,7 @@ void console_priv_input_submit(void) {
     if (g_console.input_len == 0) return;
 
     console_priv_history_push(g_console.input);
+    zconsole_write_color(g_console.input_text_color, "> %s", g_console.input);
 
     //
     // tokenize
@@ -390,16 +391,16 @@ bool zconsole_draw(void) {
     if (!g_console.visible) return true;
 
     float row_height = g_console.font_size * CONSOLE_LINE_HEIGHT_RATIO;
-    float overhead    = g_console.top_pad + g_console.input_gap;
+    float overhead   = g_console.top_pad + g_console.input_gap;
     // +1 reserves a row for the input line so visible_lines rows of scrollback
     // actually fit (lines_fit below budgets one row for input: scrollback_rows =
     // lines_fit - 1).
     int requested_rows = g_console.visible_lines + 1;
-    int height          = console_priv_panel_height(g_ctx.window.height, requested_rows,
-                                                    row_height, overhead);
-    int lines_fit = height >= g_ctx.window.height
-                         ? (int)(((float)height - overhead) / row_height)
-                         : requested_rows;
+    int height         = console_priv_panel_height(g_ctx.window.height, requested_rows,
+                                                   row_height, overhead);
+    int lines_fit      = height >= g_ctx.window.height
+                              ? (int)(((float)height - overhead) / row_height)
+                              : requested_rows;
 
     console_priv_platform_draw(g_ctx.window.width, height, lines_fit);
     return true;

@@ -132,4 +132,18 @@ action_handle keybind_manager_priv_resolve(const keybind_manager *mgr, const int
     return entry->action;
 }
 
+size_t keybind_manager_priv_count(const keybind_manager *mgr) {
+    return mgr ? mgr->bindings.header.size : 0;
+}
+
+bool keybind_manager_priv_at(const keybind_manager *mgr, const size_t index,
+                             keybind_manager_entry *out) {
+    if (!mgr || !out) return false;
+    const keybind_manager_entry *entry =
+         (const keybind_manager_entry *)array_list_get(&mgr->bindings, index);
+    if (!entry) return false;
+    *out = *entry;
+    return true;
+}
+
 #endif
