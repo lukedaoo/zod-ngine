@@ -191,6 +191,10 @@ action_execute_result zngine_action_execute_by_name(const action_mode         co
 //
 bool          zngine_keybind_manager_load(const char *path, const keybind_vocab *vocab);
 bool          zngine_keybind_manager_merge(const char *path, const keybind_vocab *vocab);
+bool          zngine_keybind_bind(const action_mode context, const int key,
+                                  const int trigger, const char *action_name);
+bool          zngine_keybind_unbind(const action_mode context, const int key,
+                                    const int trigger);
 action_handle zngine_keybind_resolve(const action_mode context, const int key,
                                      const int trigger);
 

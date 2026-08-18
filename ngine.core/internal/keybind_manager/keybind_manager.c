@@ -120,6 +120,36 @@ bool keybind_manager_priv_merge(keybind_manager *mgr, const char *path,
     return true;
 }
 
+bool keybind_manager_priv_set(keybind_manager *mgr, const action_manager *actions,
+                              const int context, const int key, const int trigger,
+                              const char *action_name) {
+    if (!mgr || !action_name) return false;
+
+    const action_handle resolved =
+         action_manager_priv_resolve_by_name(actions, context, trigger, action_name);
+    if (resolved == ACTION_HANDLE_INVALID) return false;
+
+    const size_t index = keybind_manager_index_of(mgr, context, key, trigger);
+    if (index != (size_t)-1) {
+        keybind_manager_entry *entry =
+             (keybind_manager_entry *)array_list_get(&mgr->bindings, index);
+        entry->action = resolved;
+    } else {
+        keybind_manager_entry entry = {
+             .context = context, .key = key, .trigger = trigger, .action = resolved};
+        array_list_append(&mgr->bindings, &entry);
+    }
+    return true;
+}
+
+bool keybind_manager_priv_unset(keybind_manager *mgr, const int context, const int key,
+                                const int trigger) {
+    if (!mgr) return false;
+    const size_t index = keybind_manager_index_of(mgr, context, key, trigger);
+    if (index == (size_t)-1) return false;
+    return array_list_remove(&mgr->bindings, index);
+}
+
 action_handle keybind_manager_priv_resolve(const keybind_manager *mgr, const int context,
                                            const int key, const int trigger) {
     if (!mgr) return ACTION_HANDLE_INVALID;

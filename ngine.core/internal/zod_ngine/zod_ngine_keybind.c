@@ -14,6 +14,16 @@ bool zngine_keybind_manager_merge(const char *path, const keybind_vocab *vocab) 
                                       &g_ctx.action_manager);
 }
 
+bool zngine_keybind_bind(const action_mode context, const int key, const int trigger,
+                         const char *action_name) {
+    return keybind_manager_priv_set(&g_ctx.keybind_manager, &g_ctx.action_manager, context,
+                                    key, trigger, action_name);
+}
+
+bool zngine_keybind_unbind(const action_mode context, const int key, const int trigger) {
+    return keybind_manager_priv_unset(&g_ctx.keybind_manager, context, key, trigger);
+}
+
 action_handle zngine_keybind_resolve(const action_mode context, const int key,
                                      const int trigger) {
     return keybind_manager_priv_resolve(&g_ctx.keybind_manager, context, key, trigger);

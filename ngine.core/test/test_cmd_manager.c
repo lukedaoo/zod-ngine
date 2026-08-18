@@ -182,7 +182,7 @@ MU_TEST(test_sys_cmd_show_commands_lists_both_groups) {
     mu_check(strstr(res.value.str,
                     "system [reload-config-file, show-commands, set-config, get-config, "
                     "show-config, show-keybinding, get-keybinding-by-action, "
-                    "get-keybinding-by-key]") != NULL);
+                    "get-keybinding-by-key, bind, unbind]") != NULL);
     mu_check(strstr(res.value.str, "user [foo]") != NULL);
     mu_check(res.value.str[strlen(res.value.str) - 1] != '\n');
 
@@ -440,6 +440,110 @@ MU_TEST(test_sys_cmd_get_keybinding_by_key_finds_action) {
     keybind_manager_priv_destroy(&g_ctx.keybind_manager);
 }
 
+MU_TEST(test_sys_cmd_bind_rejects_bad_argc) {
+    char                  *argv[] = {"R", "pressed"};
+    command_execute_result res    = sys_cmd_priv_bind(2, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
+MU_TEST(test_sys_cmd_bind_rejects_unknown_key) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+
+    char                  *argv[] = {"NotAKey", "pressed", "reload"};
+    command_execute_result res    = sys_cmd_priv_bind(3, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
+MU_TEST(test_sys_cmd_bind_rejects_unknown_trigger) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+
+    char                  *argv[] = {"R", "sideways", "reload"};
+    command_execute_result res    = sys_cmd_priv_bind(3, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
+MU_TEST(test_sys_cmd_bind_rejects_unknown_action) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+
+    char                  *argv[] = {"R", "pressed", "nonexistent"};
+    command_execute_result res    = sys_cmd_priv_bind(3, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
+MU_TEST(test_sys_cmd_bind_binds_key_to_action) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+
+    action_executor executor = {.execute = mock_action_exec};
+    action_handle    handle  = action_manager_priv_bind(
+         &g_ctx.action_manager, 0, ACTION_TRIGGER_KEY_PRESSED, 0, "reload", &executor);
+
+    char                  *argv[] = {"R", "pressed", "reload"};
+    command_execute_result res    = sys_cmd_priv_bind(3, argv);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_check(zngine_keybind_resolve(0, SDL_SCANCODE_R, ACTION_TRIGGER_KEY_PRESSED) ==
+             handle);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
+MU_TEST(test_sys_cmd_unbind_rejects_bad_argc) {
+    char                  *argv[] = {"R"};
+    command_execute_result res    = sys_cmd_priv_unbind(1, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+}
+
+MU_TEST(test_sys_cmd_unbind_not_found) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+
+    char                  *argv[] = {"R", "pressed"};
+    command_execute_result res    = sys_cmd_priv_unbind(2, argv);
+    mu_check(res.type == COMMAND_RESULT_ERROR);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
+MU_TEST(test_sys_cmd_unbind_clears_binding) {
+    g_ctx = (engine_context){0};
+    action_manager_priv_init(&g_ctx.action_manager);
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+
+    action_executor executor = {.execute = mock_action_exec};
+    action_manager_priv_bind(&g_ctx.action_manager, 0, ACTION_TRIGGER_KEY_PRESSED, 0,
+                             "reload", &executor);
+    char *bind_argv[] = {"R", "pressed", "reload"};
+    sys_cmd_priv_bind(3, bind_argv);
+
+    char                  *argv[] = {"R", "pressed"};
+    command_execute_result res    = sys_cmd_priv_unbind(2, argv);
+    mu_check(res.type == COMMAND_RESULT_STRING);
+    mu_check(zngine_keybind_resolve(0, SDL_SCANCODE_R, ACTION_TRIGGER_KEY_PRESSED) ==
+             ACTION_HANDLE_INVALID);
+
+    action_manager_priv_destroy(&g_ctx.action_manager);
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
 MU_TEST_SUITE(sys_cmd_suite) {
     MU_RUN_TEST(test_sys_cmd_reload_config_file_rejects_args);
     MU_RUN_TEST(test_sys_cmd_show_commands_lists_both_groups);
@@ -466,6 +570,14 @@ MU_TEST_SUITE(sys_cmd_suite) {
     MU_RUN_TEST(test_sys_cmd_get_keybinding_by_key_rejects_bad_argc);
     MU_RUN_TEST(test_sys_cmd_get_keybinding_by_key_not_found);
     MU_RUN_TEST(test_sys_cmd_get_keybinding_by_key_finds_action);
+    MU_RUN_TEST(test_sys_cmd_bind_rejects_bad_argc);
+    MU_RUN_TEST(test_sys_cmd_bind_rejects_unknown_key);
+    MU_RUN_TEST(test_sys_cmd_bind_rejects_unknown_trigger);
+    MU_RUN_TEST(test_sys_cmd_bind_rejects_unknown_action);
+    MU_RUN_TEST(test_sys_cmd_bind_binds_key_to_action);
+    MU_RUN_TEST(test_sys_cmd_unbind_rejects_bad_argc);
+    MU_RUN_TEST(test_sys_cmd_unbind_not_found);
+    MU_RUN_TEST(test_sys_cmd_unbind_clears_binding);
 }
 
 int main(void) {

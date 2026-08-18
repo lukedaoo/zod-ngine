@@ -17,5 +17,7 @@ command_execute_result sys_cmd_priv_show_config(int argc, char **argv);
 command_execute_result sys_cmd_priv_show_keybinding(int argc, char **argv);
 command_execute_result sys_cmd_priv_get_keybinding_by_action(int argc, char **argv);
 command_execute_result sys_cmd_priv_get_keybinding_by_key(int argc, char **argv);
+command_execute_result sys_cmd_priv_bind(int argc, char **argv);
+command_execute_result sys_cmd_priv_unbind(int argc, char **argv);
 
 #endif

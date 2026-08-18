@@ -19,6 +19,8 @@ void cmd_manager_priv_register_default_system_commands(cmd_manager *mgr) {
          {"show-keybinding", sys_cmd_priv_show_keybinding},
          {"get-keybinding-by-action", sys_cmd_priv_get_keybinding_by_action},
          {"get-keybinding-by-key", sys_cmd_priv_get_keybinding_by_key},
+         {"bind", sys_cmd_priv_bind},
+         {"unbind", sys_cmd_priv_unbind},
     };
 
     for (size_t i = 0; i < sizeof(defaults) / sizeof(defaults[0]); ++i) {

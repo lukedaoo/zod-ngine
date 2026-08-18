@@ -8,6 +8,7 @@
 #include <ngine.lib/command.h>
 #include "cmd_manager_internal.h"
 #include "../../config.h"
+#include "../../keybind_alias.h"
 #include "../../zod_ngine.h"
 #include "../engine_context/engine_context_internal.h"
 
@@ -388,6 +389,70 @@ command_execute_result sys_cmd_priv_get_keybinding_by_key(int argc, char **argv)
     }
     if (buf[pos - 1] == '\n') buf[pos - 1] = '\0';
 
+    return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
+}
+
+#ifndef SYS_CMD_BIND_CONTEXT
+#define SYS_CMD_BIND_CONTEXT 0
+#endif
+
+// bind
+command_execute_result sys_cmd_priv_bind(int argc, char **argv) {
+    static __thread char buf[96];
+
+    if (argc != 3) {
+        return (command_execute_result){
+             .type      = COMMAND_RESULT_ERROR,
+             .value.str = "usage: bind <key> <trigger> <action>",
+        };
+    }
+
+    const int key = zngine_key_from_name(argv[0]);
+    if (key == 0) {
+        snprintf(buf, sizeof(buf), "bind: unknown key '%s'", argv[0]);
+        return (command_execute_result){.type = COMMAND_RESULT_ERROR, .value.str = buf};
+    }
+
+    int trigger = 0;
+    if (!keybind_trigger_from_string(NULL, argv[1], &trigger)) {
+        snprintf(buf, sizeof(buf), "bind: unknown trigger '%s'", argv[1]);
+        return (command_execute_result){.type = COMMAND_RESULT_ERROR, .value.str = buf};
+    }
+
+    if (!zngine_keybind_bind(SYS_CMD_BIND_CONTEXT, key, trigger, argv[2])) {
+        snprintf(buf, sizeof(buf), "bind: unknown action '%s'", argv[2]);
+        return (command_execute_result){.type = COMMAND_RESULT_ERROR, .value.str = buf};
+    }
+
+    snprintf(buf, sizeof(buf), "bind: %s %s -> %s", argv[0], argv[1], argv[2]);
+    return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
+}
+
+// unbind
+command_execute_result sys_cmd_priv_unbind(int argc, char **argv) {
+    static __thread char buf[64];
+
+    if (argc != 2) {
+        return (command_execute_result){
+             .type      = COMMAND_RESULT_ERROR,
+             .value.str = "usage: unbind <key> <trigger>",
+        };
+    }
+
+    const int key = zngine_key_from_name(argv[0]);
+
+    int trigger = 0;
+    if (!keybind_trigger_from_string(NULL, argv[1], &trigger)) {
+        snprintf(buf, sizeof(buf), "unbind: unknown trigger '%s'", argv[1]);
+        return (command_execute_result){.type = COMMAND_RESULT_ERROR, .value.str = buf};
+    }
+
+    if (!zngine_keybind_unbind(SYS_CMD_BIND_CONTEXT, key, trigger)) {
+        snprintf(buf, sizeof(buf), "unbind: '%s %s' not bound", argv[0], argv[1]);
+        return (command_execute_result){.type = COMMAND_RESULT_ERROR, .value.str = buf};
+    }
+
+    snprintf(buf, sizeof(buf), "unbind: %s %s cleared", argv[0], argv[1]);
     return (command_execute_result){.type = COMMAND_RESULT_STRING, .value.str = buf};
 }
 
