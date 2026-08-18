@@ -26,6 +26,7 @@ static const build_target BUILD_TARGETS[] = {
      {"engine", "ngine.example/engine_run_example.c", "engine_run", true},
      {"beatup", "ngine.example/beatup.c", "beatup_run", true},
      {"minimal", "ngine.example/minimal_engine_run.c", "minimal_run", true},
+     {"keybinding", "ngine.example/keybinding_run_example.c", "keybinding_run", true},
 };
 static const size_t BUILD_TARGETS_COUNT =
      sizeof(BUILD_TARGETS) / sizeof(BUILD_TARGETS[0]);

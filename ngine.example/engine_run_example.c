@@ -4,7 +4,8 @@
 #include <ngine.core/index.h>
 #include <ngine.ext.console/index.h>
 
-#define CONFIG_PATH "run-tree/data/engine.scf"
+#define CONFIG_PATH           "run-tree/data/engine.scf"
+#define KEYBIND_OVERRIDE_PATH "run-tree/data/keybind_override.scf"
 
 enum : uint8_t { EVENT_CATEGORY_APP = 5 } app_event_category;
 
@@ -144,6 +145,55 @@ static bool check_action_manager(void) {
                                         ACTION_TRIGGER_KEY_PRESSED, "selftest");
 }
 
+static int keybind_key_from_name(const char *name) {
+    return (int)SDL_GetScancodeFromName(name);
+}
+static const char *keybind_key_to_name(const int key) {
+    return SDL_GetScancodeName((SDL_Scancode)key);
+}
+
+static const keybind_context keybind_selftest_contexts[] = {
+     {.name = "game", .context = INPUT_CONTEXT_GAME},
+};
+
+static const keybind_vocab keybind_selftest_vocab = {
+     .contexts      = keybind_selftest_contexts,
+     .context_count = 1,
+     .key_from_name = keybind_key_from_name,
+     .key_to_name   = keybind_key_to_name,
+};
+
+static bool check_keybind_manager(void) {
+    action_executor base_executor     = {.execute = check_action_execute};
+    action_executor override_executor = {.execute = check_action_execute};
+
+    const action_handle base_handle =
+         zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED,
+                            SDL_SCANCODE_P, "toggle_pause", &base_executor);
+    const action_handle override_handle =
+         zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED,
+                            SDL_SCANCODE_W, "toggle_pause_override", &override_executor);
+    if (base_handle == ACTION_HANDLE_INVALID || override_handle == ACTION_HANDLE_INVALID)
+        return false;
+
+    if (!zngine_keybind_manager_load(CONFIG_PATH, &keybind_selftest_vocab)) return false;
+    if (!zngine_keybind_manager_merge(KEYBIND_OVERRIDE_PATH, &keybind_selftest_vocab))
+        return false;
+
+    const action_handle resolved = zngine_keybind_resolve(
+         INPUT_CONTEXT_GAME, SDL_SCANCODE_P, ACTION_TRIGGER_KEY_PRESSED);
+
+    bool ok = resolved == override_handle && resolved != base_handle;
+
+    ok = zngine_action_unbind_by_name(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED,
+                                      "toggle_pause") &&
+         ok;
+    ok = zngine_action_unbind_by_name(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED,
+                                      "toggle_pause_override") &&
+         ok;
+    return ok;
+}
+
 static bool check_extensions(void) {
 #if ZOD_CONSOLE_ENABLED
     zconsole_write("selftest: console reachable");
@@ -165,6 +215,7 @@ static const service_check service_checks[] = {
      {"event_manager", check_event_manager},
      {"cmd_manager", check_cmd_manager},
      {"action_manager", check_action_manager},
+     {"keybind_manager", check_keybind_manager},
      {"extensions", check_extensions},
 };
 
@@ -264,9 +315,11 @@ int main(const int argc, const char **argv) {
 
 #if ZOD_CONSOLE_ENABLED
     action_executor toggle_console_executor = {.execute = toggle_console_execute};
-    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, SDL_SCANCODE_GRAVE,
+    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, 0,
                        "toggle_console", &toggle_console_executor);
 #endif
+
+    zngine_keybind_manager_load(CONFIG_PATH, &keybind_selftest_vocab);
 
     uint32_t fps_frames = 0;
     float    fps_accum  = 0.0f;
@@ -286,12 +339,15 @@ int main(const int argc, const char **argv) {
                      .payload_size = sizeof(payload)};
                 zngine_event_publish(&ctx);
             }
+            if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat) {
+                const action_handle handle = zngine_keybind_resolve(
+                     INPUT_CONTEXT_GAME, (int)e.key.scancode, ACTION_TRIGGER_KEY_PRESSED);
+                if (handle != ACTION_HANDLE_INVALID) zngine_action_execute(handle, NULL);
+            }
             zngine_extensions_handle_event(&e);
         }
         zngine_input_update();
         zngine_tick_hot_reload();
-
-        zngine_action_dispatch(INPUT_CONTEXT_GAME, NULL);
 
         zngine_begin_drawing();
         zngine_extensions_draw();

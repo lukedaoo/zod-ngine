@@ -12,15 +12,32 @@ bool cvar_load_ini(cvar_table *table, const char *path, bool force_reload);
 bool cvar_load_scf(cvar_table *table, const char *path, bool force_reload);
 bool cvar_load(cvar_table *table, const char *path, bool force_reload);
 
+#ifndef CVAR_IGNORE_SECTION_PREFIXES
+#define CVAR_IGNORE_SECTION_PREFIXES {"input."}
+#endif
+
 #ifdef CVAR_LOAD_IMPLEMENTATION
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+static const char *const cvar_ignore_section_prefixes[] = CVAR_IGNORE_SECTION_PREFIXES;
+#define CVAR_IGNORE_SECTION_PREFIX_COUNT \
+    (sizeof(cvar_ignore_section_prefixes) / sizeof(cvar_ignore_section_prefixes[0]))
+
 static bool cvar_strict_handler(const char *section, const char *key, const char *value,
                                 void *user) {
     cvar_table *table = user;
+
+    if (section) {
+        for (size_t i = 0; i < CVAR_IGNORE_SECTION_PREFIX_COUNT; i++) {
+            const char  *prefix = cvar_ignore_section_prefixes[i];
+            const size_t len    = strlen(prefix);
+            if (strncmp(section, prefix, len) == 0) return true;
+        }
+    }
+
     return cvar_parse_and_set(section, key, value, table);
 }
 

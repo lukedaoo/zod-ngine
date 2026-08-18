@@ -66,8 +66,8 @@ static keybind_table table;
 static void setup(void) { mu_check(keybind_init(&table)); }
 static void teardown(void) { keybind_deinit(&table); }
 
-static bool bound_to(const int context, const int key,
-                     const int trigger, const char *action) {
+static bool bound_to(const int context, const int key, const int trigger,
+                     const char *action) {
     keybind out;
     if (!keybind_lookup(&table, keybind_find_by_key(&table, context, key, trigger), &out))
         return false;
@@ -81,10 +81,10 @@ static size_t live_count(void) {
     return live;
 }
 
-MU_TEST(test_parse_key_with_default_trigger) {
+MU_TEST(test_parse_key_trigger_action) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A jump\n",
+                                      "A pressed jump\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(1, (int)live_count());
@@ -94,9 +94,9 @@ MU_TEST(test_parse_key_with_default_trigger) {
 MU_TEST(test_parse_each_explicit_trigger) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A tap    pressed\n"
-                                      "B hold   down\n"
-                                      "C let_go released\n",
+                                      "A pressed  tap\n"
+                                      "B down     hold\n"
+                                      "C released let_go\n",
                                       &fake_vocab));
 
     mu_check(bound_to(CTX_GAME, KEY_A, TRIG_PRESSED, "tap"));
@@ -107,9 +107,9 @@ MU_TEST(test_parse_each_explicit_trigger) {
 MU_TEST(test_parse_multiple_contexts) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A jump\n"
+                                      "A pressed jump\n"
                                       ":/input.menu\n"
-                                      "A confirm\n",
+                                      "A pressed confirm\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(2, (int)live_count());
@@ -120,8 +120,8 @@ MU_TEST(test_parse_multiple_contexts) {
 MU_TEST(test_parse_one_action_on_several_keys) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A move_left\n"
-                                      "B move_left\n",
+                                      "A pressed move_left\n"
+                                      "B pressed move_left\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(2, (int)live_count());
@@ -132,13 +132,13 @@ MU_TEST(test_parse_one_action_on_several_keys) {
 MU_TEST(test_parse_swap_is_expressible) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A jump\n"
-                                      "B crouch\n",
+                                      "A pressed jump\n"
+                                      "B pressed crouch\n",
                                       &fake_vocab));
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "B jump\n"
-                                      "A crouch\n",
+                                      "B pressed jump\n"
+                                      "A pressed crouch\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(2, (int)live_count());
@@ -151,7 +151,7 @@ MU_TEST(test_parse_ignores_sections_without_prefix) {
                                       ":/window\n"
                                       "width 800\n"
                                       ":/input.game\n"
-                                      "A jump\n",
+                                      "A pressed jump\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(1, (int)live_count());
@@ -160,9 +160,9 @@ MU_TEST(test_parse_ignores_sections_without_prefix) {
 MU_TEST(test_parse_skips_prefix_without_context_name) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.\n"
-                                      "A jump\n"
+                                      "A pressed jump\n"
                                       ":/input.game\n"
-                                      "B crouch\n",
+                                      "B pressed crouch\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(1, (int)live_count());
@@ -172,9 +172,9 @@ MU_TEST(test_parse_skips_prefix_without_context_name) {
 MU_TEST(test_parse_skips_unknown_context_but_keeps_the_rest) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.nowhere\n"
-                                      "A jump\n"
+                                      "A pressed jump\n"
                                       ":/input.game\n"
-                                      "B crouch\n",
+                                      "B pressed crouch\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(1, (int)live_count());
@@ -184,8 +184,8 @@ MU_TEST(test_parse_skips_unknown_context_but_keeps_the_rest) {
 MU_TEST(test_parse_skips_unknown_key_but_keeps_the_rest) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "NOPE jump\n"
-                                      "B    crouch\n",
+                                      "NOPE pressed jump\n"
+                                      "B    pressed crouch\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(1, (int)live_count());
@@ -196,8 +196,8 @@ MU_TEST(test_parse_skips_unknown_key_but_keeps_the_rest) {
 MU_TEST(test_parse_skips_unknown_trigger_entirely) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A jump   sideways\n"
-                                      "B crouch\n",
+                                      "A sideways jump\n"
+                                      "B pressed  crouch\n",
                                       &fake_vocab));
 
     mu_check(keybind_find_action(&table, CTX_GAME, "jump") == KEYBIND_HANDLE_INVALID);
@@ -209,7 +209,8 @@ MU_TEST(test_parse_skips_oversized_action_name) {
     char action[KEYBIND_ACTION_MAX + 8];
     memset(action, 'x', sizeof(action) - 1);
     action[sizeof(action) - 1] = '\0';
-    snprintf(text, sizeof(text), ":/input.game\nA %s\nB crouch\n", action);
+    snprintf(text, sizeof(text), ":/input.game\nA pressed %s\nB pressed crouch\n",
+             action);
 
     mu_check(keybind_merge_scf_string(&table, text, &fake_vocab));
     mu_assert_int_eq(1, (int)live_count());
@@ -220,9 +221,9 @@ MU_TEST(test_parse_handles_comments_and_extra_whitespace) {
     mu_check(keybind_merge_scf_string(&table,
                                       "; leading comment\n"
                                       ":/input.game\n"
-                                      "A      jump     down    ; trailing comment\n"
+                                      "A      down     jump    ; trailing comment\n"
                                       "\n"
-                                      "B\tcrouch\n",
+                                      "B\tpressed\tcrouch\n",
                                       &fake_vocab));
 
     mu_check(bound_to(CTX_GAME, KEY_A, TRIG_DOWN, "jump"));
@@ -232,8 +233,8 @@ MU_TEST(test_parse_handles_comments_and_extra_whitespace) {
 MU_TEST(test_parse_repeated_key_last_wins) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A jump\n"
-                                      "A crouch\n",
+                                      "A pressed jump\n"
+                                      "A pressed crouch\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(1, (int)live_count());
@@ -243,8 +244,8 @@ MU_TEST(test_parse_repeated_key_last_wins) {
 MU_TEST(test_parse_same_key_different_triggers_both_kept) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A tap  pressed\n"
-                                      "A hold down\n",
+                                      "A pressed tap\n"
+                                      "A down    hold\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(2, (int)live_count());
@@ -257,7 +258,7 @@ MU_TEST(test_merge_folds_into_existing_bindings) {
 
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "B crouch\n",
+                                      "B pressed crouch\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(2, (int)live_count());
@@ -267,12 +268,12 @@ MU_TEST(test_merge_folds_into_existing_bindings) {
 MU_TEST(test_merge_override_reassigns_and_leaves_others_alone) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A jump\n"
-                                      "B crouch\n",
+                                      "A pressed jump\n"
+                                      "B pressed crouch\n",
                                       &fake_vocab));
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A shoot\n",
+                                      "A pressed shoot\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(2, (int)live_count());
@@ -296,23 +297,24 @@ MU_TEST(test_merge_of_missing_file_leaves_table_unchanged) {
 }
 
 MU_TEST(test_merge_string_null_args_return_false) {
-    mu_check(!keybind_merge_scf_string(NULL, ":/input.game\nA jump\n", &fake_vocab));
+    mu_check(
+         !keybind_merge_scf_string(NULL, ":/input.game\nA pressed jump\n", &fake_vocab));
     mu_check(!keybind_merge_scf_string(&table, NULL, &fake_vocab));
     mu_check(!keybind_load(&table, NULL, &fake_vocab));
     mu_check(!keybind_merge(&table, NULL, &fake_vocab));
 }
 
 MU_TEST(test_incomplete_vocab_fails_the_load) {
-    const keybind_vocab no_resolver = {.contexts      = fake_contexts,
-                                       .context_count = 2,
-                                       .key_from_name = NULL};
-    const keybind_vocab no_contexts = {.contexts      = NULL,
-                                       .context_count = 0,
-                                       .key_from_name = fake_key_from_name};
+    const keybind_vocab no_resolver = {
+         .contexts = fake_contexts, .context_count = 2, .key_from_name = NULL};
+    const keybind_vocab no_contexts = {
+         .contexts = NULL, .context_count = 0, .key_from_name = fake_key_from_name};
 
-    mu_check(!keybind_merge_scf_string(&table, ":/input.game\nA jump\n", &no_resolver));
-    mu_check(!keybind_merge_scf_string(&table, ":/input.game\nA jump\n", &no_contexts));
-    mu_check(!keybind_merge_scf_string(&table, ":/input.game\nA jump\n", NULL));
+    mu_check(!keybind_merge_scf_string(&table, ":/input.game\nA pressed jump\n",
+                                       &no_resolver));
+    mu_check(!keybind_merge_scf_string(&table, ":/input.game\nA pressed jump\n",
+                                       &no_contexts));
+    mu_check(!keybind_merge_scf_string(&table, ":/input.game\nA pressed jump\n", NULL));
     mu_assert_int_eq(0, (int)keybind_count(&table));
 }
 
@@ -330,9 +332,9 @@ MU_TEST(test_custom_trigger_table_overrides_builtin) {
 
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A jump   hold\n"
-                                      "B crouch\n"
-                                      "C shoot  down\n",
+                                      "A hold jump\n"
+                                      "B tap  crouch\n"
+                                      "C down shoot\n",
                                       &custom_vocab));
 
     mu_check(bound_to(CTX_GAME, KEY_A, 8, "jump"));
@@ -343,10 +345,10 @@ MU_TEST(test_custom_trigger_table_overrides_builtin) {
 MU_TEST(test_ini_parses_the_same_bindings_as_scf) {
     mu_check(keybind_merge_ini_string(&table,
                                       "[input.game]\n"
-                                      "A = jump\n"
-                                      "B = crouch down\n"
+                                      "A = pressed jump\n"
+                                      "B = down crouch\n"
                                       "[input.menu]\n"
-                                      "Space = confirm\n",
+                                      "Space = pressed confirm\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(3, (int)live_count());
@@ -360,7 +362,7 @@ MU_TEST(test_ini_ignores_sections_without_prefix) {
                                       "[window]\n"
                                       "width = 800\n"
                                       "[input.game]\n"
-                                      "A = jump\n",
+                                      "A = pressed jump\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(1, (int)live_count());
@@ -369,9 +371,9 @@ MU_TEST(test_ini_ignores_sections_without_prefix) {
 MU_TEST(test_ini_skips_bad_lines_and_keeps_the_rest) {
     mu_check(keybind_merge_ini_string(&table,
                                       "[input.game]\n"
-                                      "NOPE = jump\n"
-                                      "A = duck sideways\n"
-                                      "B = crouch\n",
+                                      "NOPE = pressed jump\n"
+                                      "A = sideways duck\n"
+                                      "B = pressed crouch\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(1, (int)live_count());
@@ -381,8 +383,8 @@ MU_TEST(test_ini_skips_bad_lines_and_keeps_the_rest) {
 MU_TEST(test_ini_repeated_key_last_wins) {
     mu_check(keybind_merge_ini_string(&table,
                                       "[input.game]\n"
-                                      "A = jump\n"
-                                      "A = crouch\n",
+                                      "A = pressed jump\n"
+                                      "A = pressed crouch\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(1, (int)live_count());
@@ -392,11 +394,11 @@ MU_TEST(test_ini_repeated_key_last_wins) {
 MU_TEST(test_ini_and_scf_compose_in_one_table) {
     mu_check(keybind_merge_scf_string(&table,
                                       ":/input.game\n"
-                                      "A jump\n",
+                                      "A pressed jump\n",
                                       &fake_vocab));
     mu_check(keybind_merge_ini_string(&table,
                                       "[input.game]\n"
-                                      "B = crouch\n",
+                                      "B = pressed crouch\n",
                                       &fake_vocab));
 
     mu_assert_int_eq(2, (int)live_count());
@@ -434,10 +436,10 @@ MU_TEST(test_integration_load_rebind_enumerate) {
     mu_check(keybind_merge_scf_string(&table,
                                       "; beatup-ish defaults\n"
                                       ":/input.game\n"
-                                      "A     press_top_left\n"
-                                      "Space press_bar\n"
+                                      "A     pressed press_top_left\n"
+                                      "Space pressed press_bar\n"
                                       ":/input.menu\n"
-                                      "Space confirm\n",
+                                      "Space pressed confirm\n",
                                       &fake_vocab));
     mu_assert_int_eq(3, (int)live_count());
 
@@ -467,7 +469,7 @@ MU_TEST(test_integration_load_rebind_enumerate) {
 MU_TEST_SUITE(keybind_load_suite) {
     MU_SUITE_CONFIGURE(&setup, &teardown);
 
-    MU_RUN_TEST(test_parse_key_with_default_trigger);
+    MU_RUN_TEST(test_parse_key_trigger_action);
     MU_RUN_TEST(test_parse_each_explicit_trigger);
     MU_RUN_TEST(test_parse_multiple_contexts);
     MU_RUN_TEST(test_parse_one_action_on_several_keys);

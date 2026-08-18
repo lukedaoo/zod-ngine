@@ -23,23 +23,23 @@
 typedef unsigned int keybind_handle;
 
 typedef struct {
-    int         context;
-    int                 key;
-    int trigger;
-    char                action[KEYBIND_ACTION_MAX];
-    bool                live;
+    int  context;
+    int  key;
+    int  trigger;
+    char action[KEYBIND_ACTION_MAX];
+    bool live;
 } keybind;
 
 typedef struct keybind_table keybind_table;
 
 typedef struct {
     const char *name;
-    int context;
+    int         context;
 } keybind_context;
 
 typedef struct {
-    const char         *name;
-    int trigger;
+    const char *name;
+    int         trigger;
 } keybind_trigger_name;
 
 typedef struct {
@@ -75,10 +75,8 @@ const keybind_trigger_name *keybind_trigger_table(const keybind_vocab *vocab,
                                                   size_t              *count);
 
 const char *keybind_key_to_string(const keybind_vocab *vocab, const int key);
-bool        keybind_trigger_from_string(const keybind_vocab *vocab, const char *name,
-                                        int *out);
-const char *keybind_trigger_to_string(const keybind_vocab      *vocab,
-                                      const int trigger);
+bool keybind_trigger_from_string(const keybind_vocab *vocab, const char *name, int *out);
+const char *keybind_trigger_to_string(const keybind_vocab *vocab, const int trigger);
 
 #ifdef KEYBIND_IMPLEMENTATION
 
@@ -161,8 +159,8 @@ keybind_handle keybind_set(keybind_table *table, const int context, const int ke
         return KEYBIND_HANDLE_INVALID;
     }
 
-    size_t same_key   = KEYBIND_INDEX_NONE;
-    size_t free_slot  = KEYBIND_INDEX_NONE;
+    size_t same_key  = KEYBIND_INDEX_NONE;
+    size_t free_slot = KEYBIND_INDEX_NONE;
 
     for (size_t i = 0; i < table->bindings.header.size; i++) {
         keybind *entry = keybind_slot(table, i);
@@ -264,8 +262,7 @@ const char *keybind_key_to_string(const keybind_vocab *vocab, const int key) {
     return vocab->key_to_name(key);
 }
 
-bool keybind_trigger_from_string(const keybind_vocab *vocab, const char *name,
-                                 int *out) {
+bool keybind_trigger_from_string(const keybind_vocab *vocab, const char *name, int *out) {
     if (!name || !out) return false;
 
     size_t                      count = 0;
@@ -280,8 +277,7 @@ bool keybind_trigger_from_string(const keybind_vocab *vocab, const char *name,
     return false;
 }
 
-const char *keybind_trigger_to_string(const keybind_vocab      *vocab,
-                                      const int trigger) {
+const char *keybind_trigger_to_string(const keybind_vocab *vocab, const int trigger) {
     size_t                      count = 0;
     const keybind_trigger_name *table = keybind_trigger_table(vocab, &count);
 
@@ -290,5 +286,5 @@ const char *keybind_trigger_to_string(const keybind_vocab      *vocab,
     return NULL;
 }
 
-#endif  // KEYBIND_IMPLEMENTATION
-#endif  // KEYBIND_H
+#endif
+#endif

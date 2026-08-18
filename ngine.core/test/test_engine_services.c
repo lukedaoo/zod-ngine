@@ -73,7 +73,8 @@ static void release_key(zod_key_t key) {
 
 static void setup(void) {
     zngine_init((zngine_init_params){
-         .config_setup = {.load_config_func = stub_load_config, .config_path = "/dev/null"},
+         .config_setup = {.load_config_func = stub_load_config,
+                          .config_path      = "/dev/null"},
     });
     action_hits_a      = 0;
     action_hits_b      = 0;
@@ -86,9 +87,8 @@ static void teardown(void) { zngine_destroy(); }
 
 MU_TEST(test_action_bind_returns_valid_handle) {
     action_executor executor = {.execute = action_exec_a};
-    action_handle   handle   = zngine_action_bind(TEST_CONTEXT_A,
-                                                  ACTION_TRIGGER_KEY_PRESSED,
-                                                  SDL_SCANCODE_A, "jump", &executor);
+    action_handle handle = zngine_action_bind(TEST_CONTEXT_A, ACTION_TRIGGER_KEY_PRESSED,
+                                              SDL_SCANCODE_A, "jump", &executor);
     mu_check(handle != ACTION_HANDLE_INVALID);
     mu_check(zngine_action_resolve_by_name(TEST_CONTEXT_A, ACTION_TRIGGER_KEY_PRESSED,
                                            "jump") == handle);
@@ -99,22 +99,22 @@ MU_TEST(test_action_bind_returns_valid_handle) {
 MU_TEST(test_action_bind_duplicate_key_rejected) {
     action_executor executor = {.execute = action_exec_a};
     mu_check(zngine_action_bind(TEST_CONTEXT_A, ACTION_TRIGGER_KEY_PRESSED,
-                                SDL_SCANCODE_A, "jump", &executor) !=
-             ACTION_HANDLE_INVALID);
+                                SDL_SCANCODE_A, "jump",
+                                &executor) != ACTION_HANDLE_INVALID);
     mu_check(zngine_action_bind(TEST_CONTEXT_A, ACTION_TRIGGER_KEY_PRESSED,
-                                SDL_SCANCODE_A, "duck", &executor) ==
-             ACTION_HANDLE_INVALID);
+                                SDL_SCANCODE_A, "duck",
+                                &executor) == ACTION_HANDLE_INVALID);
 }
 
 MU_TEST(test_action_same_key_distinct_contexts) {
     action_executor executor_a = {.execute = action_exec_a};
     action_executor executor_b = {.execute = action_exec_b};
     mu_check(zngine_action_bind(TEST_CONTEXT_A, ACTION_TRIGGER_KEY_PRESSED,
-                                SDL_SCANCODE_A, "jump", &executor_a) !=
-             ACTION_HANDLE_INVALID);
+                                SDL_SCANCODE_A, "jump",
+                                &executor_a) != ACTION_HANDLE_INVALID);
     mu_check(zngine_action_bind(TEST_CONTEXT_B, ACTION_TRIGGER_KEY_PRESSED,
-                                SDL_SCANCODE_A, "jump", &executor_b) !=
-             ACTION_HANDLE_INVALID);
+                                SDL_SCANCODE_A, "jump",
+                                &executor_b) != ACTION_HANDLE_INVALID);
 
     press_key(SDL_SCANCODE_A);
     mu_assert_int_eq(1, (int)zngine_action_dispatch(TEST_CONTEXT_A, NULL));
@@ -128,9 +128,8 @@ MU_TEST(test_action_same_key_distinct_contexts) {
 MU_TEST(test_action_execute_passes_userdata) {
     int             counter  = 0;
     action_executor executor = {.execute = action_exec_a};
-    action_handle   handle   = zngine_action_bind(TEST_CONTEXT_A,
-                                                  ACTION_TRIGGER_KEY_PRESSED,
-                                                  SDL_SCANCODE_A, "jump", &executor);
+    action_handle handle = zngine_action_bind(TEST_CONTEXT_A, ACTION_TRIGGER_KEY_PRESSED,
+                                              SDL_SCANCODE_A, "jump", &executor);
 
     action_execute_result result = zngine_action_execute(handle, &counter);
     mu_check(result.type == ACTION_EXECUTE_RESULT_INT);
@@ -221,8 +220,8 @@ MU_TEST(test_event_emit_skips_other_identifiers) {
 }
 
 MU_TEST(test_event_unsubscribe_leaves_other_subscribers) {
-    const event_handle handle_a =
-         zngine_event_subscribe(TEST_EVENT_CATEGORY, TEST_EVENT_ID, event_cb_a, NULL, NULL);
+    const event_handle handle_a = zngine_event_subscribe(
+         TEST_EVENT_CATEGORY, TEST_EVENT_ID, event_cb_a, NULL, NULL);
     zngine_event_subscribe(TEST_EVENT_CATEGORY, TEST_EVENT_ID, event_cb_b, NULL, NULL);
 
     mu_check(zngine_event_unsubscribe(handle_a));
@@ -237,10 +236,10 @@ MU_TEST(test_event_publish_and_emit_are_equivalent) {
     zngine_event_subscribe(TEST_EVENT_CATEGORY, TEST_EVENT_ID, event_cb_b, NULL, NULL);
 
     int           payload = 7;
-    event_context ctx     = {.identifier   = {.category = TEST_EVENT_CATEGORY,
-                                              .event_id = TEST_EVENT_ID},
-                             .payload      = &payload,
-                             .payload_size = sizeof(payload)};
+    event_context ctx     = {
+         .identifier   = {.category = TEST_EVENT_CATEGORY, .event_id = TEST_EVENT_ID},
+         .payload      = &payload,
+         .payload_size = sizeof(payload)};
     zngine_event_publish(&ctx);
     zngine_event_emit(TEST_EVENT_CATEGORY, TEST_EVENT_ID, &payload, sizeof(payload));
 
@@ -261,6 +260,72 @@ MU_TEST_SUITE(action_suite) {
     MU_RUN_TEST(test_action_unbind_stops_dispatch);
 }
 
+static int keybind_test_key_from_name(const char *name) {
+    if (strcmp(name, "A") == 0) return SDL_SCANCODE_A;
+    if (strcmp(name, "B") == 0) return SDL_SCANCODE_B;
+    return 0;
+}
+static const char *keybind_test_key_to_name(const int key) {
+    switch (key) {
+        case SDL_SCANCODE_A:
+            return "A";
+        case SDL_SCANCODE_B:
+            return "B";
+        default:
+            return NULL;
+    }
+}
+
+static const keybind_context keybind_test_contexts[] = {
+     {.name = "a", .context = TEST_CONTEXT_A},
+};
+
+static const keybind_vocab keybind_test_vocab = {
+     .contexts      = keybind_test_contexts,
+     .context_count = 1,
+     .key_from_name = keybind_test_key_from_name,
+     .key_to_name   = keybind_test_key_to_name,
+};
+
+static void write_keybind_file(const char *path, const char *contents) {
+    FILE *f = fopen(path, "w");
+    mu_check(f != NULL);
+    fputs(contents, f);
+    fclose(f);
+}
+
+MU_TEST(test_keybind_manager_resolves_bound_action) {
+    action_executor executor = {.execute = action_exec_a};
+    action_handle handle = zngine_action_bind(TEST_CONTEXT_A, ACTION_TRIGGER_KEY_PRESSED,
+                                              0, "jump", &executor);
+    mu_check(handle != ACTION_HANDLE_INVALID);
+
+    write_keybind_file("keybind_test_resolved.scf", ":/input.a\nA pressed jump\n");
+    mu_check(
+         zngine_keybind_manager_load("keybind_test_resolved.scf", &keybind_test_vocab));
+    remove("keybind_test_resolved.scf");
+
+    mu_check(zngine_keybind_resolve(TEST_CONTEXT_A, SDL_SCANCODE_A,
+                                    ACTION_TRIGGER_KEY_PRESSED) == handle);
+}
+
+MU_TEST(test_keybind_manager_unresolved_action_does_not_block_load) {
+    write_keybind_file("keybind_test_unresolved.scf",
+                       ":/input.a\nA pressed nonexistent_action\n");
+    mu_check(
+         zngine_keybind_manager_load("keybind_test_unresolved.scf", &keybind_test_vocab));
+    remove("keybind_test_unresolved.scf");
+
+    mu_check(zngine_keybind_resolve(TEST_CONTEXT_A, SDL_SCANCODE_A,
+                                    ACTION_TRIGGER_KEY_PRESSED) == ACTION_HANDLE_INVALID);
+}
+
+MU_TEST_SUITE(keybind_manager_suite) {
+    MU_SUITE_CONFIGURE(&setup, &teardown);
+    MU_RUN_TEST(test_keybind_manager_resolves_bound_action);
+    MU_RUN_TEST(test_keybind_manager_unresolved_action_does_not_block_load);
+}
+
 MU_TEST_SUITE(event_suite) {
     MU_SUITE_CONFIGURE(&setup, &teardown);
     MU_RUN_TEST(test_event_emit_reaches_all_subscribers);
@@ -271,6 +336,7 @@ MU_TEST_SUITE(event_suite) {
 
 int main(void) {
     MU_RUN_SUITE(action_suite);
+    MU_RUN_SUITE(keybind_manager_suite);
     MU_RUN_SUITE(event_suite);
     MU_REPORT();
     return MU_EXIT_CODE;

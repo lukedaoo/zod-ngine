@@ -10,6 +10,7 @@
 #include <ngine.lib/command.h>
 #include <ngine.lib/event_dispatcher.h>
 #include <ngine.lib/action.h>
+#include <ngine.lib/keybind.h>
 
 #include "input.h"
 
@@ -183,6 +184,14 @@ action_execute_result zngine_action_execute(const action_handle handle, void *us
 action_execute_result zngine_action_execute_by_name(const action_mode         context,
                                                     const action_trigger_type type,
                                                     const char *name, void *userdata);
+
+//
+// Keybind Manager accessors
+//
+bool          zngine_keybind_manager_load(const char *path, const keybind_vocab *vocab);
+bool          zngine_keybind_manager_merge(const char *path, const keybind_vocab *vocab);
+action_handle zngine_keybind_resolve(const action_mode context, const int key,
+                                     const int trigger);
 
 // Utils
 bool zngine_should_exit(void);

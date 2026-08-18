@@ -253,22 +253,38 @@ static action_execute_result toggle_pause_execute(const action_table *table,
     return (action_execute_result){.type = ACTION_EXECUTE_RESULT_VOID};
 }
 
-// Must run after zngine_init — the action table is created there. The action
-// manager owns the bindings from here on; only the active context is app state.
 static void beatup_actions_bind(void) {
     action_executor toggle_pause = {.execute = toggle_pause_execute};
-    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, SDL_SCANCODE_P,
-                       "toggle_pause", &toggle_pause);
+    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, 0, "toggle_pause",
+                       &toggle_pause);
 
 #if ZOD_CONSOLE_ENABLED
-    // Bound in both contexts so grave closes the console it opened.
     action_executor toggle_console = {.execute = toggle_console_execute};
-    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, SDL_SCANCODE_GRAVE,
+    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, 0,
                        "toggle_console", &toggle_console);
-    zngine_action_bind(INPUT_CONTEXT_CONSOLE, ACTION_TRIGGER_KEY_PRESSED,
-                       SDL_SCANCODE_GRAVE, "toggle_console", &toggle_console);
+    zngine_action_bind(INPUT_CONTEXT_CONSOLE, ACTION_TRIGGER_KEY_PRESSED, 0,
+                       "toggle_console", &toggle_console);
 #endif
 }
+
+static int beatup_key_from_name(const char *name) {
+    return (int)SDL_GetScancodeFromName(name);
+}
+static const char *beatup_key_to_name(const int key) {
+    return SDL_GetScancodeName((SDL_Scancode)key);
+}
+
+static const keybind_context beatup_contexts[] = {
+     {.name = "game", .context = INPUT_CONTEXT_GAME},
+     {.name = "console", .context = INPUT_CONTEXT_CONSOLE},
+};
+
+static const keybind_vocab beatup_vocab = {
+     .contexts      = beatup_contexts,
+     .context_count = sizeof(beatup_contexts) / sizeof(beatup_contexts[0]),
+     .key_from_name = beatup_key_from_name,
+     .key_to_name   = beatup_key_to_name,
+};
 
 // Console context has no game bindings, so typing there cannot pause the game.
 static action_mode beatup_active_context(void) {
@@ -297,6 +313,7 @@ int main(const int argc, const char **argv) {
 
     if (!zngine_init(params)) return 1;
     beatup_actions_bind();
+    zngine_keybind_manager_load(CONFIG_PATH, &beatup_vocab);
     render_text_init();
     render_sprite_init();
     beatup_layout_init();
@@ -316,12 +333,16 @@ int main(const int argc, const char **argv) {
                      .payload_size = sizeof(payload)};
                 zngine_event_publish(&ctx);
             }
+            if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat) {
+                const action_handle handle =
+                     zngine_keybind_resolve(beatup_active_context(), (int)e.key.scancode,
+                                            ACTION_TRIGGER_KEY_PRESSED);
+                if (handle != ACTION_HANDLE_INVALID) zngine_action_execute(handle, NULL);
+            }
             zngine_extensions_handle_event(&e);
         }
         zngine_input_update();
         zngine_tick_hot_reload();
-
-        zngine_action_dispatch(beatup_active_context(), NULL);
 
         zngine_begin_drawing();
         beatup_layout_draw();

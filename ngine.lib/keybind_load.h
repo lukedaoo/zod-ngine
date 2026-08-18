@@ -57,6 +57,8 @@ static bool keybind_context_from_name(const keybind_vocab *vocab, const char *na
     return false;
 }
 
+// @info: return true to skip the key. If it returns false, it will skip the entrie file
+// parser
 static bool keybind_parse_handler(const char *section, const char *key, const char *value,
                                   void *user) {
     keybind_parse_ctx *ctx = (keybind_parse_ctx *)user;
@@ -93,48 +95,46 @@ static bool keybind_parse_handler(const char *section, const char *key, const ch
         return true;
     }
 
-    const size_t action_len = strcspn(value, KEYBIND_LOAD_WHITESPACE);
-    if (action_len == 0 || action_len >= KEYBIND_ACTION_MAX) {
+    const size_t trigger_len = strcspn(value, KEYBIND_LOAD_WHITESPACE);
+    if (trigger_len == 0 || trigger_len >= KEYBIND_KEY_NAME_MAX) {
 #if KEYBIND_LOAD_LOG_ENABLED
-        log_warn("keybind.load: '%s.%s' has no usable action name, skipping", context_name,
+        log_warn("keybind.load: '%s.%s' has no usable trigger, skipping", context_name,
                  key);
 #endif
         ctx->skipped++;
         return true;
     }
 
-    char action[KEYBIND_ACTION_MAX];
-    memcpy(action, value, action_len);
-    action[action_len] = '\0';
+    char trigger_name[KEYBIND_KEY_NAME_MAX];
+    memcpy(trigger_name, value, trigger_len);
+    trigger_name[trigger_len] = '\0';
 
-    const char *rest = value + action_len;
+    int trigger = 0;
+    if (!keybind_trigger_from_string(ctx->vocab, trigger_name, &trigger)) {
+#if KEYBIND_LOAD_LOG_ENABLED
+        log_warn("keybind.load: unknown trigger '%s' for '%s.%s', skipping", trigger_name,
+                 context_name, key);
+#endif
+        ctx->skipped++;
+        return true;
+    }
+
+    const char *rest = value + trigger_len;
     rest += strspn(rest, KEYBIND_LOAD_WHITESPACE);
 
-    size_t                      trigger_count = 0;
-    const keybind_trigger_name *triggers =
-         keybind_trigger_table(ctx->vocab, &trigger_count);
-    int trigger = triggers[0].trigger;
-
-    if (*rest != '\0') {
-        const size_t trigger_len                       = strcspn(rest, KEYBIND_LOAD_WHITESPACE);
-        char         trigger_name[KEYBIND_KEY_NAME_MAX] = "";
-        bool         resolved                           = false;
-
-        if (trigger_len < KEYBIND_KEY_NAME_MAX) {
-            memcpy(trigger_name, rest, trigger_len);
-            trigger_name[trigger_len] = '\0';
-            resolved = keybind_trigger_from_string(ctx->vocab, trigger_name, &trigger);
-        }
-
-        if (!resolved) {
+    const size_t action_len = strcspn(rest, KEYBIND_LOAD_WHITESPACE);
+    if (action_len == 0 || action_len >= KEYBIND_ACTION_MAX) {
 #if KEYBIND_LOAD_LOG_ENABLED
-            log_warn("keybind.load: unknown trigger '%s' for '%s.%s', skipping",
-                     trigger_name, context_name, key);
+        log_warn("keybind.load: '%s.%s' has no usable action name, skipping",
+                 context_name, key);
 #endif
-            ctx->skipped++;
-            return true;
-        }
+        ctx->skipped++;
+        return true;
     }
+
+    char action[KEYBIND_ACTION_MAX];
+    memcpy(action, rest, action_len);
+    action[action_len] = '\0';
 
     const keybind_handle existing =
          keybind_find_by_key(ctx->table, context, scancode, trigger);

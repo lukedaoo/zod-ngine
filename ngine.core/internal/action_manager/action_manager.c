@@ -8,15 +8,23 @@ static bool action_manager_key_trigger_fired(const action_trigger_type type,
                                              const int key, void *trigger_ctx) {
     (void)trigger_ctx;
     switch ((action_key_trigger)type) {
-        case ACTION_TRIGGER_KEY_PRESSED: return input_priv_key_pressed((zod_key_t)key);
-        case ACTION_TRIGGER_KEY_DOWN: return input_priv_key_down((zod_key_t)key);
-        case ACTION_TRIGGER_KEY_RELEASED: return input_priv_key_released((zod_key_t)key);
-        default: return false;
+        case ACTION_TRIGGER_KEY_PRESSED:
+            return input_priv_key_pressed((zod_key_t)key);
+        case ACTION_TRIGGER_KEY_DOWN:
+            return input_priv_key_down((zod_key_t)key);
+        case ACTION_TRIGGER_KEY_RELEASED:
+            return input_priv_key_released((zod_key_t)key);
+        default:
+            return false;
     }
 }
 
 void action_manager_priv_init(action_manager *mgr) { action_init(&mgr->table); }
 void action_manager_priv_destroy(action_manager *mgr) { action_destroy(&mgr->table); }
+
+const action_table *action_manager_priv_table(const action_manager *mgr) {
+    return mgr ? &mgr->table : NULL;
+}
 
 action_handle action_manager_priv_resolve_by_name(const action_manager     *mgr,
                                                   const action_mode         context,

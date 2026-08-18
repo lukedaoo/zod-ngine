@@ -10,6 +10,7 @@
 #include "../../cmd_manager.h"
 #include "../../event_manager.h"
 #include "../../action_manager.h"
+#include "../../keybind_manager.h"
 #include "../../render.h"
 #include "../../render_text.h"
 #include "../../zod_error.h"
@@ -126,6 +127,16 @@ static void service_action_manager_destroy(void) {
     action_manager_priv_destroy(&g_ctx.action_manager);
 }
 
+static bool service_keybind_manager_init(const zngine_init_params *params) {
+    (void)params;
+    keybind_manager_priv_init(&g_ctx.keybind_manager);
+    return true;
+}
+
+static void service_keybind_manager_destroy(void) {
+    keybind_manager_priv_destroy(&g_ctx.keybind_manager);
+}
+
 static bool service_config_init(const zngine_init_params *params) {
     const zngine_config_setup config_setup = params->config_setup;
     const zngine_dispatch     dispatch     = params->dispatch;
@@ -195,10 +206,10 @@ static bool service_window_init(const zngine_init_params *params) {
     const char *title = cvar_get_string(&g_ctx.config.cvars, "window.title",
                                         DEFAULT_CONFIG_WINDOW_TITLE);
 
-    int w = cvar_get_int(&g_ctx.config.cvars, "window.width",
-                         DEFAULT_CONFIG_WINDOW_WIDTH);
-    int h = cvar_get_int(&g_ctx.config.cvars, "window.height",
-                         DEFAULT_CONFIG_WINDOW_HEIGHT);
+    int w =
+         cvar_get_int(&g_ctx.config.cvars, "window.width", DEFAULT_CONFIG_WINDOW_WIDTH);
+    int h =
+         cvar_get_int(&g_ctx.config.cvars, "window.height", DEFAULT_CONFIG_WINDOW_HEIGHT);
 
     uint32_t flags = 0;
     if (cvar_get_bool(&g_ctx.config.cvars, "window.transparent",
@@ -252,6 +263,7 @@ static const zngine_service g_services[] = {
      {"event_manager", service_event_manager_init, service_event_manager_destroy},
      {"cmd_manager", service_cmd_manager_init, service_cmd_manager_destroy},
      {"action_manager", service_action_manager_init, service_action_manager_destroy},
+     {"keybind_manager", service_keybind_manager_init, service_keybind_manager_destroy},
      {"config", service_config_init, service_config_destroy},
 #ifndef NGINE_UNIT_TEST
      {"platform", service_platform_init, service_platform_destroy},

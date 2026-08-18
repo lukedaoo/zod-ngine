@@ -13,6 +13,8 @@ typedef enum {
 void action_manager_priv_init(action_manager *mgr);
 void action_manager_priv_destroy(action_manager *mgr);
 
+const action_table *action_manager_priv_table(const action_manager *mgr);
+
 action_handle action_manager_priv_resolve_by_name(const action_manager     *mgr,
                                                   const action_mode         context,
                                                   const action_trigger_type type,
