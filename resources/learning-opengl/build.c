@@ -4,7 +4,12 @@
 #define CC      "cc"
 #define CFLAGS  "-std=c23", "-Wall", "-Wextra", "-I../../thirdparty/glad/include"
 #define GLAD    "../../thirdparty/glad/src/gl.c"
-#define LDFLAGS "-lglfw", "-ldl"
+
+#if defined(_WIN32)
+#define LDFLAGS "-lglfw3"
+#else
+#define LDFLAGS "-lglfw"
+#endif
 
 #define SRC_DIR "src"
 #define BIN_DIR "bin"
