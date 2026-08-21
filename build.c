@@ -16,17 +16,18 @@
 #endif
 
 typedef struct {
-    const char *name;        // CLI target name
-    const char *entry;       // source file compiled as the single TU
-    const char *output;      // bare binary name, no "./" prefix, no EXE_EXT
-    bool        needs_math;  // -lm
+    const char *name;         // CLI target name
+    const char *entry;        // source file compiled as the single TU
+    const char *output;       // bare binary name, no "./" prefix, no EXE_EXT
+    bool        needs_math;   // -lm
+    bool        needs_mixer;  // -lSDL3_mixer
 } build_target;
 
 static const build_target BUILD_TARGETS[] = {
-     {"engine", "ngine.example/engine_run_example.c", "engine_run", true},
-     {"beatup", "ngine.example/beatup.c", "beatup_run", true},
-     {"minimal", "ngine.example/minimal_engine_run.c", "minimal_run", true},
-     {"keybinding", "ngine.example/keybinding_run_example.c", "keybinding_run", true},
+     {"engine", "ngine.example/engine_run_example.c", "engine_run", true, false},
+     {"beatup", "ngine.example/beatup.c", "beatup_run", true, true},
+     {"minimal", "ngine.example/minimal_engine_run.c", "minimal_run", true, false},
+     {"keybinding", "ngine.example/keybinding_run_example.c", "keybinding_run", true, false},
 };
 static const size_t BUILD_TARGETS_COUNT =
      sizeof(BUILD_TARGETS) / sizeof(BUILD_TARGETS[0]);
@@ -48,11 +49,13 @@ static const char *target_bin_path(const build_target *t) {
 #define GLAD_FLAGS   "-Ithirdparty/glad/include"
 #define VULKAN_FLAGS "-lvulkan-1"
 #define MATH_FLAGS   "-lm"
+#define MIXER_FLAGS  "-I/ucrt64/include/SDL3_mixer", "-lSDL3_mixer.dll"
 #elif defined(__linux__)
 #define SDL_FLAGS    "-I/usr/include/SDL3", "-lSDL3"
 #define GLAD_FLAGS   "-Ithirdparty/glad/include", "-ldl"
 #define VULKAN_FLAGS "-lvulkan"
 #define MATH_FLAGS   "-lm"
+#define MIXER_FLAGS  "-lSDL3_mixer"
 #endif
 
 #define RENDER_BACKEND_OPENGL_DEFINE "-DRENDER_BACKEND=RENDER_BACKEND_OPENGL"
@@ -322,6 +325,7 @@ int run_run(bool execute, const char *target_name, const char *mode,
         nob_cmd_append(&cmd, VULKAN_FLAGS);
     }
     if (target->needs_math) nob_cmd_append(&cmd, MATH_FLAGS);
+    if (target->needs_mixer) nob_cmd_append(&cmd, MIXER_FLAGS);
     if (strcmp(mode, "release") == 0) {
         nob_cmd_append(&cmd, C_RELEASE_FLAGS);
     } else {
