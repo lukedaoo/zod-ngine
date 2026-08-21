@@ -354,7 +354,7 @@ MU_TEST(test_sys_cmd_show_keybinding_lists_key_and_action) {
 
     command_execute_result res = sys_cmd_priv_show_keybinding(0, NULL);
     mu_check(res.type == COMMAND_RESULT_STRING);
-    mu_assert_string_eq("R -> reload", res.value.str);
+    mu_assert_string_eq("R -> reload (context: 0)", res.value.str);
 
     action_manager_priv_destroy(&g_ctx.action_manager);
     keybind_manager_priv_destroy(&g_ctx.keybind_manager);

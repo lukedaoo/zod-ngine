@@ -1,5 +1,12 @@
 :/input.console
-Minus   pressed     toggle_console
+Grave   pressed     toggle_console
 :/input.game
-Minus   pressed     toggle_console
-R       pressed     toggle_pause
+Grave   pressed     toggle_console
+P       pressed     toggle_pause
+R       pressed     hit_left_top
+F       pressed     hit_left_mid
+V       pressed     hit_left_bot
+I       pressed     hit_right_top
+K       pressed     hit_right_mid
+M       pressed     hit_right_bot
+Space   pressed     hit_space
