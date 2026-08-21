@@ -10,6 +10,7 @@
 #include "../../config.h"
 #include "../../keybind_alias.h"
 #include "../../zod_ngine.h"
+#include "../../action_manager.h"
 #include "../engine_context/engine_context_internal.h"
 
 // reload-config-file
@@ -301,8 +302,9 @@ command_execute_result sys_cmd_priv_show_keybinding(int argc, char **argv) {
         if (filter && (!resolved || !strstr(action_name, filter))) continue;
 
         const char *key_name = zngine_key_to_name(entry.key);
-        sys_cmd_priv_buf_append(buf, sizeof(buf), &pos, "%s -> %s\n",
-                                key_name && *key_name ? key_name : "?", action_name);
+        sys_cmd_priv_buf_append(buf, sizeof(buf), &pos, "%s -> %s (context: %d)\n",
+                                key_name && *key_name ? key_name : "?", action_name,
+                                entry.context);
     }
 
     if (pos == 0) {

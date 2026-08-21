@@ -1,0 +1,5 @@
+:/input.console
+Minus   pressed     toggle_console
+:/input.game
+Minus   pressed     toggle_console
+R       pressed     toggle_pause

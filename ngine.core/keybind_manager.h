@@ -24,6 +24,9 @@ bool keybind_manager_priv_merge(keybind_manager *mgr, const char *path,
                                 const keybind_vocab  *vocab,
                                 const action_manager *actions);
 
+bool keybind_manager_priv_reload(keybind_manager *mgr, const char *path,
+                                 const keybind_vocab *vocab);
+
 bool keybind_manager_priv_set(keybind_manager *mgr, const action_manager *actions,
                               int context, int key, int trigger, const char *action_name);
 bool keybind_manager_priv_unset(keybind_manager *mgr, int context, int key, int trigger);

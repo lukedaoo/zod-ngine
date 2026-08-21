@@ -4,7 +4,8 @@
 #include <ngine.core/index.h>
 #include <ngine.ext.console/index.h>
 
-#define CONFIG_PATH "run-tree/data/engine.scf"
+#define CONFIG_PATH     "run-tree/data/engine_beatup.scf"
+#define KEYBINDING_PATH "run-tree/data/keybind_beatup.scf"
 
 #define BEATUP_ASSET_DIR "run-tree/data/textures/beatup/"
 
@@ -255,15 +256,15 @@ static action_execute_result toggle_pause_execute(const action_table *table,
 
 static void beatup_actions_bind(void) {
     action_executor toggle_pause = {.execute = toggle_pause_execute};
-    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, 0, "toggle_pause",
-                       &toggle_pause);
+    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, SDL_SCANCODE_P,
+                       "toggle_pause", &toggle_pause);
 
 #if ZOD_CONSOLE_ENABLED
     action_executor toggle_console = {.execute = toggle_console_execute};
-    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, 0,
+    zngine_action_bind(INPUT_CONTEXT_GAME, ACTION_TRIGGER_KEY_PRESSED, SDL_SCANCODE_GRAVE,
                        "toggle_console", &toggle_console);
-    zngine_action_bind(INPUT_CONTEXT_CONSOLE, ACTION_TRIGGER_KEY_PRESSED, 0,
-                       "toggle_console", &toggle_console);
+    zngine_action_bind(INPUT_CONTEXT_CONSOLE, ACTION_TRIGGER_KEY_PRESSED,
+                       SDL_SCANCODE_GRAVE, "toggle_console", &toggle_console);
 #endif
 }
 
@@ -306,7 +307,7 @@ int main(const int argc, const char **argv) {
 
     if (!zngine_init(params)) return 1;
     beatup_actions_bind();
-    zngine_keybind_manager_load(CONFIG_PATH, &beatup_vocab);
+    zngine_keybind_manager_load(KEYBINDING_PATH, &beatup_vocab);
     render_text_init();
     render_sprite_init();
     beatup_layout_init();
