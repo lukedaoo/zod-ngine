@@ -49,10 +49,10 @@ static spy_record spy_record_new(void) {
 }
 
 MU_TEST(test_init_creates_empty_table) {
-    event_table table;
-    event_table_init(&table);
-    mu_assert_int_eq(0, (int)table.listeners.header.size);
-    event_table_destroy(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
+    mu_assert_int_eq(0, (int)dispatcher.listeners.header.size);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_init_null_table_safe) { event_table_init(NULL); }
@@ -60,27 +60,27 @@ MU_TEST(test_init_null_table_safe) { event_table_init(NULL); }
 MU_TEST(test_destroy_null_table_safe) { event_table_destroy(NULL); }
 
 MU_TEST(test_subscribe_adds_listener) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    mu_check(event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL));
-    mu_assert_int_eq(1, (int)table.listeners.header.size);
+    mu_check(event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL));
+    mu_assert_int_eq(1, (int)dispatcher.listeners.header.size);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_subscribe_multiple_listeners_same_event) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec_a = spy_record_new();
     spy_record rec_b = spy_record_new();
-    mu_check(event_table_subscribe(&table, 3, 1, spy_callback, &rec_a, NULL));
-    mu_check(event_table_subscribe(&table, 3, 1, spy_callback, &rec_b, NULL));
-    mu_assert_int_eq(2, (int)table.listeners.header.size);
+    mu_check(event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec_a, NULL));
+    mu_check(event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec_b, NULL));
+    mu_assert_int_eq(2, (int)dispatcher.listeners.header.size);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_subscribe_null_table_returns_false) {
@@ -89,59 +89,59 @@ MU_TEST(test_subscribe_null_table_returns_false) {
 }
 
 MU_TEST(test_subscribe_null_callback_returns_false) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
-    mu_check(!event_table_subscribe(&table, 3, 1, NULL, NULL, NULL));
+    mu_check(!event_table_subscribe(&dispatcher, 3, 1, NULL, NULL, NULL));
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_subscribe_duplicate_allowed) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    mu_check(event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL));
-    mu_check(event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL));
-    mu_assert_int_eq(2, (int)table.listeners.header.size);
+    mu_check(event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL));
+    mu_check(event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL));
+    mu_assert_int_eq(2, (int)dispatcher.listeners.header.size);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_removes_exact_match) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record   rec = spy_record_new();
-    event_handle h   = event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL);
+    event_handle h   = event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL);
 
-    mu_check(event_table_unsubscribe(&table, h));
-    mu_assert_int_eq(0, (int)table.listeners.header.size);
+    mu_check(event_table_unsubscribe(&dispatcher, h));
+    mu_assert_int_eq(0, (int)dispatcher.listeners.header.size);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_no_match_returns_false) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL);
 
-    mu_check(!event_table_unsubscribe(&table, 9999u));
-    mu_assert_int_eq(1, (int)table.listeners.header.size);
+    mu_check(!event_table_unsubscribe(&dispatcher, 9999u));
+    mu_assert_int_eq(1, (int)dispatcher.listeners.header.size);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_empty_table_returns_false) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
-    mu_check(!event_table_unsubscribe(&table, 1u));
+    mu_check(!event_table_unsubscribe(&dispatcher, 1u));
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_null_table_returns_false) {
@@ -149,106 +149,106 @@ MU_TEST(test_unsubscribe_null_table_returns_false) {
 }
 
 MU_TEST(test_unsubscribe_one_leaves_others_intact) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record   rec_a = spy_record_new();
     spy_record   rec_b = spy_record_new();
-    event_handle a     = event_table_subscribe(&table, 3, 1, spy_callback, &rec_a, NULL);
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec_b, NULL);
+    event_handle a     = event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec_a, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec_b, NULL);
 
-    mu_check(event_table_unsubscribe(&table, a));
-    mu_assert_int_eq(1, (int)table.listeners.header.size);
+    mu_check(event_table_unsubscribe(&dispatcher, a));
+    mu_assert_int_eq(1, (int)dispatcher.listeners.header.size);
 
     event_context ctx = {.identifier   = {.category = 3, .event_id = 1},
                          .payload      = NULL,
                          .payload_size = 0};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
     mu_assert_int_eq(0, rec_a.call_count);
     mu_assert_int_eq(1, rec_b.call_count);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_matches_only_target_callback) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record   rec_a = spy_record_new();
     spy_record   rec_b = spy_record_new();
-    event_handle a     = event_table_subscribe(&table, 3, 1, spy_callback, &rec_a, NULL);
-    event_table_subscribe(&table, 3, 1, spy_callback_b, &rec_b, NULL);
+    event_handle a     = event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec_a, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback_b, &rec_b, NULL);
 
-    mu_check(event_table_unsubscribe(&table, a));
-    mu_assert_int_eq(1, (int)table.listeners.header.size);
+    mu_check(event_table_unsubscribe(&dispatcher, a));
+    mu_assert_int_eq(1, (int)dispatcher.listeners.header.size);
 
     event_context ctx = {.identifier   = {.category = 3, .event_id = 1},
                          .payload      = NULL,
                          .payload_size = 0};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
     mu_assert_int_eq(0, rec_a.call_count);
     mu_assert_int_eq(1, rec_b.call_count);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_by_id_removes_all_matching) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec_a = spy_record_new();
     spy_record rec_b = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec_a, NULL);
-    event_table_subscribe(&table, 3, 1, spy_callback_b, &rec_b, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec_a, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback_b, &rec_b, NULL);
 
-    mu_check(event_table_unsubscribe_by_event_identifier(&table, 3, 1));
-    mu_assert_int_eq(0, (int)table.listeners.header.size);
+    mu_check(event_table_unsubscribe_by_event_identifier(&dispatcher, 3, 1));
+    mu_assert_int_eq(0, (int)dispatcher.listeners.header.size);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_by_id_leaves_other_ids_intact) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec_a = spy_record_new();
     spy_record rec_b = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec_a, NULL);
-    event_table_subscribe(&table, 3, 2, spy_callback, &rec_b, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec_a, NULL);
+    event_table_subscribe(&dispatcher, 3, 2, spy_callback, &rec_b, NULL);
 
-    mu_check(event_table_unsubscribe_by_event_identifier(&table, 3, 1));
-    mu_assert_int_eq(1, (int)table.listeners.header.size);
+    mu_check(event_table_unsubscribe_by_event_identifier(&dispatcher, 3, 1));
+    mu_assert_int_eq(1, (int)dispatcher.listeners.header.size);
 
     event_context ctx = {.identifier   = {.category = 3, .event_id = 2},
                          .payload      = NULL,
                          .payload_size = 0};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
     mu_assert_int_eq(0, rec_a.call_count);
     mu_assert_int_eq(1, rec_b.call_count);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_by_id_no_match_returns_false) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL);
 
-    mu_check(!event_table_unsubscribe_by_event_identifier(&table, 3, 2));
-    mu_assert_int_eq(1, (int)table.listeners.header.size);
+    mu_check(!event_table_unsubscribe_by_event_identifier(&dispatcher, 3, 2));
+    mu_assert_int_eq(1, (int)dispatcher.listeners.header.size);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_by_id_empty_table_returns_false) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
-    mu_check(!event_table_unsubscribe_by_event_identifier(&table, 3, 1));
+    mu_check(!event_table_unsubscribe_by_event_identifier(&dispatcher, 3, 1));
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_by_id_null_table_returns_false) {
@@ -256,100 +256,100 @@ MU_TEST(test_unsubscribe_by_id_null_table_returns_false) {
 }
 
 MU_TEST(test_unsubscribe_calls_destroy_fn) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record   rec = spy_record_new();
-    event_handle h = event_table_subscribe(&table, 3, 1, spy_callback, &rec, spy_destroy);
+    event_handle h = event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, spy_destroy);
 
-    mu_check(event_table_unsubscribe(&table, h));
+    mu_check(event_table_unsubscribe(&dispatcher, h));
     mu_check(rec.destroyed);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_no_destroy_fn_leaves_userdata_alone) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record   rec = spy_record_new();
-    event_handle h   = event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL);
+    event_handle h   = event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL);
 
-    mu_check(event_table_unsubscribe(&table, h));
+    mu_check(event_table_unsubscribe(&dispatcher, h));
     mu_check(!rec.destroyed);
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_unsubscribe_by_id_calls_destroy_fn_for_each) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec_a = spy_record_new();
     spy_record rec_b = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec_a, spy_destroy);
-    event_table_subscribe(&table, 3, 1, spy_callback_b, &rec_b, spy_destroy);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec_a, spy_destroy);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback_b, &rec_b, spy_destroy);
 
-    mu_check(event_table_unsubscribe_by_event_identifier(&table, 3, 1));
+    mu_check(event_table_unsubscribe_by_event_identifier(&dispatcher, 3, 1));
     mu_check(rec_a.destroyed);
     mu_check(rec_b.destroyed);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_destroy_table_calls_destroy_fn_for_remaining_listeners) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec_a = spy_record_new();
     spy_record rec_b = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec_a, spy_destroy);
-    event_table_subscribe(&table, 3, 2, spy_callback, &rec_b, spy_destroy);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec_a, spy_destroy);
+    event_table_subscribe(&dispatcher, 3, 2, spy_callback, &rec_b, spy_destroy);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 
     mu_check(rec_a.destroyed);
     mu_check(rec_b.destroyed);
 }
 
 MU_TEST(test_destroy_table_skips_null_destroy_fn) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 
     mu_check(!rec.destroyed);
 }
 
 MU_TEST(test_publish_does_not_call_destroy_fn) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec, spy_destroy);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, spy_destroy);
 
     event_context ctx = {.identifier   = {.category = 3, .event_id = 1},
                          .payload      = NULL,
                          .payload_size = 0};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
 
     mu_check(!rec.destroyed);
     mu_assert_int_eq(1, rec.call_count);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_emit_delivers_identifier_and_payload) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL);
 
     int payload = 42;
-    event_table_emit(&table, 3, 1, &payload, sizeof(payload));
+    event_table_emit(&dispatcher, 3, 1, &payload, sizeof(payload));
 
     mu_assert_int_eq(1, rec.call_count);
     mu_check(rec.last_category == 3);
@@ -358,54 +358,54 @@ MU_TEST(test_emit_delivers_identifier_and_payload) {
     mu_assert_int_eq((int)sizeof(payload), (int)rec.last_payload_size);
     mu_check(rec.last_userdata == &rec);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_emit_ignores_non_matching_listener) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL);
 
-    event_table_emit(&table, 3, 2, NULL, 0);
-    event_table_emit(&table, 4, 1, NULL, 0);
+    event_table_emit(&dispatcher, 3, 2, NULL, 0);
+    event_table_emit(&dispatcher, 4, 1, NULL, 0);
 
     mu_assert_int_eq(0, rec.call_count);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_emit_null_payload_safe) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, 1, 1, spy_callback, &rec, NULL);
+    event_table_subscribe(&dispatcher, 1, 1, spy_callback, &rec, NULL);
 
-    event_table_emit(&table, 1, 1, NULL, 0);
+    event_table_emit(&dispatcher, 1, 1, NULL, 0);
 
     mu_assert_int_eq(1, rec.call_count);
     mu_check(rec.last_payload == NULL);
     mu_assert_int_eq(0, (int)rec.last_payload_size);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_emit_null_table_safe) { event_table_emit(NULL, 1, 1, NULL, 0); }
 
 MU_TEST(test_publish_calls_matching_listener) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL);
 
     int           payload = 42;
     event_context ctx     = {.identifier   = {.category = 3, .event_id = 1},
                              .payload      = &payload,
                              .payload_size = sizeof(payload)};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
 
     mu_assert_int_eq(1, rec.call_count);
     mu_check(rec.last_category == 3);
@@ -414,41 +414,41 @@ MU_TEST(test_publish_calls_matching_listener) {
     mu_assert_int_eq((int)sizeof(payload), (int)rec.last_payload_size);
     mu_check(rec.last_userdata == &rec);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_publish_ignores_different_event_id) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL);
 
     event_context ctx = {.identifier   = {.category = 3, .event_id = 2},
                          .payload      = NULL,
                          .payload_size = 0};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
 
     mu_assert_int_eq(0, rec.call_count);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_publish_ignores_different_category) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, 3, 1, spy_callback, &rec, NULL);
+    event_table_subscribe(&dispatcher, 3, 1, spy_callback, &rec, NULL);
 
     event_context ctx = {.identifier   = {.category = 4, .event_id = 1},
                          .payload      = NULL,
                          .payload_size = 0};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
 
     mu_assert_int_eq(0, rec.call_count);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_publish_null_table_safe) {
@@ -459,25 +459,25 @@ MU_TEST(test_publish_null_table_safe) {
 }
 
 MU_TEST(test_integration_subscribe_publish_fires) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec = spy_record_new();
-    event_table_subscribe(&table, 5, 7, spy_callback, &rec, NULL);
+    event_table_subscribe(&dispatcher, 5, 7, spy_callback, &rec, NULL);
 
     event_context ctx = {.identifier   = {.category = 5, .event_id = 7},
                          .payload      = NULL,
                          .payload_size = 0};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
 
     mu_assert_int_eq(1, rec.call_count);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_integration_two_listeners_fire_in_order) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     int        order_counter = 0;
     spy_record rec_a         = spy_record_new();
@@ -485,98 +485,98 @@ MU_TEST(test_integration_two_listeners_fire_in_order) {
     rec_a.order_counter      = &order_counter;
     rec_b.order_counter      = &order_counter;
 
-    event_table_subscribe(&table, 5, 7, spy_callback, &rec_a, NULL);
-    event_table_subscribe(&table, 5, 7, spy_callback, &rec_b, NULL);
+    event_table_subscribe(&dispatcher, 5, 7, spy_callback, &rec_a, NULL);
+    event_table_subscribe(&dispatcher, 5, 7, spy_callback, &rec_b, NULL);
 
     event_context ctx = {.identifier   = {.category = 5, .event_id = 7},
                          .payload      = NULL,
                          .payload_size = 0};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
 
     mu_assert_int_eq(1, rec_a.call_count);
     mu_assert_int_eq(1, rec_b.call_count);
     mu_assert_int_eq(1, rec_a.order);
     mu_assert_int_eq(2, rec_b.order);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_integration_unsubscribe_then_publish_does_not_fire) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record   rec = spy_record_new();
-    event_handle h   = event_table_subscribe(&table, 5, 7, spy_callback, &rec, NULL);
-    event_table_unsubscribe(&table, h);
+    event_handle h   = event_table_subscribe(&dispatcher, 5, 7, spy_callback, &rec, NULL);
+    event_table_unsubscribe(&dispatcher, h);
 
     event_context ctx = {.identifier   = {.category = 5, .event_id = 7},
                          .payload      = NULL,
                          .payload_size = 0};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
 
     mu_assert_int_eq(0, rec.call_count);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_integration_full_flow) {
-    event_table table;
-    event_table_init(&table);
-    mu_assert_int_eq(0, (int)table.listeners.header.size);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
+    mu_assert_int_eq(0, (int)dispatcher.listeners.header.size);
 
     spy_record   rec = spy_record_new();
-    event_handle h   = event_table_subscribe(&table, 5, 9, spy_callback, &rec, NULL);
+    event_handle h   = event_table_subscribe(&dispatcher, 5, 9, spy_callback, &rec, NULL);
     mu_check(h != EVENT_HANDLE_INVALID);
 
     int           payload = 5;
     event_context ctx     = {.identifier   = {.category = 5, .event_id = 9},
                              .payload      = &payload,
                              .payload_size = (size_t)sizeof(payload)};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
     mu_assert_int_eq(1, rec.call_count);
     mu_check(rec.last_payload == &payload);
 
-    mu_check(event_table_unsubscribe(&table, h));
-    event_table_publish(&table, &ctx);
+    mu_check(event_table_unsubscribe(&dispatcher, h));
+    event_table_publish(&dispatcher, &ctx);
     mu_assert_int_eq(1, rec.call_count);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_integration_different_categories_do_not_cross_trigger) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
 
     spy_record rec_window = spy_record_new();
     spy_record rec_audio  = spy_record_new();
-    event_table_subscribe(&table, 0, 3, spy_callback, &rec_window, NULL);
-    event_table_subscribe(&table, 4, 3, spy_callback, &rec_audio, NULL);
+    event_table_subscribe(&dispatcher, 0, 3, spy_callback, &rec_window, NULL);
+    event_table_subscribe(&dispatcher, 4, 3, spy_callback, &rec_audio, NULL);
 
     event_context ctx = {.identifier   = {.category = 0, .event_id = 3},
                          .payload      = NULL,
                          .payload_size = 0};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
 
     mu_assert_int_eq(1, rec_window.call_count);
     mu_assert_int_eq(0, rec_audio.call_count);
 
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_handle_subscribe_returns_valid_handle) {
-    event_table table;
-    event_table_init(&table);
-    event_handle h = event_table_subscribe(&table, 5, 7, spy_callback, NULL, NULL);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
+    event_handle h = event_table_subscribe(&dispatcher, 5, 7, spy_callback, NULL, NULL);
     mu_check(h != EVENT_HANDLE_INVALID);
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_handle_subscribe_null_callback_returns_invalid) {
-    event_table table;
-    event_table_init(&table);
-    mu_check(event_table_subscribe(&table, 5, 7, NULL, NULL, NULL) ==
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
+    mu_check(event_table_subscribe(&dispatcher, 5, 7, NULL, NULL, NULL) ==
              EVENT_HANDLE_INVALID);
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 // Adapted from the brief: spy_callback casts userdata to spy_record* and
@@ -584,56 +584,56 @@ MU_TEST(test_handle_subscribe_null_callback_returns_invalid) {
 // the brief literally shows) would be an out-of-bounds write. Use a real
 // spy_record and read call_count from it instead.
 MU_TEST(test_handle_unsubscribe_stops_delivery) {
-    event_table table;
-    event_table_init(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
     spy_record    rec = spy_record_new();
-    event_handle  h   = event_table_subscribe(&table, 5, 7, spy_callback, &rec, NULL);
+    event_handle  h   = event_table_subscribe(&dispatcher, 5, 7, spy_callback, &rec, NULL);
     event_context ctx = {.identifier   = {.category = 5, .event_id = 7},
                          .payload      = NULL,
                          .payload_size = 0};
-    event_table_publish(&table, &ctx);
+    event_table_publish(&dispatcher, &ctx);
     mu_assert_int_eq(1, rec.call_count);
 
-    mu_check(event_table_unsubscribe(&table, h) == true);
-    event_table_publish(&table, &ctx);
+    mu_check(event_table_unsubscribe(&dispatcher, h) == true);
+    event_table_publish(&dispatcher, &ctx);
     mu_assert_int_eq(1, rec.call_count);
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_handle_unsubscribe_zero_returns_false) {
-    event_table table;
-    event_table_init(&table);
-    event_table_subscribe(&table, 5, 7, spy_callback, NULL, NULL);
-    mu_check(event_table_unsubscribe(&table, EVENT_HANDLE_INVALID) == false);
-    event_table_destroy(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
+    event_table_subscribe(&dispatcher, 5, 7, spy_callback, NULL, NULL);
+    mu_check(event_table_unsubscribe(&dispatcher, EVENT_HANDLE_INVALID) == false);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_handle_unsubscribe_out_of_range_returns_false) {
-    event_table table;
-    event_table_init(&table);
-    event_table_subscribe(&table, 5, 7, spy_callback, NULL, NULL);
-    mu_check(event_table_unsubscribe(&table, 9999u) == false);
-    event_table_destroy(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
+    event_table_subscribe(&dispatcher, 5, 7, spy_callback, NULL, NULL);
+    mu_check(event_table_unsubscribe(&dispatcher, 9999u) == false);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_handle_unsubscribe_twice_returns_false) {
-    event_table table;
-    event_table_init(&table);
-    event_handle h = event_table_subscribe(&table, 5, 7, spy_callback, NULL, NULL);
-    mu_check(event_table_unsubscribe(&table, h) == true);
-    mu_check(event_table_unsubscribe(&table, h) == false);
-    event_table_destroy(&table);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
+    event_handle h = event_table_subscribe(&dispatcher, 5, 7, spy_callback, NULL, NULL);
+    mu_check(event_table_unsubscribe(&dispatcher, h) == true);
+    mu_check(event_table_unsubscribe(&dispatcher, h) == false);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST(test_handle_subscriptions_are_distinct) {
-    event_table table;
-    event_table_init(&table);
-    event_handle a = event_table_subscribe(&table, 5, 7, spy_callback, NULL, NULL);
-    event_handle b = event_table_subscribe(&table, 5, 7, spy_callback_b, NULL, NULL);
+    event_dispatcher dispatcher;
+    event_table_init(&dispatcher);
+    event_handle a = event_table_subscribe(&dispatcher, 5, 7, spy_callback, NULL, NULL);
+    event_handle b = event_table_subscribe(&dispatcher, 5, 7, spy_callback_b, NULL, NULL);
     mu_check(a != b);
     mu_check(a != EVENT_HANDLE_INVALID);
     mu_check(b != EVENT_HANDLE_INVALID);
-    event_table_destroy(&table);
+    event_table_destroy(&dispatcher);
 }
 
 MU_TEST_SUITE(event_handle_suite) {

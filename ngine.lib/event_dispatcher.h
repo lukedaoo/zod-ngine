@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-typedef struct event_table event_table;
+typedef struct event_dispatcher event_dispatcher;
 
 typedef int event_category;
 
@@ -55,19 +55,19 @@ typedef void (*event_userdata_destroy)(void *userdata);
 typedef unsigned int event_handle;
 #define EVENT_HANDLE_INVALID 0u
 
-void event_table_init(event_table *event_table);
-void event_table_destroy(event_table *event_table);
+void event_table_init(event_dispatcher *event_dispatcher);
+void event_table_destroy(event_dispatcher *event_dispatcher);
 // @info: returns EVENT_HANDLE_INVALID on bad arguments or allocation failure.
-event_handle event_table_subscribe(event_table         *event_table,
+event_handle event_table_subscribe(event_dispatcher         *event_dispatcher,
                                    const event_category category, const int event_id,
                                    const event_callback callback, void *userdata,
                                    const event_userdata_destroy destroy_fn);
-bool         event_table_unsubscribe(event_table *event_table, const event_handle handle);
-bool         event_table_unsubscribe_by_event_identifier(event_table         *event_table,
+bool         event_table_unsubscribe(event_dispatcher *event_dispatcher, const event_handle handle);
+bool         event_table_unsubscribe_by_event_identifier(event_dispatcher         *event_dispatcher,
                                                          const event_category category,
                                                          const int            event_id);
-void         event_table_publish(event_table *event_table, event_context *ctx);
-void event_table_emit(event_table *event_table, const event_category category,
+void         event_table_publish(event_dispatcher *event_dispatcher, event_context *ctx);
+void event_table_emit(event_dispatcher *event_dispatcher, const event_category category,
                       const int event_id, void *payload, const size_t payload_size);
 
 #ifdef EVENT_DISPATCHER_IMPLEMENTATION
@@ -94,37 +94,37 @@ static void event_listener_release(event_listener *l) {
     if (l->destroy_fn) l->destroy_fn(l->listener_data);
 }
 
-struct event_table {
+struct event_dispatcher {
     array_list listeners;
 };
 
-static event_listener *event_resolve(const event_table *table,
+static event_listener *event_resolve(const event_dispatcher *table,
                                      const event_handle handle) {
     if (!table || handle == EVENT_HANDLE_INVALID) return NULL;
     return (event_listener *)array_list_get(&table->listeners, (size_t)handle - 1u);
 }
 
-void event_table_init(event_table *event_table) {
-    if (!event_table) return;
-    array_list_init(&event_table->listeners, EVENT_DISPATCHER_DEFAULT_LISTENER_CAPACITY,
+void event_table_init(event_dispatcher *event_dispatcher) {
+    if (!event_dispatcher) return;
+    array_list_init(&event_dispatcher->listeners, EVENT_DISPATCHER_DEFAULT_LISTENER_CAPACITY,
                     sizeof(event_listener));
 }
 
-void event_table_destroy(event_table *event_table) {
-    if (!event_table) return;
+void event_table_destroy(event_dispatcher *event_dispatcher) {
+    if (!event_dispatcher) return;
 
-    for (size_t i = 0; i < event_table->listeners.header.size; i++) {
-        event_listener *l = (event_listener *)array_list_get(&event_table->listeners, i);
+    for (size_t i = 0; i < event_dispatcher->listeners.header.size; i++) {
+        event_listener *l = (event_listener *)array_list_get(&event_dispatcher->listeners, i);
         if (l) event_listener_release(l);
     }
-    array_list_deinit(&event_table->listeners);
+    array_list_deinit(&event_dispatcher->listeners);
 }
 
-event_handle event_table_subscribe(event_table         *event_table,
+event_handle event_table_subscribe(event_dispatcher         *event_dispatcher,
                                    const event_category category, const int event_id,
                                    const event_callback callback, void *userdata,
                                    const event_userdata_destroy destroy_fn) {
-    if (!event_table || !callback) return EVENT_HANDLE_INVALID;
+    if (!event_dispatcher || !callback) return EVENT_HANDLE_INVALID;
 
     event_identifier identifier = {
          .category = category,
@@ -138,8 +138,8 @@ event_handle event_table_subscribe(event_table         *event_table,
          .destroy_fn    = destroy_fn  //
     };
 
-    const size_t index = event_table->listeners.header.size;
-    if (!array_list_append(&event_table->listeners, &listener)) {
+    const size_t index = event_dispatcher->listeners.header.size;
+    if (!array_list_append(&event_dispatcher->listeners, &listener)) {
 #if EVENT_DISPATCHER_LOG_ENABLED
         log_debug("event.subscribe: append failed category=%d event_id=%d", category,
                   event_id);
@@ -154,8 +154,8 @@ event_handle event_table_subscribe(event_table         *event_table,
     return (event_handle)(index + 1u);
 }
 
-bool event_table_unsubscribe(event_table *event_table, const event_handle handle) {
-    event_listener *l = event_resolve(event_table, handle);
+bool event_table_unsubscribe(event_dispatcher *event_dispatcher, const event_handle handle) {
+    event_listener *l = event_resolve(event_dispatcher, handle);
     if (!l) return false;
 
 #if EVENT_DISPATCHER_LOG_ENABLED
@@ -163,21 +163,21 @@ bool event_table_unsubscribe(event_table *event_table, const event_handle handle
               l->identifier.category, l->identifier.event_id);
 #endif
     event_listener_release(l);
-    return array_list_remove(&event_table->listeners, (size_t)handle - 1u);
+    return array_list_remove(&event_dispatcher->listeners, (size_t)handle - 1u);
 }
 
-bool event_table_unsubscribe_by_event_identifier(event_table         *event_table,
+bool event_table_unsubscribe_by_event_identifier(event_dispatcher         *event_dispatcher,
                                                  const event_category category,
                                                  const int            event_id) {
-    if (!event_table) return false;
+    if (!event_dispatcher) return false;
 
     bool removed = false;
-    for (size_t i = event_table->listeners.header.size; i-- > 0;) {
-        event_listener *l = (event_listener *)array_list_get(&event_table->listeners, i);
+    for (size_t i = event_dispatcher->listeners.header.size; i-- > 0;) {
+        event_listener *l = (event_listener *)array_list_get(&event_dispatcher->listeners, i);
         if (!l) continue;
         if (l->identifier.category == category && l->identifier.event_id == event_id) {
             event_listener_release(l);
-            array_list_remove(&event_table->listeners, i);
+            array_list_remove(&event_dispatcher->listeners, i);
             removed = true;
         }
     }
@@ -188,11 +188,11 @@ bool event_table_unsubscribe_by_event_identifier(event_table         *event_tabl
     return removed;
 }
 
-void event_table_publish(event_table *event_table, event_context *ctx) {
-    if (!event_table) return;
+void event_table_publish(event_dispatcher *event_dispatcher, event_context *ctx) {
+    if (!event_dispatcher) return;
 
-    for (size_t i = 0; i < event_table->listeners.header.size; i++) {
-        event_listener *l = array_list_get(&event_table->listeners, i);
+    for (size_t i = 0; i < event_dispatcher->listeners.header.size; i++) {
+        event_listener *l = array_list_get(&event_dispatcher->listeners, i);
 
         if (l->identifier.category == ctx->identifier.category &&
             l->identifier.event_id == ctx->identifier.event_id) {
@@ -207,12 +207,12 @@ void event_table_publish(event_table *event_table, event_context *ctx) {
     }
 }
 
-void event_table_emit(event_table *event_table, const event_category category,
+void event_table_emit(event_dispatcher *event_dispatcher, const event_category category,
                       const int event_id, void *payload, const size_t payload_size) {
     event_context ctx = {.identifier   = {.category = category, .event_id = event_id},
                          .payload      = payload,
                          .payload_size = payload_size};
-    event_table_publish(event_table, &ctx);
+    event_table_publish(event_dispatcher, &ctx);
 }
 #endif
 

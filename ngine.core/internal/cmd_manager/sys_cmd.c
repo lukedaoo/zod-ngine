@@ -62,6 +62,7 @@ static void sys_cmd_priv_append_group(char *buf, size_t len, size_t *pos,
     sys_cmd_priv_buf_append(buf, len, pos, "%s [", label);
     for (size_t i = 0; i < list->header.size; i++) {
         const command *cmd = (const command *)array_list_get(list, i);
+        if (!cmd) continue;
         sys_cmd_priv_buf_append(buf, len, pos, "%s%s", i == 0 ? "" : ", ", cmd->name);
     }
     sys_cmd_priv_buf_append(buf, len, pos, "]\n");

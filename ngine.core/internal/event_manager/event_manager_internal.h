@@ -5,7 +5,7 @@
 #include "../../event_manager.h"
 
 struct event_manager {
-    event_table table;
+    event_dispatcher dispatcher;
 };
 
 void event_manager_priv_subscribe_sys_events(event_manager *mgr);
