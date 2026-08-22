@@ -208,9 +208,13 @@ command_handle command_table_register(command_table *table, command_group group,
     }
 
     command command = {0};
-    strncpy(command.name, name, COMMAND_MAX_NAME_LEN);
-    command.group   = group;
-    command.handler = handler;
+    const size_t name_len = strlen(name);
+    const size_t copy_len = name_len < COMMAND_MAX_NAME_LEN - 1 ? name_len
+                                                             : COMMAND_MAX_NAME_LEN - 1;
+    memcpy(command.name, name, copy_len);
+    command.name[copy_len] = '\0';
+    command.group          = group;
+    command.handler        = handler;
 
     const size_t index = list->header.size;
     if (!array_list_append(list, &command)) return COMMAND_HANDLE_INVALID;

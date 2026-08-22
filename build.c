@@ -25,9 +25,10 @@ typedef struct {
 
 static const build_target BUILD_TARGETS[] = {
      {"engine", "ngine.example/engine_run_example.c", "engine_run", true, false},
-     {"beatup", "ngine.example/beatup.c", "beatup_run", true, true},
+     {"beatup", "ngine.example.beatup/main.c", "beatup_run", true, true},
      {"minimal", "ngine.example/minimal_engine_run.c", "minimal_run", true, false},
-     {"keybinding", "ngine.example/keybinding_run_example.c", "keybinding_run", true, false},
+     {"keybinding", "ngine.example/keybinding_run_example.c", "keybinding_run", true,
+      false},
 };
 static const size_t BUILD_TARGETS_COUNT =
      sizeof(BUILD_TARGETS) / sizeof(BUILD_TARGETS[0]);
@@ -357,6 +358,7 @@ static const char *COMPDB_SCAN_DIRS[] = {
      "ngine.ext.console/test",
      "ngine.core/internal/error",
      "ngine.example",
+     "ngine.example.beatup",
 };
 static const size_t COMPDB_SCAN_DIRS_COUNT =
      sizeof(COMPDB_SCAN_DIRS) / sizeof(COMPDB_SCAN_DIRS[0]);
